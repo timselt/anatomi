@@ -1,8 +1,7 @@
 # Anatomi Çalışma Masası: nasıl kullanılır?
 
 ## Açmak
-1. `Simulatoru-Ac.command` dosyasına çift tıkla. Tarayıcıda simülatör açılır.
-   (İlk seferde Mac "açılsın mı?" diye sorabilir: dosyaya sağ tıkla, "Aç"ı seç.)
+1. Tarayıcıya şu adresi yaz: **https://timselt.github.io/anatomi/** (bilgisayar, tablet ya da telefon; Chrome, Safari ya da Edge).
 2. Model ilk açılışta biraz yüklenir (yaklaşık 33 MB). Sonraki açılışlar daha hızlıdır.
 3. En üstteki kutular:
    - **Model:** Erkek ya da Kadın. Erkek modelde iskelet, kaslar, damarlar ve sinirler tam; kadın modelde organlar çok ayrıntılı (böbreğin içi, akciğer segmentleri, rahim ve yumurtalıklar, meme, plasenta) ama iskelet ve kaslar kısmi.
