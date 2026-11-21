@@ -145,7 +145,7 @@ document.querySelectorAll('[data-yon]').forEach(b => b.addEventListener('click',
 
 // Parçalanmış görünümde birlikte hareket edecek gruplar: organlar ve el, ayak, göğüs kafesi gibi bölgeler bütün kalır.
 const ORGAN_GRUBU = [[/lung|bronch/, 'akciger'], [/hepat|liver|gallbladder/, 'karaciger'], [/colon|caecum|cecum|appendix|rectum|taenia/, 'kalin-bagirsak'], [/jejun|ileum|duoden/, 'ince-bagirsak'],
-  [/kidney|renal|ureter/, 'bobrek'], [/ventric|atrium|atrial|valve|papillary|heart|coronary/, 'kalp'], [/stomach|gastric/, 'mide']];
+  [/kidney|renal|ureter/, 'bobrek'], [/ventric|atrium|atrial|valve|papillary|heart|coronary/, 'kalp'], [/stomach|gastric/, 'mide'], [/^(?!.*ligament).*((body|fundus|wall|cavity|cervix) of uterus|uterus$)/, 'rahim']];
 const KEMIK_BOLGESI = [[/carpal|metacarpal|scaphoid|lunate|triquetr|pisiform|trapez|capitate|hamate|finger|thumb/, 'el'], [/tarsal|metatarsal|talus|calcaneus|cuboid|cuneiform|navicular|toe|foot/, 'ayak'],
   [/\brib\b|costal|sternum|manubrium|xiphoid/, 'gogus-kafesi'], [/vertebra|sacrum|coccyx|atlas|axis|intervertebral/, 'omurga']];
 g.patlamaGrubu = i => {
@@ -156,13 +156,14 @@ g.patlamaGrubu = i => {
     return p.sistem === 'bag' ? 'bag' + yan : p.anahtar + yan;
   }
   if (['atardamar', 'toplardamar', 'sinir', 'lenf', 'deri'].includes(p.sistem)) return p.sistem; // damar ve sinir ağları tek blok
-  if (p.sistem !== 'kas') for (const [d, ad] of ORGAN_GRUBU) if (d.test(en)) return ad + (ad === 'akciger' || ad === 'bobrek' ? yan : '');
+  // Kalp grubuna yalnız kalp sisteminin parçaları girer (beyin karıncıkları, bağırsak kapağı gibi adı benzeyenler girmez).
+  if (p.sistem !== 'kas') for (const [d, ad] of ORGAN_GRUBU) if (d.test(en) && !(ad === 'kalp' && p.sistem !== 'kalp')) return ad + (ad === 'akciger' || ad === 'bobrek' ? yan : '');
   return p.anahtar + yan;
 };
 
 // Parçalanmış görünümde her grubun üstüne adını yazar: grubun en büyük parçası etiketi taşır.
 const GRUP_ADI = { akciger: ['Pulmo', 'Akciğer'], karaciger: ['Hepar', 'Karaciğer'], 'kalin-bagirsak': ['Intestinum crassum', 'Kalın bağırsak'], 'ince-bagirsak': ['Intestinum tenue', 'İnce bağırsak'],
-  bobrek: ['Ren', 'Böbrek'], kalp: ['Cor', 'Kalp'], mide: ['Gaster', 'Mide'], el: ['Ossa manus', 'El kemikleri'], ayak: ['Ossa pedis', 'Ayak kemikleri'], 'gogus-kafesi': ['Cavea thoracis', 'Göğüs kafesi'],
+  bobrek: ['Ren', 'Böbrek'], kalp: ['Cor', 'Kalp'], rahim: ['Uterus', 'Rahim'], mide: ['Gaster', 'Mide'], el: ['Ossa manus', 'El kemikleri'], ayak: ['Ossa pedis', 'Ayak kemikleri'], 'gogus-kafesi': ['Cavea thoracis', 'Göğüs kafesi'],
   omurga: ['Columna vertebralis', 'Omurga'], kafatasi: ['Cranium', 'Kafatası'], atardamar: ['Arteriae', 'Atardamarlar'], toplardamar: ['Venae', 'Toplardamarlar'], sinir: ['Nervi', 'Sinirler'], bag: ['Ligamenta', 'Bağlar'] };
 function parcaliEtiketle() {
   const hacim = p => (p.bounds[1][0] - p.bounds[0][0]) * (p.bounds[1][1] - p.bounds[0][1]) * (p.bounds[1][2] - p.bounds[0][2]), gruplar = {};
@@ -336,6 +337,8 @@ function parcaSec(i, odakla) {
 }
 // İçi boş organlar ve büyük damarlar: yalnız bunlarda "İçini aç" düğmesi çıkar.
 const ICI_BOS = /stomach|ventricle|atrium|trachea|bronchus|urinary bladder|oesophagus|esophagus|duoden|jejun|ileum|colon|caecum|cecum|rectum|aorta|vena cava|pulmonary (trunk|artery|vein)|uterus|vagina|gallbladder|larynx|pharynx/i;
+// Adında bu organlar geçen ama içi boş olmayan yapılar (bağ, iz, sinir, lenf düğümü, komşu damar).
+const ICI_BOS_DEGIL = /ligament|impression|pancreaticoduodenal|lymph|nerve|plexus|muscle/i;
 let icAcik = null;
 function icKapat() { if (!icAcik) return; icAcik = null; g.yalniz = null; g.icAc([]); }
 function secimiBirak() { seciliParca = -1; g.secili = new Set(); if (odakModu) g.soluk = null; g.guncelle(); etiketleriGuncelle(); $('#secimEtiketi').hidden = true; cekmeceKapat(); }
@@ -406,7 +409,7 @@ function cekmeceAc(i) {
       <button id="yalnizBu" class="ikincil">${g.yalniz?.size === 1 && g.yalniz.has(i) ? 'Hepsini göster' : 'Yalnız bunu göster'}</button>
       <button id="gizle" class="ikincil">Bunu gizle</button>
       <button id="parcalaDugme" class="ikincil">${parcali ? 'Topla' : 'Parçalarına ayır'}</button>
-      ${ICI_BOS.test(p.en) || p.sistem === 'kalp' ? `<button id="icAc" class="ikincil">${icAcik ? 'İçini kapat' : 'İçini aç'}</button>` : ''}
+      ${(ICI_BOS.test(p.en) && !ICI_BOS_DEGIL.test(p.en)) || p.sistem === 'kalp' ? `<button id="icAc" class="ikincil">${icAcik ? 'İçini kapat' : 'İçini aç'}</button>` : ''}
     </div>
     ${p.anahtar ? `<div class="dugme-satiri"><button id="baglantiKopyala" class="ikincil">Bağlantıyı kopyala</button><a class="dugme ikincil" target="_blank" rel="noopener" href="https://claude.ai/new?q=${encodeURIComponent(`Tıp fakültesi öğrencisiyim. ${p.la || y.la} (${p.tr}) yapısını Türkçe anlat: yeri, komşulukları, damarı ve siniri, klinik önemi. Yapı adlarını Latince yaz. Sonunda beni sınamak için 3 kısa soru sor.`)}">Yapay zekâya sor</a></div><p id="baglantiDurum" class="kucuk"></p>` : ''}
     ${p.anahtar ? `<h3>Benim notum</h3><textarea id="notAlani" class="not" placeholder="Bu yapıyla ilgili kendi notunu yaz. Kendiliğinden kaydedilir.">${esc(C.notAl(p.anahtar))}</textarea><p id="notDurum" class="kucuk"></p>` : ''}`;
@@ -415,9 +418,10 @@ function cekmeceAc(i) {
   if ($('#icAc')) $('#icAc').onclick = () => {
     if (icAcik) { icKapat(); return cekmeceAc(i); }
     // Organ bütün olarak açılır (ör. kalbin bütün odacıkları); önünü kapatmasın diye diğer yapılar gizlenir.
-    const grup = g.patlamaGrubu(i);
-    icAcik = parcalar.filter(q => g.patlamaGrubu(q.i) === grup && g.meshler[q.i]).map(q => q.i);
-    g.secili = new Set(); g.yalniz = new Set(icAcik); g.icAc(icAcik); g.gorunus('on', false); g.odakla(icAcik); cekmeceKapat();
+    // Damarlarda yalnız seçilen damar açılır (bütün damar ağı değil).
+    const grup = g.patlamaGrubu(i), damar = p.sistem === 'atardamar' || p.sistem === 'toplardamar', yan = e => /\bright\b/i.exec(e)?.[0] ?? /\bleft\b/i.exec(e)?.[0] ?? '';
+    icAcik = parcalar.filter(q => g.meshler[q.i] && (damar ? q.anahtar === p.anahtar && yan(q.en) === yan(p.en) : g.patlamaGrubu(q.i) === grup)).map(q => q.i);
+    g.secili = new Set(); g.yalniz = new Set(icAcik); g.icAc(icAcik, grup === 'kalp' || grup === 'rahim'); g.gorunus('on', false); g.sigdir(icAcik); cekmeceKapat();
     $('#secimEtiketi').textContent = `${$('#cekmeceBaslik').textContent}: ön yarısı kesildi. Kapatmak için yapıya dokun, "İçini kapat" de.`; $('#secimEtiketi').hidden = false;
   };
   $('#parcalaDugme').onclick = () => {

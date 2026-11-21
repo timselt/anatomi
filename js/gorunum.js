@@ -120,10 +120,11 @@ export class Goruntuleyici {
       if (soru) gorunur = true;
       m.visible = gorunur;
       m.material = soru ? this.soruMalzeme : secili ? this.vurguMalzeme : ((this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s)) ? this.solukMalzeme[s] : this.malzeme[s];
-      if (this.icAcik?.kume.has(i)) { // kesilen yapı kendi malzemesinin kesitli kopyasıyla çizilir
-        const mz = this.icAcik.malzeme;
-        if (!mz.has(m.material)) { const k = m.material.clone(); k.clippingPlanes = [...(m.material.clippingPlanes ?? []), this.icAcik.duzlem]; mz.set(m.material, k); }
-        m.material = mz.get(m.material);
+      const kes = this.icAcik?.duzlem.get(i);
+      if (kes) { // kesilen yapı kendi malzemesinin kesitli kopyasıyla çizilir
+        const mz = this.icAcik.malzeme, anahtar = m.material.uuid + kes.constant;
+        if (!mz.has(anahtar)) { const k = m.material.clone(); k.clippingPlanes = [...(m.material.clippingPlanes ?? []), kes]; mz.set(anahtar, k); }
+        m.material = mz.get(anahtar);
       }
       m.renderOrder = m.material.transparent ? 1 : 0;
     });
@@ -228,12 +229,15 @@ export class Goruntuleyici {
   }
   merkezHam(i) { const b = this.atlas.parts[i].bounds; return new T.Vector3((b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2); }
   // İçini aç: verilen yapıların ön yarısını keser; duvar ve iç boşluk dışarıdan görünür. Boş dizi kapatır.
-  icAc(indeksler) {
+  // ortak: bütün parçalar aynı düzlemden kesilir (kalp gibi iç içe odacıklar); değilse her parça kendi ortasından kesilir (bağırsak gibi kıvrımlı borular).
+  icAc(indeksler, ortak = true) {
     if (!indeksler.length) { this.icAcik = null; return this.guncelle(); }
     const kutu = new T.Box3(); for (const i of indeksler) { kutu.expandByPoint(new T.Vector3(...this.atlas.parts[i].bounds[0])); kutu.expandByPoint(new T.Vector3(...this.atlas.parts[i].bounds[1])); }
-    this.icAcik = { kume: new Set(indeksler), duzlem: new T.Plane(new T.Vector3(0, 0, -1), kutu.getCenter(new T.Vector3()).z), malzeme: new Map() };
+    const duzlem = z => new T.Plane(new T.Vector3(0, 0, -1), z), hepsi = duzlem(kutu.getCenter(new T.Vector3()).z);
+    this.icAcik = { duzlem: new Map(indeksler.map(i => [i, ortak ? hepsi : duzlem(this.merkezHam(i).z)])), malzeme: new Map() };
     this.guncelle();
   }
+
 
   // Gezinme düğmeleri ve klavye için: görüntüyü kaydırır (ekranın oranı olarak).
   kaydir(dx, dy) {
