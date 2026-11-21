@@ -1,6 +1,7 @@
 // 3 boyutlu görüntüleyici: modeli yükler, döndürme/yakınlaştırma, kesit alma, seçme ve vurgulama.
 import * as T from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const VURGU = new T.Color('#16b8a6');   // seçili yapı
 const SORU = new T.Color('#ff8a00');    // sınavda sorulan yapı
@@ -12,21 +13,30 @@ export class Goruntuleyici {
     this.yalniz = null; this.soluk = null; this.secili = new Set(); this.soru = new Set();
     this.kirli = true; this.tikla = () => {}; this.uzerinde = () => {};
     this.saydamSistem = new Set(); this.patlama = 0; this.etiketler = []; this.olcumNoktalari = [];
-    this.renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    this.renderer = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+    this.renderer.outputColorSpace = T.SRGBColorSpace; this.renderer.toneMapping = T.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    this.renderer.setClearColor('#eef1f4');
+    this.renderer.setClearColor(0x000000, 0); // zemin rengi sayfanın arka planından gelir
     this.renderer.localClippingEnabled = true;
     kap.appendChild(this.renderer.domElement);
     this.etiketKatmani = document.createElement('div'); this.etiketKatmani.className = 'etiket-katmani'; kap.appendChild(this.etiketKatmani);
     this.sahne = new T.Scene();
     this.kamera = new T.PerspectiveCamera(32, 1, 0.005, 50);
     this.kontrol = new OrbitControls(this.kamera, this.renderer.domElement);
-    this.kontrol.enableDamping = true; this.kontrol.dampingFactor = 0.1;
+    this.kontrol.enableDamping = true; this.kontrol.dampingFactor = 0.09;
+    this.kontrol.zoomToCursor = true; this.kontrol.screenSpacePanning = true; this.kontrol.panSpeed = 1.1; this.kontrol.rotateSpeed = 0.9;
     this.kontrol.minDistance = 0.05; this.kontrol.maxDistance = 8;
     this.kontrol.addEventListener('change', () => { this.kirli = true; });
-    this.sahne.add(new T.HemisphereLight(0xffffff, 0x9aa3ad, 1.6));
-    const d1 = new T.DirectionalLight(0xffffff, 1.8); d1.position.set(-2, 4, 3); this.sahne.add(d1);
-    const d2 = new T.DirectionalLight(0xe8efff, 1.1); d2.position.set(2, 2, -3); this.sahne.add(d2);
+    // Yumuşak ortam ışığı (stüdyo aydınlatması): yüzeyler daha hacimli görünür.
+    const pmrem = new T.PMREMGenerator(this.renderer), oda = new RoomEnvironment();
+    this.sahne.environment = pmrem.fromScene(oda, 0.04).texture; oda.dispose(); pmrem.dispose();
+    this.sahne.add(new T.HemisphereLight(0xffffff, 0xa7acb2, 0.55));
+    const zemin = new T.Mesh(new T.CircleGeometry(0.62, 96), new T.MeshBasicMaterial({ color: 0xc9d1d9, transparent: true, opacity: 0.55 }));
+    zemin.rotation.x = -Math.PI / 2; zemin.position.y = -0.012; this.sahne.add(zemin);
+    const halka = new T.Mesh(new T.RingGeometry(0.62, 0.626, 128), new T.MeshBasicMaterial({ color: 0x8c969f, transparent: true, opacity: 0.6, side: T.DoubleSide }));
+    halka.rotation.x = -Math.PI / 2; halka.position.y = -0.011; this.sahne.add(halka);
+    const d1 = new T.DirectionalLight(0xfffaf4, 1.5); d1.position.set(-2, 4, 3); this.sahne.add(d1);
+    const d2 = new T.DirectionalLight(0xe9f0ff, 1.0); d2.position.set(2, 2, -3); this.sahne.add(d2);
     this.kesit = new T.Plane(new T.Vector3(0, -1, 0), 2);
     this.kesitAcik = false;
     this.malzeme = {}; this.solukMalzeme = {};
@@ -117,6 +127,18 @@ export class Goruntuleyici {
   gorunus(yon, animasyon = true) {
     const h = { on: [0, 0.95, 3.4], arka: [0, 0.95, -3.4], sol: [3.4, 0.95, 0], sag: [-3.4, 0.95, 0], ust: [0, 4, 0.01] }[yon];
     this._git(new T.Vector3(...h), new T.Vector3(0, 0.9, 0), animasyon);
+  }
+
+  // Gezinme düğmeleri ve klavye için: görüntüyü kaydırır (ekranın oranı olarak).
+  kaydir(dx, dy) {
+    const uzaklik = this.kamera.position.distanceTo(this.kontrol.target), adim = uzaklik * 0.14;
+    const sag = new T.Vector3().setFromMatrixColumn(this.kamera.matrix, 0), yukari = new T.Vector3().setFromMatrixColumn(this.kamera.matrix, 1);
+    const k = sag.multiplyScalar(dx * adim).add(yukari.multiplyScalar(dy * adim));
+    this._git(this.kamera.position.clone().add(k), this.kontrol.target.clone().add(k), true);
+  }
+  yakinlastir(oran) {
+    const h = this.kontrol.target, yeni = h.clone().add(this.kamera.position.clone().sub(h).multiplyScalar(oran));
+    if (yeni.distanceTo(h) > this.kontrol.minDistance && yeni.distanceTo(h) < this.kontrol.maxDistance) this._git(yeni, h.clone(), true);
   }
 
   // Canlandırmalar: bir parçaya dönüşüm uygular; matris verilmezse parça yerine döner.
@@ -247,6 +269,8 @@ export class Goruntuleyici {
       this.uzerinde(this.sec(e.clientX, e.clientY), e.clientX, e.clientY);
     });
     el.addEventListener('pointerleave', () => this.uzerinde(-1));
+    // Çift tıklama: yapıya yakınlaş.
+    el.addEventListener('dblclick', e => { const h = this.isabet(e.clientX, e.clientY); if (h) this.odakla([h.i]); });
   }
 
   _boyut() {

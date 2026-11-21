@@ -133,12 +133,32 @@ $('#cinsiyet').value = C.cinsiyet();
 $('#cinsiyet').addEventListener('change', e => { C.cinsiyetAyarla(e.target.value); location.reload(); });
 $('#sinif').innerHTML = C.SINIFLAR.map(s => `<option value="${s.id}" ${s.id === C.sinif() ? 'selected' : ''}>${esc(s.ad)}</option>`).join('');
 komiteListesi();
-$('#sinif').addEventListener('change', e => { C.sinifAyarla(e.target.value); komiteListesi(); aktifKonu = null; yanCiz(); });
-$('#komite').addEventListener('change', e => { C.komiteAyarla(e.target.value); aktifKonu = null; yanCiz(); });
+$('#sinif').addEventListener('change', e => { C.sinifAyarla(e.target.value); komiteListesi(); komiteUygula(); yanCiz(); });
+$('#komite').addEventListener('change', e => { C.komiteAyarla(e.target.value); komiteUygula(); yanCiz(); });
 $('#dil').value = C.dil();
 $('#dil').addEventListener('change', e => { C.dilAyarla(e.target.value); yanCiz(); if (seciliParca >= 0 && !$('#cekmece').hidden) cekmeceAc(seciliParca); });
 $('#yardimDugme').addEventListener('click', () => $('#yardim').showModal());
 document.querySelectorAll('[data-yon]').forEach(b => b.addEventListener('click', () => g.gorunus(b.dataset.yon)));
+// Gezinme: düğmeler ve klavye (ok tuşları kaydırır, + ve − yakınlaştırır).
+const GEZ = { yukari: () => g.kaydir(0, 1), asagi: () => g.kaydir(0, -1), sol: () => g.kaydir(-1, 0), sag: () => g.kaydir(1, 0), yakin: () => g.yakinlastir(0.75), uzak: () => g.yakinlastir(1.33), orta: () => g.gorunus('on') };
+document.querySelectorAll('[data-gez]').forEach(b => b.addEventListener('click', () => GEZ[b.dataset.gez]()));
+document.addEventListener('keydown', e => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || e.metaKey || e.ctrlKey) return;
+  const t = { ArrowUp: 'yukari', ArrowDown: 'asagi', ArrowLeft: 'sol', ArrowRight: 'sag', '+': 'yakin', '=': 'yakin', '-': 'uzak' }[e.key];
+  if (t) { e.preventDefault(); GEZ[t](); }
+});
+// Komite seçimi modeli de değiştirir: yalnız o komitenin sistemleri açılır ve model o bölgeye yaklaşır.
+function komiteUygula() {
+  if (sinav || tekrar || ozel || canli) return;
+  aktifKonu = null; g.yalniz = null;
+  if (C.komite() === 'hepsi') { g.acikSistemler = new Set(KADIN_MI ? [...VARSAYILAN_ACIK, 'ureme', 'sinir', 'deri'] : VARSAYILAN_ACIK); g.guncelle(); g.gorunus('on'); return; }
+  const anahtarlar = tumAnahtarlar();
+  // Komitede yalnız birkaç yapısı olan sistemler (ör. göz kasları yüzünden bütün kaslar) açılmaz.
+  const say = {}; for (const a of anahtarlar) say[yapilar[a].sistem] = (say[yapilar[a].sistem] || 0) + 1;
+  const ana = Object.keys(say).filter(x => say[x] >= anahtarlar.length * 0.08);
+  g.acikSistemler = new Set(ana); g.guncelle();
+  g.odakla(anahtarlar.filter(a => ana.includes(yapilar[a].sistem)).flatMap(a => yapilar[a].parcalar));
+}
 
 // ---------- Keşfet ----------
 function kesfetCiz() {
@@ -146,6 +166,7 @@ function kesfetCiz() {
   const konuBandi = aktifKonu ? `<div class="ek">Yalnız <b>${esc(KONU[aktifKonu].ad)}</b> gösteriliyor. <button id="tumunuGoster" class="ikincil">Tümünü göster</button></div>` : '';
   $('#yan').innerHTML = `
     ${konuBandi}
+    <div class="komite-bandi"><b>${esc(seciliSinif().ad)}</b><br>${C.komite() === 'hepsi' ? 'Bütün komiteler. Üstteki "Komite" kutusundan birini seçersen model yalnız o komitenin sistemlerini gösterir.' : `Komite: <b>${esc(seciliKomiteler()[0]?.ad)}</b> · ${tumAnahtarlar().length} yapı. Model bu komitenin sistemlerini gösteriyor.`}</div>
     <h2>Yapı ara</h2>
     <input id="arama" class="arama" type="search" placeholder="Örn. uyluk, femur, mide, kaburga" autocomplete="off" aria-label="Yapı ara">
     <ul id="sonuclar" class="sonuclar"></ul>

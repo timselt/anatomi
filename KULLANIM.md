@@ -9,6 +9,12 @@
    - **Komite:** Seçtiğin sınıfın ders kurulları. Seçince çalışma planı, sınav ve kartlar yalnız o komitenin konularından gelir.
    - **Adlar:** Latince (fakültede sorulduğu gibi) ya da Türkçe.
 
+## Gezinme (iPad ve bilgisayar)
+- **iPad:** tek parmakla sürükle = döndür; iki parmakla sürükle = kaydır; iki parmakla aç-kapa = yakınlaş; çift dokun = yapıya yakınlaş.
+- **Bilgisayar:** sürükle = döndür; sağ tuşla ya da Shift ile sürükle = kaydır; tekerlek = imlecin olduğu yere yakınlaş; ok tuşları kaydırır, + ve − yakınlaştırır.
+- Modelin sağ altındaki düğmeler: oklar görüntüyü kaydırır (yakınlaşınca başa ya da ayaklara gitmek için), ortadaki nokta bütün bedeni gösterir, + ve − yakınlaştırır.
+- **Komite** kutusundan bir komite seçince model yalnız o komitenin sistemlerini gösterir ve o bölgeye yaklaşır.
+
 ## Modeli incelemek (Keşfet)
 - **Döndür:** farenin sol tuşuyla sürükle. **Kaydır:** sağ tuşla sürükle. **Yakınlaştır:** tekerlek ya da iki parmak.
 - **Önden, Arkadan, Soldan, Sağdan, Üstten** düğmeleri modeli o yöne çevirir.
