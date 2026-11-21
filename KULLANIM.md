@@ -1,0 +1,47 @@
+# Anatomi Çalışma Masası: nasıl kullanılır?
+
+## Açmak
+1. `Simulatoru-Ac.command` dosyasına çift tıkla. Tarayıcıda simülatör açılır.
+   (İlk seferde Mac "açılsın mı?" diye sorabilir: dosyaya sağ tıkla, "Aç"ı seç.)
+2. Model ilk açılışta biraz yüklenir (yaklaşık 33 MB). Sonraki açılışlar daha hızlıdır.
+3. En üstteki kutular:
+   - **Model:** Erkek ya da Kadın. Erkek modelde iskelet, kaslar, damarlar ve sinirler tam; kadın modelde organlar çok ayrıntılı (böbreğin içi, akciğer segmentleri, rahim ve yumurtalıklar, meme, plasenta) ama iskelet ve kaslar kısmi.
+   - **Sınıf:** 1., 2., 3. sınıf ya da 4. sınıf ve sonrası. 1. ve 2. sınıf ders kurullarına göre; 3. ve 4. sınıf bölgelere göre tekrar.
+   - **Komite:** Seçtiğin sınıfın ders kurulları. Seçince çalışma planı, sınav ve kartlar yalnız o komitenin konularından gelir.
+   - **Adlar:** Latince (fakültede sorulduğu gibi) ya da Türkçe.
+
+## Modeli incelemek (Keşfet)
+- **Döndür:** farenin sol tuşuyla sürükle. **Kaydır:** sağ tuşla sürükle. **Yakınlaştır:** tekerlek ya da iki parmak.
+- **Önden, Arkadan, Soldan, Sağdan, Üstten** düğmeleri modeli o yöne çevirir.
+- **Bir yapıya tıkla:** sağda Türkçe adı, Latince adı, görevi, hafıza ipucu ve komşu yapılar açılır. Komşulara tıklayarak yapıdan yapıya geçebilirsin.
+- **Sistemler:** soldaki kutularla iskelet, kaslar, sinirler, damarlar, sindirim, solunum ve diğer sistemleri aç ya da kapat. Kasları kapatınca içerideki organlar görünür.
+- **Yapı ara:** "uyluk", "femur", "mide" gibi Türkçe, Latince ya da İngilizce ad yaz.
+- **Kesit al:** "Modeli bir düzlemle kes" kutusunu işaretle, yönü seç, kaydırıcıyla kesiti hareket ettir. İçi görmek için çok işe yarar.
+- "Yalnız bunu göster" seçili yapıyı tek başına gösterir; "Bunu gizle" önündeki yapıyı kaldırır.
+
+## Ders çalışmak için önerilen sıra
+1. **Çalışma planı** sekmesinde sıradaki konuyu aç, **İncele**ye bas. Model yalnız o konunun yapılarını gösterir. Listeden ya da modelden her yapıya tıkla, görevini ve ipucunu oku.
+2. Aynı konuda **Sınav ol**a bas. İki tür soru gelir:
+   - **Bunu bul:** adı yazan yapıyı modelde tıkla.
+   - **Bunun adı ne?:** turuncu yapının adını seç.
+3. Her gün 5–10 dakika **Tekrar kartları** sekmesine gir. Sekmenin yanındaki turuncu sayı, bugün tekrar zamanı gelen kart sayısıdır.
+   - Cevabı düşün, "Cevabı göster"e bas, dürüstçe puanla: **Unuttum**, **Zor**, **İyi** ya da **Kolay**. Her düğmenin altında kartın ne zaman yeniden geleceği yazar.
+   - Zamanlamayı FSRS adlı yöntem yapar (Anki'deki yöntem). İyi bildiğin kart giderek seyrekleşir; unuttuğun kart birkaç dakika sonra yeniden gelir.
+   - **Komite sınav tarihini** girersen aralıklar sınavı aşmaz; her kart sınavdan önce en az bir kez daha gelir.
+4. **İlerlemem** sekmesinde kaç gün üst üste çalıştığını, doğru oranını ve en çok zorlandığın yapıları gör.
+
+## Kendi notların
+Bir yapıya tıkla, sağdaki **Benim notum** alanına yaz. Kendiliğinden kaydedilir. Bütün notların **Notlarım** sekmesinde toplanır ve tekrar kartının arka yüzünde de görünür.
+
+## Yapının altındaki işaretler ne demek?
+- **Kaynakla kontrol edildi:** Latince ad ve açıklama uluslararası terim listesi (Terminologia Anatomica) ve başvuru kaynaklarıyla karşılaştırıldı.
+- **Tanımlayıcı ad (resmî listede yok):** Uluslararası listede bu küçük dalın ayrı bir adı yok; ad, yapıyı doğru tanımlayan Latince bir ifade. Sınavda bu düzeyde ad sorulması beklenmez.
+- **Belirsiz: hocana sor:** Kaynaklar yetersiz ya da çelişkili. Bu yapılar `HOCAYA-SORULACAKLAR.md` dosyasında soru olarak listeli.
+- **Ad: Z-Anatomy terim tablosu:** Sinir, lenf düğümü ve akciğer lobu katmanındaki adlar o projenin kendi tablosundan geliyor; burada ayrıca karşılaştırılmadı.
+- Kas bilgi kartındaki sinir kök değerleri kitaptan kitaba bir kök değişebilir; fakültendeki ders notunu esas al.
+
+## Bilmen gerekenler
+- Simülatör üç açık modeli birleştirir. Erkek beden: BodyParts3D. Erkek modele eklenen sinirler, lenf düğümleri, akciğer lobları, karaciğer ve tiroid: Z-Anatomy (bu katman model açıldıktan birkaç saniye sonra yüklenir ve asıl modele yaklaşık 1 cm hassasiyetle oturur). Kadın beden: HuBMAP İnsan Referans Atlası.
+- Bütün yapıların Latince adı var. Türkçe adı olmayanlarda "Türkçe adı henüz eklenmedi" yazar.
+- Kaslara tıklayınca başlangıç, sonlanma, sinir, atardamar, görev ve klinik bilgisi görünür.
+- İlerlemen bu bilgisayardaki tarayıcıda saklanır. Kaybetmemek ya da başka bilgisayarda devam etmek için **İlerlemem → Yedek al** düğmesini kullan.

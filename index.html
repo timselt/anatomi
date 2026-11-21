@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatomi Çalışma Masası</title>
+<link rel="stylesheet" href="css/stil.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.min.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header class="ust">
+  <h1>Anatomi Çalışma Masası</h1>
+  <nav class="sekmeler" role="tablist" aria-label="Bölümler">
+    <button role="tab" data-sekme="kesfet" aria-selected="true">Keşfet</button>
+    <button role="tab" data-sekme="sinav">Sınav</button>
+    <button role="tab" data-sekme="tekrar">Tekrar kartları <span id="vadeliRozet" class="rozet" hidden></span></button>
+    <button role="tab" data-sekme="plan">Çalışma planı</button>
+    <button role="tab" data-sekme="ilerleme">İlerlemem</button>
+    <button role="tab" data-sekme="notlar">Notlarım</button>
+  </nav>
+  <label class="duzey">Model
+    <select id="cinsiyet"><option value="erkek">Erkek</option><option value="kadin">Kadın</option></select>
+  </label>
+  <label class="duzey">Sınıf
+    <select id="sinif"></select>
+  </label>
+  <label class="duzey">Komite
+    <select id="komite"></select>
+  </label>
+  <label class="duzey">Adlar
+    <select id="dil"><option value="la">Latince</option><option value="tr">Türkçe</option></select>
+  </label>
+  <button id="yardimDugme" class="ikincil">Nasıl kullanılır?</button>
+</header>
+
+<main class="duzen">
+  <aside class="yan"><div id="soruKarti" class="soru-karti" hidden></div><div id="yan" aria-live="polite"></div></aside>
+  <section class="sahne" id="sahne" aria-label="3 boyutlu insan modeli. Sürükleyerek döndür, tekerlek ya da iki parmakla yakınlaştır, bir yapıya tıklayarak adını gör.">
+    <div id="yukleniyor" class="yukleniyor"><p>Model yükleniyor…</p><div class="cubuk"><div id="yukCubuk"></div></div><p class="kucuk">İlk açılışta 24–33 MB indirilir.</p></div>
+    <div class="gorunum-dugmeleri" role="group" aria-label="Bakış yönü">
+      <button data-yon="on">Önden</button><button data-yon="arka">Arkadan</button><button data-yon="sol">Soldan</button><button data-yon="sag">Sağdan</button><button data-yon="ust">Üstten</button>
+    </div>
+    <div id="secimEtiketi" class="secim-etiketi" hidden></div>
+  </section>
+</main>
+
+<div id="cekmeceArka" class="cekmece-arka" hidden></div>
+<aside id="cekmece" class="cekmece" role="dialog" aria-modal="false" aria-labelledby="cekmeceBaslik" hidden>
+  <div class="cekmece-ust">
+    <h2 id="cekmeceBaslik"></h2>
+    <button id="cekmeceKapat" class="ikincil">Kapat</button>
+  </div>
+  <div id="cekmeceIcerik"></div>
+</aside>
+
+<dialog id="yardim">
+  <h2>Nasıl kullanılır?</h2>
+  <ul>
+    <li><b>Döndürmek:</b> modeli farenin sol tuşuyla sürükle. <b>Kaydırmak:</b> sağ tuşla sürükle. <b>Yakınlaştırmak:</b> fare tekerleği ya da iki parmak.</li>
+    <li><b>Bir yapıyı tanımak:</b> üstüne tıkla. Sağda Türkçe ve Latince adı, görevi, hafıza ipucu ve komşuları açılır. Oraya kendi notunu da yazabilirsin.</li>
+    <li><b>Katmanlar:</b> soldaki listeden sistemleri aç ya da kapat. Kasları kapatınca iç organlar görünür.</li>
+    <li><b>Kesit:</b> "Kesit al" ile modeli bir düzlemle kes, kaydırıcıyla kesiti hareket ettir.</li>
+    <li><b>Çalışma planı:</b> konuları sırayla çalış. Her konuda önce yapıları incele, sonra o konunun sınavını ol.</li>
+    <li><b>Sınav:</b> "Bunu bul" sorusunda yapıyı modelde tıklayarak bul; "Bunun adı ne?" sorusunda turuncu yapının adını seç.</li>
+    <li><b>Tekrar kartları:</b> her gün birkaç dakika. Bildiğin kartlar seyrek, bilemediklerin sık gelir.</li>
+    <li><b>"Doğrulanmadı" işareti:</b> o bilginin henüz bir kaynakla karşılaştırılmadığını gösterir; öğretmeninle ya da ders kitabınla kontrol et.</li>
+  </ul>
+  <form method="dialog"><button>Anladım</button></form>
+</dialog>
+
+<script type="module" src="js/ana.js"></script>
+</body>
+</html>
