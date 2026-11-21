@@ -18,6 +18,17 @@
 - **Kesit al:** "Modeli bir düzlemle kes" kutusunu işaretle, yönü seç, kaydırıcıyla kesiti hareket ettir. İçi görmek için çok işe yarar.
 - "Yalnız bunu göster" seçili yapıyı tek başına gösterir; "Bunu gizle" önündeki yapıyı kaldırır.
 
+## Görünüm araçları (Keşfet sekmesi)
+- **Fareyle üzerine gel:** bir yapının üstünde durunca adı çıkar (bilgisayarda).
+- **Saydam:** her sistemin yanındaki "saydam" düğmesi o sistemi cam gibi yapar; içindekiler görünür ve arkasındaki yapılara tıklanabilir.
+- **Parçaları ayır:** kaydırıcı bütün yapıları birbirinden uzaklaştırır; iç içe duran yapıları tek tek görmek için.
+- **Odak:** seçtiğin yapı dışındaki her şeyi soluklaştırır.
+- **Ad etiketleri:** incelediğin konunun yapılarının ya da seçtiğin yapı ile komşularının adını modelin üstüne yazar.
+- **Mesafe ölç:** modelde iki noktaya tıkla; aradaki mesafe santimetre olarak çıkar.
+- **Görüntüyü kaydet:** ekrandaki modeli resim olarak indirir (not ya da sunum için).
+- **Bağlantıyı kopyala:** bir yapının ayrıntı penceresinden, o yapıyı doğrudan açan bağlantıyı kopyalayıp arkadaşına gönderebilirsin.
+- **Yapay zekâya sor:** yapının adıyla hazırlanmış bir soruyu Claude'da açar (ayrı bir site; hesabınla giriş ister). Verdiği bilgiyi ders kitabınla karşılaştır.
+
 ## Ders çalışmak için önerilen sıra
 1. **Çalışma planı** sekmesinde sıradaki konuyu aç, **İncele**ye bas. Model yalnız o konunun yapılarını gösterir. Listeden ya da modelden her yapıya tıkla, görevini ve ipucunu oku.
 2. Aynı konuda **Sınav ol**a bas. İki tür soru gelir:

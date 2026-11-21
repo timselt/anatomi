@@ -14,6 +14,9 @@ const norm = s => String(s).toLocaleLowerCase('tr').replace(/[çğıöşüâî]/
 const SISTEM = Object.fromEntries(SISTEMLER.map(s => [s.id, s]));
 
 // ---------- Veri ----------
+// Paylaşılan bağlantı: ?model=kadin&yapi=<anahtar>
+const BAGLANTI = new URLSearchParams(location.search);
+if (['erkek', 'kadin'].includes(BAGLANTI.get('model')) && BAGLANTI.get('model') !== C.cinsiyet()) C.cinsiyetAyarla(BAGLANTI.get('model'));
 const KADIN_MI = C.cinsiyet() === 'kadin';
 const atlas = await (await fetch(KADIN_MI ? 'data/models/kadin/atlas-female.json' : 'data/models/atlas.json')).json();
 const parcalar = atlas.parts.map((p, i) => {
@@ -44,7 +47,7 @@ const tumAnahtarlar = () => [...new Set(konular().flatMap(k => k.liste))];
 const g = new Goruntuleyici($('#sahne'), atlas, parcalar.map(p => p.sistem), Object.fromEntries(SISTEMLER.map(s => [s.id, s.renk])));
 g.acikSistemler = new Set(KADIN_MI ? [...VARSAYILAN_ACIK, 'ureme', 'sinir', 'deri'] : VARSAYILAN_ACIK);
 g.yukle(o => { $('#yukCubuk').style.width = `${Math.round(o * 100)}%`; })
-  .then(() => { $('#yukleniyor').hidden = true; if (!KADIN_MI) ekKatman(); })
+  .then(() => { $('#yukleniyor').hidden = true; baglantiAc(); if (!KADIN_MI) ekKatman(); })
   .catch(e => { $('#yukleniyor').innerHTML = `<p>Model yüklenemedi: ${esc(e.message)}</p><p class="kucuk">Simülatörü "Simulatoru-Ac.command" dosyasıyla açtığından emin ol.</p>`; });
 
 // Erkek modelde eksik yapılar (sinirler, lenf, akciğer lobları, karaciğer...) ikinci açık modelden eklenir.
@@ -61,15 +64,38 @@ async function ekKatman() {
       y.parcalar.push(i); y.enler.push(e.enKucuk);
       aramaDizini.push({ i, metin: norm([e.tr, e.la, e.en].join(' | ')) });
     }
-    g.guncelle(); ekYuklendi = ekler.length; yanCiz();
+    g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc();
   } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; }
 }
 let ekYuklendi = 0;
+let baglantiAcildi = false;
+function baglantiAc() {
+  const a = BAGLANTI.get('yapi');
+  if (baglantiAcildi || !a || !yapilar[a]) return;
+  baglantiAcildi = true; parcaSec(yapilar[a].parcalar[0], true);
+}
+// Görünüm araçlarının durumu
+let odakModu = false, etiketAcik = false, olcumModu = false;
+function etiketleriGuncelle() {
+  if (!etiketAcik || sinav || tekrar || ozel) return g.etiketle([]);
+  const yazi = i => (C.dil() === 'la' ? parcalar[i].la : parcalar[i].tr) || parcalar[i].tr || parcalar[i].en;
+  let liste = [];
+  if (aktifKonu) liste = konular().find(k => k.id === aktifKonu)?.liste.slice(0, 30).map(a => yapilar[a].parcalar[0]) ?? [];
+  else if (seciliParca >= 0) liste = [seciliParca, ...komsular(seciliParca).map(q => q.i)];
+  g.etiketle(liste.map(i => ({ i, metin: yazi(i) })));
+}
+const ustuneGel = document.createElement('div'); ustuneGel.className = 'ustune-gel'; ustuneGel.hidden = true; document.body.appendChild(ustuneGel);
+g.uzerinde = (i, x, y) => {
+  if (i < 0 || sinav || tekrar || ozel) { ustuneGel.hidden = true; return; }
+  ustuneGel.textContent = (C.dil() === 'la' ? parcalar[i].la : parcalar[i].tr) || parcalar[i].tr || parcalar[i].en;
+  ustuneGel.style.left = `${x + 14}px`; ustuneGel.style.top = `${y + 14}px`; ustuneGel.hidden = false;
+};
 
 let sekme = 'kesfet', aktifKonu = null, sinav = null, tekrar = null, ozel = null, seciliParca = -1;
 const kesit = { acik: false, eksen: 'y', oran: 0.5, ters: false };
 
-g.tikla = i => {
+g.tikla = (i, nokta) => {
+  if (olcumModu && !sinav && !tekrar && !ozel) { if (nokta) { const cm = g.olcumNoktasi(nokta); const d = $('#olcumDurum'); if (d) d.textContent = cm === null ? 'İkinci noktayı tıkla.' : `Mesafe: ${cm.toFixed(1).replace('.', ',')} cm. Yeni ölçüm için yeniden tıkla.`; } return; }
   if (sinav && !sinav.cevaplandi && sinav.sorular[sinav.sira].tip === 'bul') return sinavBulCevap(i);
   if (sinav || tekrar || ozel) return;
   if (i < 0) { secimiBirak(); return; }
@@ -122,7 +148,7 @@ function kesfetCiz() {
     <ul id="sonuclar" class="sonuclar"></ul>
     <p id="ekDurum" class="kucuk">${ekYuklendi ? `Ek katman yüklendi: ${ekYuklendi} yapı (sinirler, lenf düğümleri, akciğer lobları, karaciğer, tiroid).` : ''}</p>
     <div class="bolum"><h3>Sistemler</h3>
-      <ul class="sistemler">${SISTEMLER.map(s => `<li><label><input type="checkbox" data-sistem="${s.id}" ${g.acikSistemler.has(s.id) ? 'checked' : ''}><span class="nokta" style="background:${s.renk}"></span>${esc(s.ad)}</label>${s.ayrinti ? '<span class="etiket" title="Bütün yapıların Türkçe ve Latince adı var">tam ayrıntı</span>' : ''}<span class="kucuk">${sayi[s.id] || 0}</span></li>`).join('')}</ul>
+      <ul class="sistemler">${SISTEMLER.map(s => `<li><label><input type="checkbox" data-sistem="${s.id}" ${g.acikSistemler.has(s.id) ? 'checked' : ''}><span class="nokta" style="background:${s.renk}"></span>${esc(s.ad)}</label><button class="mini ${g.saydamSistem.has(s.id) ? 'acik' : ''}" data-saydam="${s.id}" title="Bu sistemi saydam yap: içindekiler görünür ve arkasındaki yapılara tıklanabilir" aria-pressed="${g.saydamSistem.has(s.id)}">saydam</button><span class="kucuk">${sayi[s.id] || 0}</span></li>`).join('')}</ul>
       <div class="satir"><button id="hepsiAc" class="ikincil">Hepsini aç</button><button id="hepsiKapa" class="ikincil">Hepsini kapat</button></div>
       <div class="satir"><button id="gizlileriGoster" class="ikincil" ${g.gizli.size ? '' : 'disabled'}>Gizlediklerimi geri getir (${g.gizli.size})</button></div>
     </div>
@@ -135,9 +161,24 @@ function kesfetCiz() {
       <div class="satir"><input id="kesitOran" type="range" min="0" max="1" step="0.005" value="${kesit.oran}" aria-label="Kesitin yeri"></div>
       <label class="satir"><input id="kesitTers" type="checkbox" ${kesit.ters ? 'checked' : ''}> Öbür tarafı göster</label>
     </div>
+    <div class="bolum"><h3>Görünüm araçları</h3>
+      <label>Parçaları ayır<input id="patlat" type="range" min="0" max="1.2" step="0.02" value="${g.patlama}" aria-label="Parçaları birbirinden ayır" style="width:100%"></label>
+      <label class="satir"><input id="odakModu" type="checkbox" ${odakModu ? 'checked' : ''}> Odak: seçtiğim yapı dışındakileri soluklaştır</label>
+      <label class="satir"><input id="etiketAcik" type="checkbox" ${etiketAcik ? 'checked' : ''}> Modelde ad etiketlerini göster</label>
+      <p class="kucuk">Etiketler, incelediğin konunun yapılarında ya da seçtiğin yapı ile komşularında çıkar.</p>
+      <label class="satir"><input id="olcumModu" type="checkbox" ${olcumModu ? 'checked' : ''}> Mesafe ölç (modelde iki noktaya tıkla)</label>
+      <p id="olcumDurum" class="kucuk"></p>
+      <div class="satir"><button id="goruntuKaydet" class="ikincil">Görüntüyü kaydet</button></div>
+    </div>
     <p class="kucuk">${KADIN_MI ? 'Model: HuBMAP İnsan Referans Atlası (yetişkin kadın). Organlar ayrıntılı; iskelet ve kaslar kısmi (omurga, diz, birkaç kas). Tam iskelet ve kaslar için üstten Erkek modeline geç.' : 'Model: BodyParts3D (yetişkin erkek) ve Z-Anatomy ek katmanı (sinirler, lenf düğümleri, akciğer lobları, tiroid). Ek katman asıl modele yaklaşık 1 cm hassasiyetle oturur. Böbreğin iç yapısı ve kadın organları için üstten Kadın modeline geç.'}</p>`;
-  $('#tumunuGoster')?.addEventListener('click', () => { aktifKonu = null; g.yalniz = null; g.guncelle(); g.gorunus('on'); kesfetCiz(); });
+  $('#tumunuGoster')?.addEventListener('click', () => { aktifKonu = null; g.yalniz = null; g.guncelle(); g.gorunus('on'); etiketleriGuncelle(); kesfetCiz(); });
   $('#arama').addEventListener('input', e => aramaYap(e.target.value));
+  document.querySelectorAll('[data-saydam]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.saydam; g.saydamSistem.has(id) ? g.saydamSistem.delete(id) : g.saydamSistem.add(id); g.acikSistemler.add(id); g.guncelle(); kesfetCiz(); }));
+  $('#patlat').oninput = e => g.patlat(Number(e.target.value));
+  $('#odakModu').onchange = e => { odakModu = e.target.checked; g.soluk = odakModu && seciliParca >= 0 ? new Set(yapilar[parcalar[seciliParca].anahtar]?.parcalar ?? [seciliParca]) : null; g.guncelle(); };
+  $('#etiketAcik').onchange = e => { etiketAcik = e.target.checked; etiketleriGuncelle(); };
+  $('#olcumModu').onchange = e => { olcumModu = e.target.checked; if (!olcumModu) g.olcumTemizle(); $('#olcumDurum').textContent = olcumModu ? 'Modelde ilk noktayı tıkla.' : ''; };
+  $('#goruntuKaydet').onclick = () => { const a = document.createElement('a'); a.href = g.goruntu(); a.download = `anatomi-${new Date().toLocaleDateString('sv-SE')}.png`; a.click(); };
   document.querySelectorAll('[data-sistem]').forEach(k => k.addEventListener('change', () => {
     k.checked ? g.acikSistemler.add(k.dataset.sistem) : g.acikSistemler.delete(k.dataset.sistem); g.guncelle();
   }));
@@ -180,12 +221,12 @@ function parcaSec(i, odakla) {
   const p = parcalar[i];
   if (!g.acikSistemler.has(p.sistem) && !g.yalniz) { g.acikSistemler.add(p.sistem); if (sekme === 'kesfet') kesfetCiz(); }
   g.gizli.delete(i);
-  seciliParca = i; g.secili = new Set([i]); g.guncelle();
+  seciliParca = i; g.secili = new Set([i]); if (odakModu) g.soluk = new Set(yapilar[p.anahtar]?.parcalar ?? [i]); g.guncelle(); etiketleriGuncelle();
   if (odakla) g.odakla([i]);
   const et = $('#secimEtiketi'); et.hidden = false; et.textContent = p.tr || p.en;
   cekmeceAc(i);
 }
-function secimiBirak() { seciliParca = -1; g.secili = new Set(); g.guncelle(); $('#secimEtiketi').hidden = true; cekmeceKapat(); }
+function secimiBirak() { seciliParca = -1; g.secili = new Set(); if (odakModu) g.soluk = null; g.guncelle(); etiketleriGuncelle(); $('#secimEtiketi').hidden = true; cekmeceKapat(); }
 
 function dogrulamaRozeti(a) {
   const d = a && DOGRULAMA[a];
@@ -253,9 +294,14 @@ function cekmeceAc(i) {
       <button id="yalnizBu" class="ikincil">${g.yalniz?.size === 1 && g.yalniz.has(i) ? 'Hepsini göster' : 'Yalnız bunu göster'}</button>
       <button id="gizle" class="ikincil">Bunu gizle</button>
     </div>
+    ${p.anahtar ? `<div class="dugme-satiri"><button id="baglantiKopyala" class="ikincil">Bağlantıyı kopyala</button><a class="dugme ikincil" target="_blank" rel="noopener" href="https://claude.ai/new?q=${encodeURIComponent(`Tıp fakültesi öğrencisiyim. ${p.la || y.la} (${p.tr}) yapısını Türkçe anlat: yeri, komşulukları, damarı ve siniri, klinik önemi. Yapı adlarını Latince yaz. Sonunda beni sınamak için 3 kısa soru sor.`)}">Yapay zekâya sor</a></div><p id="baglantiDurum" class="kucuk"></p>` : ''}
     ${p.anahtar ? `<h3>Benim notum</h3><textarea id="notAlani" class="not" placeholder="Bu yapıyla ilgili kendi notunu yaz. Kendiliğinden kaydedilir.">${esc(C.notAl(p.anahtar))}</textarea><p id="notDurum" class="kucuk"></p>` : ''}`;
   $('#cekmeceIcerik').querySelectorAll('[data-komsu]').forEach(b => b.addEventListener('click', () => parcaSec(Number(b.dataset.komsu), true)));
   $('#yakinlas').onclick = () => g.odakla([i]);
+  if ($('#baglantiKopyala')) $('#baglantiKopyala').onclick = async () => {
+    const adres = `${location.origin}${location.pathname}?model=${C.cinsiyet()}&yapi=${encodeURIComponent(p.anahtar)}`;
+    try { await navigator.clipboard.writeText(adres); $('#baglantiDurum').textContent = 'Bağlantı kopyalandı; arkadaşına gönderebilirsin.'; } catch { $('#baglantiDurum').textContent = adres; }
+  };
   $('#yalnizBu').onclick = () => { g.yalniz = g.yalniz?.size === 1 && g.yalniz.has(i) ? null : new Set([i]); aktifKonu = null; g.guncelle(); g.odakla(g.yalniz ? [i] : [i]); cekmeceAc(i); };
   $('#gizle').onclick = () => { g.gizli.add(i); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
   const notAlani = $('#notAlani');
@@ -277,7 +323,7 @@ function konuGoster(id) {
   const k = konular().find(x => x.id === id); if (!k) return;
   aktifKonu = id;
   const ps = k.liste.flatMap(a => yapilar[a].parcalar);
-  g.yalniz = new Set(ps); g.secili = new Set(); g.guncelle(); g.odakla(ps);
+  g.yalniz = new Set(ps); g.secili = new Set(); g.guncelle(); g.odakla(ps); etiketleriGuncelle();
 }
 
 // ---------- Sınav ----------
@@ -315,6 +361,7 @@ function sinavCiz(seciliKonu) {
 }
 
 function sinavBaslat(liste, adet, tur, konuId) {
+  g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   const secilen = C.soruSec(liste, adet);
   sinav = { liste, konuId, sorular: secilen.map(a => ({ a, tip: tur === 'karisik' ? (Math.random() < 0.5 ? 'bul' : 'ad') : tur })), sira: 0, dogru: 0, yanlislar: [], cevaplandi: false };
   cekmeceKapat(); $('#secimEtiketi').hidden = true;
@@ -442,6 +489,7 @@ function cevapPuani(cevap, a) {
 function zil() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), k = ac.createGain(); o.frequency.value = 880; k.gain.value = 0.08; o.connect(k); k.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.18); } catch { /* ses yoksa sessiz geç */ } }
 
 function pratikBaslat(liste, adet, sure) {
+  g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   const havuz = liste.filter(a => yapilar[a] && !['ta_disi', 'belirsiz'].includes(DOGRULAMA[a]?.durum));
   const secilen = C.karistir(C.soruSec(havuz, adet));
   if (!secilen.length) return;
@@ -499,6 +547,7 @@ function vakaListesi() {
   return VAKALAR.filter(v => yapilar[v.dogru] && v.k.some(x => km.has(x)));
 }
 function vakaBaslat(adet) {
+  g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   const hepsi = C.karistir(vakaListesi()).sort((a, b) => C.kart(`vaka:${a.id}`).kutu - C.kart(`vaka:${b.id}`).kutu);
   if (!hepsi.length) return;
   ozel = { tip: 'vaka', liste: hepsi.slice(0, adet), sira: 0, dogru: 0, yanlislar: [], cevaplandi: false };
