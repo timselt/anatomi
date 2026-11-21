@@ -360,3 +360,4 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 @media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) { .buyuk-durum { left: calc(var(--yan-gen) + 28px); } }
 @media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) { .buyuk-durum { bottom: 64px; } .buyuk-durum b { font-size: 1.15rem; } }
 @media print { .buyuk-durum { display: none; } }
+@media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) { .yan .soru-karti .dugme-satiri button { flex: 1 1 40%; } }

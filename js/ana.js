@@ -635,7 +635,7 @@ function pratikBaslat(liste, adet, sure) {
 }
 function istasyonGoster() {
   const k = $('#soruKarti'), s = ozel.ist[ozel.sira], y = yapilar[s.a];
-  g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar);
+  g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(tekTaraf(y.parcalar));
   ozel.kalan = ozel.sure;
   k.innerHTML = `<div class="ust-bilgi"><span>İstasyon ${ozel.sira + 1} / ${ozel.ist.length}</span><span id="pratikSaniye">${ozel.kalan} sn</span></div>
     <div class="ilerleme-cubugu"><div id="pratikCubuk" style="width:100%"></div></div>
@@ -714,7 +714,7 @@ function vakaGoster() {
     k.querySelectorAll('[data-vaka]').forEach(x => { if (x.dataset.vaka === v.dogru) x.classList.add('dogru'); });
     if (!dogru) { b.classList.add('yanlis'); ozel.yanlislar.push(v); } else ozel.dogru++;
     C.cevapla(`vaka:${v.id}`, dogru ? 'dogru' : 'yanlis');
-    g.acikSistemler.add(y.sistem); g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar);
+    g.acikSistemler.add(y.sistem); g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(tekTaraf(y.parcalar));
     $('#geri').innerHTML = `<div class="geri-bildirim ${dogru ? 'dogru' : 'yanlis'}">${dogru ? 'Doğru!' : `Doğrusu: ${esc(ad(v.dogru))}`}</div>
       <p style="margin:.5rem 0 0">${esc(v.aciklama)}</p><p class="kucuk">Yapı modelde turuncu gösteriliyor.</p>
       <div class="dugme-satiri"><button id="vakaSonraki">${ozel.sira + 1 < ozel.liste.length ? 'Sonraki vaka' : 'Sonucu gör'}</button></div>`;
@@ -731,7 +731,7 @@ function ozelYanCiz() {
       <table class="sonuc-tablo"><thead><tr><th>No</th><th>Senin cevabın</th><th>Doğru cevap</th></tr></thead><tbody>
       ${ozel.ist.map((s, n) => `<tr class="s-${s.sonuc}" data-ist="${n}" tabindex="0"><td>${n + 1}</td><td>${esc(s.cevap || '(boş)')}<br><small>${etiket[s.sonuc]}</small>${s.ek ? `<br><small>Sinir cevabın: ${esc(s.ek)}</small>` : ''}</td><td><b>${esc(TERIM[s.a].la)}</b><br><small>${esc(TERIM[s.a].tr === TERIM[s.a].la ? '' : TERIM[s.a].tr)}</small>${KAS_BILGI[s.a] ? `<br><small>Sinir: ${esc(KAS_BILGI[s.a].sinir)}</small>` : ''}</td></tr>`).join('')}
       </tbody></table>`;
-    document.querySelectorAll('[data-ist]').forEach(t => t.addEventListener('click', () => { const y = yapilar[ozel.ist[Number(t.dataset.ist)].a]; g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar); }));
+    document.querySelectorAll('[data-ist]').forEach(t => t.addEventListener('click', () => { const y = yapilar[ozel.ist[Number(t.dataset.ist)].a]; g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(tekTaraf(y.parcalar)); }));
     return;
   }
   const toplam = ozel.tip === 'pratik' ? ozel.ist.length : ozel.liste.length;
@@ -1076,6 +1076,12 @@ function tekrarYanCiz() {
     <p class="kucuk">Bilemediğin kartlar listenin sonuna yeniden eklenir.</p><button id="tekrarCik" class="ikincil" style="width:100%">Kartları bırak</button>`;
   $('#tekrarCik').onclick = () => { tekrarBitir(); yanCiz(); };
 }
+// İki tarafta da bulunan yapılarda (ör. sağ ve sol el siniri) kamera tek tarafa yaklaşır; yoksa yapı ekranda nokta kadar kalır.
+function tekTaraf(is) {
+  const yan = i => /\bright\b/i.test(parcalar[i].en) ? 'R' : /\bleft\b/i.test(parcalar[i].en) ? 'L' : '';
+  const ilk = is.map(yan).find(Boolean);
+  return ilk && is.some(i => yan(i) && yan(i) !== ilk) ? is.filter(i => yan(i) === ilk) : is;
+}
 function kartGoster() {
   const k = $('#soruKarti');
   if (tekrar.sira >= tekrar.kartlar.length) {
@@ -1087,7 +1093,7 @@ function kartGoster() {
   const [tip, a] = kartAyir(tekrar.kartlar[tekrar.sira]), y = yapilar[a];
   tekrar.gosterildi = false;
   g.acikSistemler.add(y.sistem); g.yalniz = null;
-  if (tip === 'ad') { g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar); }
+  if (tip === 'ad') { g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(tekTaraf(y.parcalar)); }
   else { g.soru = new Set(); g.soluk = null; g.guncelle(); g.gorunus('on'); }
   const kutu = C.kart(tekrar.kartlar[tekrar.sira]).kutu;
   k.innerHTML = `<div class="ust-bilgi"><span>Kart ${tekrar.sira + 1} / ${tekrar.kartlar.length}</span><span>${C.KUTU_ADI[kutu]}</span></div>
@@ -1098,7 +1104,7 @@ function kartGoster() {
 }
 function kartCevap() {
   const id = tekrar.kartlar[tekrar.sira], [tip, a] = kartAyir(id), y = yapilar[a];
-  if (tip === 'bul') { g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar); }
+  if (tip === 'bul') { g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(tekTaraf(y.parcalar)); }
   $('#kartArka').innerHTML = `<p style="margin:0"><b>${esc(ad(a))}</b> <span class="latince">(${esc(ikinciAd(a))})</span></p>${KAS_BILGI[a] ? kasKarti(a, true) : `<p class="kucuk" style="margin:.2rem 0">${esc(y.fn)}</p>`}${y.ip ? `<div class="ipucu">${esc(y.ip)}</div>` : ''}${C.notAl(a) ? `<p class="kucuk">Notun: ${esc(C.notAl(a))}</p>` : ''}`;
   const sure = g => (g < 1 / 24 ? `${Math.max(1, Math.round(g * 1440))} dk` : g < 1 ? `${Math.round(g * 24)} saat` : g < 60 ? `${Math.round(g)} gün` : `${Math.round(g / 30)} ay`);
   const dugme = (sinif, not, yazi) => `<button class="${sinif}" data-not="${not}">${yazi}<br><small>${sure(C.sonrakiAralik(id, not))}</small></button>`;
