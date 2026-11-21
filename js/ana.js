@@ -144,7 +144,7 @@ $('#yardimDugme').addEventListener('click', () => $('#yardim').showModal());
 document.querySelectorAll('[data-yon]').forEach(b => b.addEventListener('click', () => g.gorunus(b.dataset.yon)));
 
 // Parçalanmış görünümde birlikte hareket edecek gruplar: organlar ve el, ayak, göğüs kafesi gibi bölgeler bütün kalır.
-const ORGAN_GRUBU = [[/lung|bronch/, 'akciger'], [/hepat|liver|gallbladder/, 'karaciger'], [/colon|caecum|cecum|appendix|rectum/, 'kalin-bagirsak'], [/jejun|ileum|duoden/, 'ince-bagirsak'],
+const ORGAN_GRUBU = [[/lung|bronch/, 'akciger'], [/hepat|liver|gallbladder/, 'karaciger'], [/colon|caecum|cecum|appendix|rectum|taenia/, 'kalin-bagirsak'], [/jejun|ileum|duoden/, 'ince-bagirsak'],
   [/kidney|renal|ureter/, 'bobrek'], [/ventric|atrium|atrial|valve|papillary|heart|coronary/, 'kalp'], [/stomach|gastric/, 'mide']];
 const KEMIK_BOLGESI = [[/carpal|metacarpal|scaphoid|lunate|triquetr|pisiform|trapez|capitate|hamate|finger|thumb/, 'el'], [/tarsal|metatarsal|talus|calcaneus|cuboid|cuneiform|navicular|toe|foot/, 'ayak'],
   [/\brib\b|costal|sternum|manubrium|xiphoid/, 'gogus-kafesi'], [/vertebra|sacrum|coccyx|atlas|axis|intervertebral/, 'omurga']];
@@ -160,6 +160,25 @@ g.patlamaGrubu = i => {
   return p.anahtar + yan;
 };
 
+// Parçalanmış görünümde her grubun üstüne adını yazar: grubun en büyük parçası etiketi taşır.
+const GRUP_ADI = { akciger: ['Pulmo', 'Akciğer'], karaciger: ['Hepar', 'Karaciğer'], 'kalin-bagirsak': ['Intestinum crassum', 'Kalın bağırsak'], 'ince-bagirsak': ['Intestinum tenue', 'İnce bağırsak'],
+  bobrek: ['Ren', 'Böbrek'], kalp: ['Cor', 'Kalp'], mide: ['Gaster', 'Mide'], el: ['Ossa manus', 'El kemikleri'], ayak: ['Ossa pedis', 'Ayak kemikleri'], 'gogus-kafesi': ['Cavea thoracis', 'Göğüs kafesi'],
+  omurga: ['Columna vertebralis', 'Omurga'], kafatasi: ['Cranium', 'Kafatası'], atardamar: ['Arteriae', 'Atardamarlar'], toplardamar: ['Venae', 'Toplardamarlar'], sinir: ['Nervi', 'Sinirler'], bag: ['Ligamenta', 'Bağlar'] };
+function parcaliEtiketle() {
+  const hacim = p => (p.bounds[1][0] - p.bounds[0][0]) * (p.bounds[1][1] - p.bounds[0][1]) * (p.bounds[1][2] - p.bounds[0][2]), gruplar = {};
+  for (const p of parcalar) {
+    if (!g.meshler[p.i]?.visible) continue;
+    const ad = g.patlamaGrubu(p.i), h = hacim(p), gr = (gruplar[ad] ??= { i: p.i, h: 0, toplam: 0 });
+    gr.toplam += h; if (h > gr.h) { gr.h = h; gr.i = p.i; }
+  }
+  const la = C.dil() === 'la';
+  // Çok kalabalık olmasın: en büyük 45 grup etiketlenir (kaslar açıkken küçük kaslar etiketsiz kalır).
+  g.etiketle(Object.entries(gruplar).sort((x, y) => y[1].toplam - x[1].toplam).slice(0, 45).map(([ad, gr]) => {
+    const kok = ad.replace(/[RL]$/, ''), p = parcalar[gr.i];
+    return { i: gr.i, metin: GRUP_ADI[kok]?.[la ? 0 : 1] ?? ((la ? p.la : p.tr) || p.tr || p.en) };
+  }));
+}
+
 // ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
 const mod = { parcali: false, cam: false, doner: false, tur: null, kalite: false };
 // Yüksek kalite varsayılan olarak açıktır; kapatılırsa tercih bu cihazda hatırlanır.
@@ -169,7 +188,7 @@ const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur', 
 function parcaliAyarla(acik) {
   mod.parcali = acik; const ilk = g.patlama, son = acik ? 0.8 : 0, bas = performance.now();
   const gorunen = () => parcalar.filter(p => g.meshler[p.i]?.visible).map(p => p.i);
-  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); else if (acik) g.sigdir(gorunen()); else g.gorunus('on'); };
+  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); else if (acik) { g.sigdir(gorunen()); parcaliEtiketle(); } else { g.gorunus('on'); etiketleriGuncelle(); } };
   adim(); modIsaretle();
 }
 function camAyarla(acik) {

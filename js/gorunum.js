@@ -287,11 +287,17 @@ export class Goruntuleyici {
     this.kirli = true;
   }
   _etiketleriYerlestir() {
-    const w = this.kap.clientWidth, h = this.kap.clientHeight, v = new T.Vector3();
+    const w = this.kap.clientWidth, h = this.kap.clientHeight, v = new T.Vector3(), dolu = [];
     for (const e of this.etiketler) {
       const m = this.meshler[e.i];
       v.copy(this.merkez(e.i)).project(this.kamera);
-      const gorunur = m && m.visible && v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1;
+      let gorunur = m && m.visible && v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1;
+      // Üst üste binen etiketlerden listede önce gelen kalır; yakınlaşınca diğerleri de açılır.
+      if (gorunur) {
+        e.gen ||= e.el.offsetWidth || 80;
+        const x = ((v.x + 1) / 2) * w, y = ((1 - v.y) / 2) * h, k = [x - e.gen / 2 - 3, y - 13, x + e.gen / 2 + 3, y + 13];
+        if (dolu.some(d => k[0] < d[2] && k[2] > d[0] && k[1] < d[3] && k[3] > d[1])) gorunur = false; else dolu.push(k);
+      }
       e.el.hidden = !gorunur;
       if (gorunur) e.el.style.transform = `translate(-50%, -50%) translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px)`;
     }
