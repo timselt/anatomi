@@ -8,6 +8,7 @@ import { ekModelleriYukle } from './ekmodel.js';
 import { KAS_BILGI } from './kasbilgi.js';
 import { VAKALAR } from './vakalar.js';
 import { AKISLAR, KALP, SOLUNUM, HAREKETLER, KEMIK_GRUBU } from './canli.js';
+import { kalpModel, solunumModel, egriCiz, Ses } from './gosterge.js';
 import * as T from 'three';
 import { MIKRO } from './mikro.js';
 
@@ -141,6 +142,47 @@ $('#dil').value = C.dil();
 $('#dil').addEventListener('change', e => { C.dilAyarla(e.target.value); yanCiz(); if (seciliParca >= 0 && !$('#cekmece').hidden) cekmeceAc(seciliParca); });
 $('#yardimDugme').addEventListener('click', () => $('#yardim').showModal());
 document.querySelectorAll('[data-yon]').forEach(b => b.addEventListener('click', () => g.gorunus(b.dataset.yon)));
+
+// ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
+const mod = { parcali: false, cam: false, doner: false, tur: null };
+const modDugme = ad => document.querySelector(`[data-mod=${ad}]`);
+const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
+function parcaliAyarla(acik) {
+  mod.parcali = acik; const ilk = g.patlama, son = acik ? 0.55 : 0, bas = performance.now();
+  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); };
+  adim(); modIsaretle();
+}
+function camAyarla(acik) {
+  if (acik) { mod.camOnce = new Set(g.saydamSistem); g.saydamSistem = new Set(SISTEMLER.map(s => s.id).filter(s => s !== 'iskelet')); }
+  else g.saydamSistem = mod.camOnce ?? new Set();
+  mod.cam = acik; g.guncelle(); modIsaretle(); if (sekme === 'kesfet' && !canli) kesfetCiz();
+}
+function donerAyarla(acik) { mod.doner = acik; g.kontrol.autoRotate = acik; g.kontrol.autoRotateSpeed = 1.6; modIsaretle(); }
+const TUR = [
+  { s: ['iskelet'], m: 'İskelet: erişkinde 206 kemik bedeni taşır ve iç organları korur.' },
+  { s: ['iskelet', 'kas'], m: 'Kaslar: 600\'den fazla iskelet kası, kemikleri eklemlerde hareket ettirir.' },
+  { s: ['iskelet', 'kalp', 'atardamar', 'toplardamar'], m: 'Dolaşım: kalp kanı atardamarlarla dokulara pompalar; toplardamarlar kanı kalbe geri getirir.' },
+  { s: ['iskelet', 'sinir'], m: 'Sinir sistemi: beyin, omurilik ve sinirler bedeni yönetir ve duyuları taşır.' },
+  { s: ['kalp', 'solunum', 'sindirim', 'bosaltim'], m: 'İç organlar: solunum, sindirim ve boşaltım sistemleri göğüs ve karın boşluğuna yerleşir.' },
+];
+function turBitir() {
+  if (!mod.tur) return;
+  clearInterval(mod.tur.sayac); g.acikSistemler = mod.tur.once; mod.tur = null; $('#turYazi').hidden = true; donerAyarla(false); g.guncelle(); g.gorunus('on');
+  if (sekme === 'kesfet' && !canli) kesfetCiz();
+}
+function turBaslat() {
+  if (canli || sinav || tekrar || ozel) return;
+  mod.tur = { once: new Set(g.acikSistemler), n: -1 }; donerAyarla(true);
+  const sonraki = () => { const t = mod.tur; t.n = (t.n + 1) % TUR.length; g.acikSistemler = new Set(TUR[t.n].s); g.guncelle(); $('#turYazi').textContent = TUR[t.n].m; $('#turYazi').hidden = false; };
+  sonraki(); mod.tur.sayac = setInterval(sonraki, 6500); modIsaretle();
+}
+document.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => {
+  const ad = b.dataset.mod;
+  if (ad === 'parcali') parcaliAyarla(!mod.parcali); else if (ad === 'cam') camAyarla(!mod.cam); else if (ad === 'doner') donerAyarla(!mod.doner);
+  else { mod.tur ? turBitir() : turBaslat(); modIsaretle(); }
+}));
+// Modele dokunmak turu bitirir: denetim kullanıcıya geçer.
+$('#sahne').addEventListener('pointerdown', e => { if (mod.tur && e.target.tagName === 'CANVAS') { turBitir(); modIsaretle(); } });
 // Gezinme: düğmeler ve klavye (ok tuşları kaydırır, + ve − yakınlaştırır).
 const GEZ = { yukari: () => g.kaydir(0, 1), asagi: () => g.kaydir(0, -1), sol: () => g.kaydir(-1, 0), sag: () => g.kaydir(1, 0), yakin: () => g.yakinlastir(0.75), uzak: () => g.yakinlastir(1.33), orta: () => g.gorunus('on') };
 document.querySelectorAll('[data-gez]').forEach(b => b.addEventListener('click', () => GEZ[b.dataset.gez]()));
@@ -696,20 +738,29 @@ function mikroAc(m) {
 function canliHazirla(tip, ad, sistemler) {
   document.querySelector('#mikroPano')?.remove();
   cekmeceKapat(); $('#secimEtiketi').hidden = true; g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
-  if (g.patlama) { g.patlat(0); }
+  turBitir(); if (mod.cam) camAyarla(false);
+  if (g.patlama) { g.patlat(0); mod.parcali = false; }
+  modIsaretle();
   const oncekiSistemler = new Set(g.acikSistemler);
   g.acikSistemler = new Set(sistemler); // canlandırma boyunca yalnız ilgili sistemler görünür
-  canli = { oncekiSistemler, tip, ad, oynuyor: true, dokunulan: new Set(), gizlenen: new Set(), bas: performance.now(), durakta: 0 };
+  canli = { oncekiSistemler, tip, ad, oynuyor: true, dokunulan: new Set(), gizlenen: new Set(), bas: performance.now(), durakta: 0, sure: 8000 };
+  canli.sar = p => { canli.bas = (canli.oynuyor ? performance.now() : canli.durakta) - p * canli.sure; };
 }
 function canliKart(icerik) {
   const k = $('#soruKarti');
-  k.innerHTML = `<div class="ust-bilgi"><span>Canlandırma</span><span id="canliDurum"></span></div><p class="soru">${esc(canli.ad)}</p><div id="canliIcerik">${icerik}</div>
-    <div class="dugme-satiri">${canli.tip === 'akis' ? '<button id="canliOnceki" class="ikincil">Önceki</button>' : ''}<button id="canliOynat">Duraklat</button>${canli.tip === 'akis' ? '<button id="canliSonraki" class="ikincil">Sonraki</button>' : ''}<button id="canliKapat" class="ikincil">Kapat</button></div>`;
+  k.innerHTML = `<div class="ust-bilgi"><span>Canlandırma</span><span id="canliDurum"></span></div><p class="soru">${esc(canli.ad)}</p><div id="canliIcerik">${icerik}</div><div id="canliGosterge"></div>
+    <input type="range" id="canliCizgi" min="0" max="1000" value="0" aria-label="Zaman çizgisi: canlandırmayı ileri geri sar">
+    <div class="dugme-satiri">${canli.tip === 'akis' ? '<button id="canliOnceki" class="ikincil">Önceki</button>' : ''}<button id="canliOynat">Duraklat</button>${canli.tip === 'akis' ? '<button id="canliSonraki" class="ikincil">Sonraki</button>' : ''}<button id="canliSes" class="ikincil" hidden>Ses: kapalı</button><button id="canliKapat" class="ikincil">Kapat</button></div>`;
   k.hidden = false;
+  $('#canliCizgi').oninput = e => { canli.sonSarma = performance.now(); canli.sar(Number(e.target.value) / 1000); };
+  $('#canliSes').onclick = () => { if (canli.ses) { canli.ses.kapat(); canli.ses = null; } else canli.ses = new Ses(); $('#canliSes').textContent = canli.ses ? 'Ses: açık' : 'Ses: kapalı'; };
   $('#canliOynat').onclick = () => { canli.oynuyor = !canli.oynuyor; if (canli.oynuyor) canli.bas += performance.now() - canli.durakta; else canli.durakta = performance.now(); $('#canliOynat').textContent = canli.oynuyor ? 'Duraklat' : 'Oynat'; };
   $('#canliKapat').onclick = () => canliBitir(true);
 }
 const canliZaman = t => (canli.oynuyor ? t : canli.durakta) - canli.bas;
+// Zaman çizgisini o andaki yere getirir (kullanıcı sararken dokunmaz).
+const zamanGoster = p => { const c = $('#canliCizgi'); if (c && performance.now() - (canli.sonSarma ?? 0) > 400) c.value = p * 1000; };
+const gostergeKutu = (id, ad) => `<div><small>${ad}</small><b id="${id}">–</b></div>`;
 
 const AKIS_AYAR = {
   dolasim: { renk: n => (n < 7 ? 0x3d7bfd : 0xff3b30), adet: 220, yayilim: 1, ad: 'kan hücreleri' },
@@ -766,12 +817,14 @@ function akisBaslat(a) {
   };
   const git = d => { const n = (canli.sira + d + canli.adimlar.length) % canli.adimlar.length; g.akis.faz = adimT[0][n] + 0.002; goster(n); };
   $('#canliOnceki').onclick = () => git(-1); $('#canliSonraki').onclick = () => git(1);
+  canli.sar = p => { g.akis.faz = Math.min(p, 0.999); };
   goster(0);
   let son = performance.now();
   g.canli = t => {
     const dt = Math.min(t - son, 100); son = t;
     const faz = g.akisAdim(canli.oynuyor ? dt / (canli.adimlar.length * 4200) : 0), n = adimBul(faz);
     if (n !== canli.sira) goster(n);
+    zamanGoster(faz);
   };
 }
 
@@ -799,12 +852,23 @@ function kalpBaslat() {
     <path d="M0 45 H12 Q21 31 30 45 H54 L58 50 L63 8 L68 60 L72 45 H128 Q148 22 168 45 H300" fill="none" stroke="currentColor" stroke-width="1.6"/>
     <text x="16" y="66">P</text><text x="57" y="66">QRS</text><text x="143" y="66">T</text><line id="ekgImlec" x1="0" x2="0" y1="2" y2="56" stroke="var(--turuncu)" stroke-width="2"/></svg>
     <p class="kucuk">Şematik EKG, ağır çekim. Mavi noktalar oksijeni az, kırmızı noktalar oksijeni bol kan.</p>`);
+  canli.sure = 7000; $('#canliSes').hidden = false;
+  $('#canliGosterge').innerHTML = `<div class="gosterge">${gostergeKutu('gLvp', 'Sol karıncık basıncı')}${gostergeKutu('gAop', 'Aort basıncı')}${gostergeKutu('gHacim', 'Sol karıncık hacmi')}${gostergeKutu('gMitral', 'Mitral kapak')}${gostergeKutu('gAort', 'Aort kapağı')}</div>
+    <canvas id="gEgri" class="egri" aria-label="Sol karıncık (kırmızı) ve aort (koyu) basınç eğrisi"></canvas>
+    <p class="kucuk">Kırmızı: sol karıncık basıncı. Koyu: aort basıncı. Dinlenmedeki erişkin için tipik değerler; gerçekte bir atım yaklaşık 0,8 saniye sürer.</p>`;
+  const seriler = [{ f: q => kalpModel(q).lvp, min: 0, max: 125, renk: '#d92d20' }, { f: q => kalpModel(q).aop, min: 0, max: 125, renk: '#1d2329' }];
   evreGoster(KALP.evreler, 0); canli.evre = -1;
-  let son = performance.now();
+  let son = performance.now(), oncekiP = 0;
   g.canli = t => {
-    const p = (canliZaman(t) / 7000) % 1;
+    const p = (((canliZaman(t) / 7000) % 1) + 1) % 1;
     const a = p < 0.22 ? 1 - 0.14 * Math.sin((Math.PI * p) / 0.22) : 1;
-    const v = p >= 0.22 && p < 0.6 ? 1 - 0.19 * Math.sin((Math.PI * (p - 0.22)) / 0.38) : 1;
+    const kd = kalpModel(p), v = 1 - 0.19 * ((120 - kd.hacim) / 70); // karıncık boyutu hacimle aynı kaynaktan
+    $('#gLvp').textContent = `${Math.round(kd.lvp)} mmHg`; $('#gAop').textContent = `${Math.round(kd.aop)} mmHg`; $('#gHacim').textContent = `${Math.round(kd.hacim)} mL`;
+    for (const [id, acik] of [['gMitral', kd.mitral], ['gAort', kd.aort]]) { const e = $('#' + id); e.textContent = acik ? 'Açık' : 'Kapalı'; e.className = acik ? 'acik' : 'kapali'; }
+    egriCiz($('#gEgri'), seriler, p); zamanGoster(p);
+    // Birinci kalp sesi mitral ve triküspit kapaklar kapanırken, ikincisi aort ve akciğer atardamarı kapakları kapanırken duyulur.
+    if (canli.ses && canli.oynuyor) { if (oncekiP < 0.22 && p >= 0.22) canli.ses.vurus(70, 0.16, 0.9); if (oncekiP < 0.6 && p >= 0.6) canli.ses.vurus(105, 0.1, 0.7); }
+    oncekiP = p;
     const dt = Math.min(t - son, 100); son = t; // kan, kasılma anında hızlanır
     if (g.akis) g.akisAdim(canli.oynuyor ? (dt / 9000) * (0.35 + 14 * (2 - a - v)) : 0);
     $('#ekgImlec')?.setAttribute('transform', `translate(${p * 300} 0)`);
@@ -830,11 +894,19 @@ function solunumBaslat() {
   // Hava parçacıkları: nefes alırken burundan akciğere, verirken geri akar (verilen hava gri gösterilir).
   let veriyor = false, onceki = 0;
   if (yolAdim.length > 2) g.akisKur(yolCikar(yolAdim).yollar, () => (veriyor ? 0x8e9aa8 : 0x40c4ff), { adet: 120, yayilim: 0.45, boyut: 0.003 });
-  $('#canliIcerik').insertAdjacentHTML('afterend', '<p class="kucuk">Mavi noktalar alınan, gri noktalar verilen havadır. Hareketler görülebilsin diye büyütülmüştür.</p>');
+  $('#canliSes').hidden = false;
+  $('#canliGosterge').innerHTML = `<div class="gosterge">${gostergeKutu('gSoluk', 'Alınan hava')}${gostergeKutu('gAlveol', 'Alveol basıncı')}${gostergeKutu('gPlevra', 'Plevra basıncı')}</div>
+    <canvas id="gEgri" class="egri" aria-label="Akciğere giren hava hacmi eğrisi"></canvas>
+    <p class="kucuk">Eğri: bir solukta akciğere giren hava (0-500 mL). Basınçlar hava basıncına göredir. Mavi noktalar alınan, gri noktalar verilen havadır. Hareketler görülebilsin diye büyütülmüştür; dinlenmede dakikada 12-16 soluk alınır.</p>`;
+  const kOran = q => yumusak(q < 0.45 ? q / 0.45 : 1 - (q - 0.45) / 0.55), seriler = [{ f: q => 500 * kOran(q), min: 0, max: 520, renk: '#0f766e' }];
   g.canli = t => {
-    const p = (canliZaman(t) / 8000) % 1;
+    const p = (((canliZaman(t) / 8000) % 1) + 1) % 1;
     const k = yumusak(p < 0.45 ? p / 0.45 : 1 - (p - 0.45) / 0.55);
-    veriyor = p >= 0.45; if (g.akis) g.akisAdim((k - onceki) * 0.5); onceki = k;
+    veriyor = p >= 0.45; if (g.akis) g.akisAdim((k - onceki) * 0.5);
+    const sd = solunumModel(p, k);
+    $('#gSoluk').textContent = `${Math.round(sd.hacim)} mL`; $('#gAlveol').textContent = `${sd.alveol.toFixed(1).replace('.', ',')} cmH₂O`; $('#gPlevra').textContent = `${sd.plevra.toFixed(1).replace('.', ',')} cmH₂O`;
+    egriCiz($('#gEgri'), seriler, p); zamanGoster(p);
+    canli.ses?.nefes(canli.oynuyor ? Math.min(1, Math.abs(k - onceki) * 60) : 0); onceki = k;
     const mk = olcekMatrisi(c, 1 + 0.08 * k, 1, 1 + 0.09 * k, 0.012 * k), ma = olcekMatrisi(c, 1 + 0.09 * k, 1 + 0.07 * k, 1 + 0.1 * k, -0.01 * k);
     const md = new T.Matrix4().makeTranslation(0, -0.03 * k, 0);
     kafes.forEach(i => g.donusum(i, mk)); akciger.forEach(i => g.donusum(i, ma)); diyafram.forEach(i => g.donusum(i, md));
@@ -871,8 +943,9 @@ function hareketBaslat(h) {
   });
   canli.geri = () => kasVeri.forEach(q => { q.p.array.set(q.ilk); q.p.needsUpdate = true; });
   let sonK = -1;
+  $('#canliGosterge').innerHTML = `<div class="gosterge">${gostergeKutu('gAci', 'Eklem açısı')}</div>`;
   g.canli = t => {
-    const p = (canliZaman(t) / 8000) % 1;
+    const p = (((canliZaman(t) / 8000) % 1) + 1) % 1; zamanGoster(p);
     let k = p < 0.3 ? 0 : p < 0.6 ? yumusak((p - 0.3) / 0.3) : p < 0.75 ? 1 : yumusak(1 - (p - 0.75) / 0.25);
     const kasGizli = false;
     if (canli.kasGizli !== kasGizli) { canli.kasGizli = kasGizli; kaslar.forEach(i => (kasGizli ? g.gizli.add(i) : g.gizli.delete(i))); kaslar.forEach(i => canli.gizlenen.add(i)); g.yalniz = new Set([...iskelet, ...(kasGizli ? [] : kaslar)]); g.soru = new Set(kasGizli ? [] : yapan); g.secili = new Set(kasGizli ? [] : karsit); g.guncelle(); $('#canliDurum').textContent = kasGizli ? 'Hareket' : 'Kaslar'; }
@@ -880,6 +953,7 @@ function hareketBaslat(h) {
     const m = new T.Matrix4().makeTranslation(merkez.x, merkez.y, merkez.z).multiply(new T.Matrix4().makeRotationAxis(eksen, T.MathUtils.degToRad(h.aci) * k)).multiply(new T.Matrix4().makeTranslation(-merkez.x, -merkez.y, -merkez.z));
     oynayan.forEach(i => g.donusum(i, m));
     if (k === sonK) return; sonK = k;
+    $('#gAci').textContent = `${Math.round(Math.abs(h.aci) * k)}°`;
     // Kaslar: eklemin uzağındaki bölüm kemikle döner, eklem çevresinde yumuşak geçiş olur; kasılan kas kalınlaşır, karşıt kas incelir.
     const aci = T.MathUtils.degToRad(h.aci) * k;
     for (const q of kasVeri) {
@@ -905,7 +979,7 @@ function canliYanCiz() {
 }
 function canliBitir(cizilsin = true) {
   g.canli = null; g.akisSil();
-  if (canli) { canli.geri?.(); canli.dokunulan.forEach(i => g.donusum(i, null)); canli.gizlenen.forEach(i => g.gizli.delete(i)); g.acikSistemler = canli.oncekiSistemler; }
+  if (canli) { canli.geri?.(); canli.ses?.kapat(); canli.dokunulan.forEach(i => g.donusum(i, null)); canli.gizlenen.forEach(i => g.gizli.delete(i)); g.acikSistemler = canli.oncekiSistemler; }
   canli = null; $('#soruKarti').hidden = true;
   g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; g.guncelle(); g.gorunus('on');
   if (cizilsin) yanCiz();

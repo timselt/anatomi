@@ -35,6 +35,12 @@ export class Goruntuleyici {
     zemin.rotation.x = -Math.PI / 2; zemin.position.y = -0.012; this.sahne.add(zemin);
     const halka = new T.Mesh(new T.RingGeometry(0.62, 0.626, 128), new T.MeshBasicMaterial({ color: 0x8c969f, transparent: true, opacity: 0.6, side: T.DoubleSide }));
     halka.rotation.x = -Math.PI / 2; halka.position.y = -0.011; this.sahne.add(halka);
+    // Ayak altında yumuşak gölge: model zemine basıyormuş gibi durur.
+    const gt = document.createElement('canvas'); gt.width = gt.height = 128;
+    const gc = gt.getContext('2d'), gr = gc.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(20,28,36,.55)'); gr.addColorStop(1, 'rgba(20,28,36,0)'); gc.fillStyle = gr; gc.fillRect(0, 0, 128, 128);
+    const golge = new T.Mesh(new T.PlaneGeometry(0.7, 0.42), new T.MeshBasicMaterial({ map: new T.CanvasTexture(gt), transparent: true, depthWrite: false }));
+    golge.rotation.x = -Math.PI / 2; golge.position.y = -0.009; this.sahne.add(golge);
     const d1 = new T.DirectionalLight(0xfffaf4, 1.5); d1.position.set(-2, 4, 3); this.sahne.add(d1);
     const d2 = new T.DirectionalLight(0xe9f0ff, 1.0); d2.position.set(2, 2, -3); this.sahne.add(d2);
     this.kesit = new T.Plane(new T.Vector3(0, -1, 0), 2);

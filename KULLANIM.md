@@ -42,6 +42,10 @@
 
 **Kalp, solunum ve kas hareketleri:** Kalp atımında kalp saydamdır; içinden geçen kan ve altta şematik bir EKG görünür. Solunumda hava noktaları nefes alırken içeri, verirken dışarı akar. Kas hareketlerinde kaslar kemikle birlikte bükülür, kasılan kas kalınlaşır; bu yaklaşık bir gösterimdir.
 
+**Göstergeler, zaman çizgisi ve ses:** Kalp atımında sol karıncık ve aort basıncı, karıncık hacmi ve kapakların açık ya da kapalı olduğu; solunumda alınan hava, alveol ve plevra basıncı; kas hareketinde eklem açısı canlı gösterilir. Kartın altındaki çubukla canlandırmayı ileri geri sarabilirsin. "Ses" düğmesi kalp seslerini ve nefes sesini açar. Rakamlar dinlenmedeki sağlıklı erişkin için tipik ders kitabı değerleridir.
+
+**Görünüm kipleri (modelin üstündeki düğmeler):** "Parçalanmış" bütün yapıları birbirinden ayırır. "Cam" iskelet dışındaki her şeyi saydam yapar. "Döner tabla" modeli kendi çevresinde döndürür. "Tur" sistemleri sırayla tanıtır; modele dokununca tur biter.
+
 **Parçalarına ayır ve içine gir:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçine gir" kamerayı yapının içine götürür.
 - **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
 - **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
