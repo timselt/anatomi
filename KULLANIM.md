@@ -46,7 +46,7 @@
 
 **Görünüm kipleri (modelin üstündeki düğmeler):** "Parçalanmış" yapıları birbirinden ayırır ve adlarını üstlerine yazar; üst üste binen etiketler gizlenir, yakınlaşınca açılır. "Cam" iskelet dışındaki her şeyi saydam yapar. "Döner tabla" modeli kendi çevresinde döndürür. "Tur" sistemleri sırayla tanıtır; modele dokununca tur biter. "Kalite" yüzeyler arasına gölge ve seçili yapıya parlak çerçeve ekler; iPad yavaşlarsa bu düğmeyi kapat, tercih hatırlanır.
 
-**Parçalarına ayır ve içine gir:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçine gir" kamerayı yapının içine götürür.
+**Parçalarına ayır ve içini aç:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçini aç" düğmesi yalnız içi boş organlarda ve büyük damarlarda çıkar (mide, kalp, soluk borusu, bağırsaklar, aort gibi); organın ön yarısını keser, duvarı ve iç boşluğu gösterir.
 - **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
 - **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
 - **Mikroskobik sahneler:** hava keseciğinde gaz alışverişi, nefron, sarkomer (kas kasılması), sinaps, bağırsak villusu ve damar duvarı. Hareketli şematik çizimlerdir; her birinin altında adım adım açıklama ve "Bu yapıyı modelde göster" düğmesi vardır.

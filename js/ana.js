@@ -334,6 +334,10 @@ function parcaSec(i, odakla) {
   const et = $('#secimEtiketi'); et.hidden = false; et.textContent = p.tr || p.en;
   cekmeceAc(i);
 }
+// İçi boş organlar ve büyük damarlar: yalnız bunlarda "İçini aç" düğmesi çıkar.
+const ICI_BOS = /stomach|ventricle|atrium|trachea|bronchus|urinary bladder|oesophagus|esophagus|duoden|jejun|ileum|colon|caecum|cecum|rectum|aorta|vena cava|pulmonary (trunk|artery|vein)|uterus|vagina|gallbladder|larynx|pharynx/i;
+let icAcik = null;
+function icKapat() { if (!icAcik) return; icAcik = null; g.yalniz = null; g.icAc([]); }
 function secimiBirak() { seciliParca = -1; g.secili = new Set(); if (odakModu) g.soluk = null; g.guncelle(); etiketleriGuncelle(); $('#secimEtiketi').hidden = true; cekmeceKapat(); }
 
 function dogrulamaRozeti(a) {
@@ -402,13 +406,20 @@ function cekmeceAc(i) {
       <button id="yalnizBu" class="ikincil">${g.yalniz?.size === 1 && g.yalniz.has(i) ? 'Hepsini göster' : 'Yalnız bunu göster'}</button>
       <button id="gizle" class="ikincil">Bunu gizle</button>
       <button id="parcalaDugme" class="ikincil">${parcali ? 'Topla' : 'Parçalarına ayır'}</button>
-      <button id="icineGir" class="ikincil">İçine gir</button>
+      ${ICI_BOS.test(p.en) || p.sistem === 'kalp' ? `<button id="icAc" class="ikincil">${icAcik ? 'İçini kapat' : 'İçini aç'}</button>` : ''}
     </div>
     ${p.anahtar ? `<div class="dugme-satiri"><button id="baglantiKopyala" class="ikincil">Bağlantıyı kopyala</button><a class="dugme ikincil" target="_blank" rel="noopener" href="https://claude.ai/new?q=${encodeURIComponent(`Tıp fakültesi öğrencisiyim. ${p.la || y.la} (${p.tr}) yapısını Türkçe anlat: yeri, komşulukları, damarı ve siniri, klinik önemi. Yapı adlarını Latince yaz. Sonunda beni sınamak için 3 kısa soru sor.`)}">Yapay zekâya sor</a></div><p id="baglantiDurum" class="kucuk"></p>` : ''}
     ${p.anahtar ? `<h3>Benim notum</h3><textarea id="notAlani" class="not" placeholder="Bu yapıyla ilgili kendi notunu yaz. Kendiliğinden kaydedilir.">${esc(C.notAl(p.anahtar))}</textarea><p id="notDurum" class="kucuk"></p>` : ''}`;
   $('#cekmeceIcerik').querySelectorAll('[data-komsu]').forEach(b => b.addEventListener('click', () => parcaSec(Number(b.dataset.komsu), true)));
   $('#yakinlas').onclick = () => g.odakla([i]);
-  $('#icineGir').onclick = () => { cekmeceKapat(); g.icineGir(i); };
+  if ($('#icAc')) $('#icAc').onclick = () => {
+    if (icAcik) { icKapat(); return cekmeceAc(i); }
+    // Organ bütün olarak açılır (ör. kalbin bütün odacıkları); önünü kapatmasın diye diğer yapılar gizlenir.
+    const grup = g.patlamaGrubu(i);
+    icAcik = parcalar.filter(q => g.patlamaGrubu(q.i) === grup && g.meshler[q.i]).map(q => q.i);
+    g.secili = new Set(); g.yalniz = new Set(icAcik); g.icAc(icAcik); g.gorunus('on', false); g.odakla(icAcik); cekmeceKapat();
+    $('#secimEtiketi').textContent = `${$('#cekmeceBaslik').textContent}: ön yarısı kesildi. Kapatmak için yapıya dokun, "İçini kapat" de.`; $('#secimEtiketi').hidden = false;
+  };
   $('#parcalaDugme').onclick = () => {
     if (parcali) { g.parcala(parcali, 0); parcali = null; g.yalniz = null; g.guncelle(); etiketleriGuncelle(); g.odakla([i]); return cekmeceAc(i); }
     // Seçilen yapının çevresindeki aynı sistemden yapılar birlikte ayrılır (ör. kalbin odacıkları, el bileği kemikleri).
@@ -778,7 +789,7 @@ function mikroAc(m) {
 function canliHazirla(tip, ad, sistemler) {
   document.querySelector('#mikroPano')?.remove();
   cekmeceKapat(); $('#secimEtiketi').hidden = true; g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
-  turBitir(); if (mod.cam) camAyarla(false);
+  turBitir(); icKapat(); if (mod.cam) camAyarla(false);
   if (g.patlama) { g.patlat(0); mod.parcali = false; }
   modIsaretle();
   const oncekiSistemler = new Set(g.acikSistemler);

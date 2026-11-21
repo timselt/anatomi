@@ -120,6 +120,11 @@ export class Goruntuleyici {
       if (soru) gorunur = true;
       m.visible = gorunur;
       m.material = soru ? this.soruMalzeme : secili ? this.vurguMalzeme : ((this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s)) ? this.solukMalzeme[s] : this.malzeme[s];
+      if (this.icAcik?.kume.has(i)) { // kesilen yapı kendi malzemesinin kesitli kopyasıyla çizilir
+        const mz = this.icAcik.malzeme;
+        if (!mz.has(m.material)) { const k = m.material.clone(); k.clippingPlanes = [...(m.material.clippingPlanes ?? []), this.icAcik.duzlem]; mz.set(m.material, k); }
+        m.material = mz.get(m.material);
+      }
       m.renderOrder = m.material.transparent ? 1 : 0;
     });
     if (this.cerceve) this.cerceve.selectedObjects = [...this.secili, ...this.soru].map(i => this.meshler[i]).filter(m => m?.visible);
@@ -222,10 +227,12 @@ export class Goruntuleyici {
     adim();
   }
   merkezHam(i) { const b = this.atlas.parts[i].bounds; return new T.Vector3((b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2); }
-  // Yapının içine girer: kamera yapının merkezine uçar (iç yüzeyler görünür).
-  icineGir(i) {
-    const c = this.merkez(i), yon = this.kamera.position.clone().sub(c).normalize();
-    this._git(c.clone().addScaledVector(yon, 0.03), c, true);
+  // İçini aç: verilen yapıların ön yarısını keser; duvar ve iç boşluk dışarıdan görünür. Boş dizi kapatır.
+  icAc(indeksler) {
+    if (!indeksler.length) { this.icAcik = null; return this.guncelle(); }
+    const kutu = new T.Box3(); for (const i of indeksler) { kutu.expandByPoint(new T.Vector3(...this.atlas.parts[i].bounds[0])); kutu.expandByPoint(new T.Vector3(...this.atlas.parts[i].bounds[1])); }
+    this.icAcik = { kume: new Set(indeksler), duzlem: new T.Plane(new T.Vector3(0, 0, -1), kutu.getCenter(new T.Vector3()).z), malzeme: new Map() };
+    this.guncelle();
   }
 
   // Gezinme düğmeleri ve klavye için: görüntüyü kaydırır (ekranın oranı olarak).
@@ -438,7 +445,7 @@ export class Goruntuleyici {
     if (!this.kirli) return;
     this.kirli = false;
     // Yüksek kalite: yüzeyler arası gölgelendirme ve seçim çerçevesi. Saydam akış canlandırmalarında kapalıdır.
-    if (this.yuksekKalite && !this.akis) this.birlestirici.render(); else this.renderer.render(this.sahne, this.kamera);
+    if (this.yuksekKalite && !this.akis && !this.icAcik) this.birlestirici.render(); else this.renderer.render(this.sahne, this.kamera);
     if (this.etiketler.length || this.olcumEtiketi) this._etiketleriYerlestir();
   }
 }

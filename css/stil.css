@@ -238,3 +238,4 @@ body { background: #f3f5f8; }
 
 /* Dar ekranda görünüm kipleri alta iner; düğmeler ve ipucu yazısı modelin üstüne binmez. */
 @media (max-width: 900px) { .sahne-mod { top: auto; bottom: 12px; left: 12px; right: auto; } .gezinme-ipucu { display: none; } }
+@media (max-width: 900px) { .secim-etiketi { bottom: 64px; } }
