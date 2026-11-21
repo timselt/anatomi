@@ -6,6 +6,7 @@ import { DOGRULAMA } from './dogrulama.js';
 import * as C from './calisma.js';
 import { ekModelleriYukle } from './ekmodel.js';
 import { KAS_BILGI } from './kasbilgi.js';
+import { VAKALAR } from './vakalar.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -65,12 +66,12 @@ async function ekKatman() {
 }
 let ekYuklendi = 0;
 
-let sekme = 'kesfet', aktifKonu = null, sinav = null, tekrar = null, seciliParca = -1;
+let sekme = 'kesfet', aktifKonu = null, sinav = null, tekrar = null, ozel = null, seciliParca = -1;
 const kesit = { acik: false, eksen: 'y', oran: 0.5, ters: false };
 
 g.tikla = i => {
   if (sinav && !sinav.cevaplandi && sinav.sorular[sinav.sira].tip === 'bul') return sinavBulCevap(i);
-  if (sinav || tekrar) return;
+  if (sinav || tekrar || ozel) return;
   if (i < 0) { secimiBirak(); return; }
   parcaSec(i, false);
 };
@@ -79,6 +80,7 @@ g.tikla = i => {
 document.querySelectorAll('[data-sekme]').forEach(b => b.addEventListener('click', () => sekmeAc(b.dataset.sekme)));
 function sekmeAc(ad) {
   if (sinav && ad !== 'sinav') sinavBitir(false);
+  if (ozel && ad !== 'sinav') ozelBitir(false);
   if (tekrar && ad !== 'tekrar') tekrarBitir();
   sekme = ad;
   document.querySelectorAll('[data-sekme]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.sekme === ad)));
@@ -281,7 +283,9 @@ function konuGoster(id) {
 // ---------- Sınav ----------
 function sinavCiz(seciliKonu) {
   if (sinav) return sinavYanCiz();
+  if (ozel) return ozelYanCiz();
   const ks = konular();
+  const vakaSayisi = vakaListesi().length;
   $('#yan').innerHTML = `
     <h2>Sınav</h2>
     <p class="kucuk">İki tür soru var. <b>Bunu bul:</b> adı verilen yapıyı modelde tıklarsın. <b>Bunun adı ne?</b> Turuncu yapının adını seçersin. Yanlış yaptığın yapılar sonraki sınavlarda ve tekrar kartlarında daha sık gelir.</p>
@@ -290,7 +294,19 @@ function sinavCiz(seciliKonu) {
       <option value="hepsi">Bütün konular karışık</option></select></label>
     <div class="satir"><label>Soru sayısı <select id="sinavAdet"><option>5</option><option selected>10</option><option>20</option></select></label></div>
     <div class="satir"><label>Soru türü <select id="sinavTur"><option value="karisik">Karışık</option><option value="bul">Yalnız "Bunu bul"</option><option value="ad">Yalnız "Bunun adı ne?"</option></select></label></div>
-    <button id="sinavBasla" style="width:100%">Sınavı başlat</button>`;
+    <button id="sinavBasla" style="width:100%">Sınavı başlat</button>
+    <div class="bolum"><h3>Pratik sınav (istasyonlu)</h3>
+      <p class="kucuk">Fakültedeki pratik sınav gibi: her istasyonda bir yapı turuncu gösterilir, süre dolmadan <b>Latince adını yazarsın</b>. Süre bitince kendiliğinden sonraki istasyona geçilir; doğru cevaplar ancak sınavın sonunda gösterilir. "M.", "A.", "V.", "N." gibi kısaltmalar kabul edilir.</p>
+      <label>Konu<select id="pratikKonu" class="tam"><option value="hepsi">Seçili komitenin bütün konuları</option>${ks.map(k => `<option value="${k.id}">${esc(k.ad)}</option>`).join('')}</select></label>
+      <div class="satir"><label>İstasyon <select id="pratikAdet"><option>10</option><option selected>20</option><option>30</option></select></label>
+      <label>Süre <select id="pratikSure"><option value="30" selected>30 sn</option><option value="45">45 sn</option><option value="60">60 sn</option></select></label></div>
+      <button id="pratikBasla" style="width:100%">Pratik sınavı başlat</button></div>
+    <div class="bolum"><h3>Klinik vaka soruları</h3>
+      <p class="kucuk">Kısa bir hasta öyküsü okursun ve hangi yapının etkilendiğini seçersin. Cevaptan sonra açıklama çıkar ve yapı modelde gösterilir. Seçili sınıf ve komite için <b>${vakaSayisi}</b> vaka var${KADIN_MI ? '' : ' (kadın organlarıyla ilgili vakalar Kadın modelinde çıkar)'}.</p>
+      <div class="satir"><label>Vaka sayısı <select id="vakaAdet"><option>5</option><option selected>10</option><option value="999">Hepsi</option></select></label></div>
+      <button id="vakaBasla" style="width:100%" ${vakaSayisi ? '' : 'disabled'}>Vakaları başlat</button></div>`;
+  $('#pratikBasla').onclick = () => { const kid = $('#pratikKonu').value; pratikBaslat(kid === 'hepsi' ? tumAnahtarlar() : ks.find(k => k.id === kid).liste, Number($('#pratikAdet').value), Number($('#pratikSure').value)); };
+  $('#vakaBasla').onclick = () => vakaBaslat(Number($('#vakaAdet').value));
   $('#sinavBasla').onclick = () => {
     const kid = $('#sinavKonu').value;
     const liste = kid === 'hepsi' ? tumAnahtarlar() : ks.find(k => k.id === kid).liste;
@@ -390,6 +406,162 @@ function sinavSonuc() {
 function sinavBitir(cizilsin = true) {
   sinav = null; $('#soruKarti').hidden = true;
   g.soru = new Set(); g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle();
+  if (cizilsin) yanCiz();
+}
+
+// ---------- Pratik sınav (istasyonlu, yazarak) ----------
+const KISALTMA = [[/\bmm\./g, 'musculi '], [/\bm\./g, 'musculus '], [/\baa\./g, 'arteriae '], [/\ba\./g, 'arteria '], [/\bvv\./g, 'venae '], [/\bv\./g, 'vena '], [/\bnn\./g, 'nervi '], [/\bn\./g, 'nervus '], [/\bligg?\./g, 'ligamentum '], [/\bgl\./g, 'glandula '], [/\bproc\./g, 'processus '], [/\br\./g, 'ramus '], [/\btr\./g, 'truncus ']];
+// Karşılaştırma için sadeleştirir: küçük harf, kısaltmaları açar, parantez içini ve sağ/sol sözcüklerini atar.
+function sade(m, yonTut = false) {
+  let x = norm(m);
+  for (const [re, y] of KISALTMA) x = x.replace(re, y);
+  x = x.replace(/\([^)]*\)/g, ' ');
+  if (!yonTut) x = x.replace(/\b(dexter|dextra|dextrum|dextri|sinister|sinistra|sinistrum|sinistri|sol|sag|left|right)\b/g, ' ');
+  return x.replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function uzaklik(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+// Yazılan cevabı değerlendirir: 'dogru' | 'yazim' (küçük yazım hatası) | 'yanlis' | 'bos'.
+function cevapPuani(cevap, a) {
+  // Adında yön geçen yapılarda (ör. Ventriculus sinister) yön de doğru yazılmalıdır.
+  const yonlu = /\b(dext|sinist)/i.test(TERIM[a].la);
+  const c = sade(cevap, yonlu); if (!c) return 'bos';
+  const adaylar = [...new Set([TERIM[a].la, TERIM[a].tr, ...yapilar[a].parcalar.map(i => parcalar[i].la)].filter(Boolean).flatMap(x => x.split(' / ')).map(x => sade(x, yonlu)).filter(Boolean))];
+  let en = 'yanlis';
+  for (const d of adaylar) {
+    const u = uzaklik(c, d);
+    if (u <= Math.max(1, Math.round(d.length * 0.1))) return 'dogru';
+    if (u <= Math.round(d.length * 0.25)) en = 'yazim';
+  }
+  return en;
+}
+function zil() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), k = ac.createGain(); o.frequency.value = 880; k.gain.value = 0.08; o.connect(k); k.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.18); } catch { /* ses yoksa sessiz geç */ } }
+
+function pratikBaslat(liste, adet, sure) {
+  const havuz = liste.filter(a => yapilar[a] && !['ta_disi', 'belirsiz'].includes(DOGRULAMA[a]?.durum));
+  const secilen = C.karistir(C.soruSec(havuz, adet));
+  if (!secilen.length) return;
+  ozel = { tip: 'pratik', ist: secilen.map(a => ({ a, cevap: '', ek: '' })), sira: 0, sure, kalan: sure, zaman: null, bitti: false, havuz };
+  cekmeceKapat(); $('#secimEtiketi').hidden = true;
+  g.yalniz = new Set(havuz.flatMap(a => yapilar[a].parcalar)); g.secili = new Set();
+  ozelYanCiz(); istasyonGoster();
+}
+function istasyonGoster() {
+  const k = $('#soruKarti'), s = ozel.ist[ozel.sira], y = yapilar[s.a];
+  g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar);
+  ozel.kalan = ozel.sure;
+  k.innerHTML = `<div class="ust-bilgi"><span>İstasyon ${ozel.sira + 1} / ${ozel.ist.length}</span><span id="pratikSaniye">${ozel.kalan} sn</span></div>
+    <div class="ilerleme-cubugu"><div id="pratikCubuk" style="width:100%"></div></div>
+    <p class="soru">Turuncu yapının Latince adını yaz</p>
+    <input id="pratikCevap" class="arama" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Örn. M. biceps brachii" aria-label="Yapının Latince adı">
+    ${KAS_BILGI[s.a] ? '<input id="pratikEk" class="arama" style="margin-top:6px" type="text" autocomplete="off" spellcheck="false" placeholder="Ek soru: bu kasın siniri? (isteğe bağlı)" aria-label="Ek soru: kasın siniri">' : ''}
+    <div class="dugme-satiri"><button id="pratikSonraki">${ozel.sira + 1 < ozel.ist.length ? 'Sonraki istasyon (Enter)' : 'Sınavı bitir (Enter)'}</button></div>`;
+  k.hidden = false;
+  const ileri = () => { s.cevap = $('#pratikCevap').value; s.ek = $('#pratikEk')?.value || ''; clearInterval(ozel.zaman); ozel.sira++; ozel.sira < ozel.ist.length ? (ozelYanCiz(), istasyonGoster()) : pratikSonuc(); };
+  $('#pratikSonraki').onclick = ileri;
+  k.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') ileri(); }));
+  $('#pratikCevap').focus({ preventScroll: true });
+  clearInterval(ozel.zaman);
+  ozel.zaman = setInterval(() => {
+    if (!ozel || ozel.tip !== 'pratik') return;
+    ozel.kalan--;
+    const sn = $('#pratikSaniye'), cb = $('#pratikCubuk');
+    if (sn) sn.textContent = `${Math.max(0, ozel.kalan)} sn`;
+    if (cb) { cb.style.width = `${(100 * Math.max(0, ozel.kalan)) / ozel.sure}%`; if (ozel.kalan <= 5) cb.style.background = 'var(--hata)'; }
+    if (ozel.kalan <= 0) { zil(); ileri(); }
+  }, 1000);
+}
+function pratikSonuc() {
+  clearInterval(ozel.zaman); ozel.bitti = true;
+  g.soru = new Set(); g.soluk = null; g.guncelle(); g.gorunus('on');
+  let puan = 0;
+  for (const s of ozel.ist) {
+    s.sonuc = cevapPuani(s.cevap, s.a);
+    if (s.sonuc === 'dogru') puan += 1; else if (s.sonuc === 'yazim') puan += 0.5;
+    C.cevapla(`ad:${s.a}`, s.sonuc === 'dogru' ? 'dogru' : s.sonuc === 'yazim' ? 'zor' : 'yanlis');
+  }
+  ozel.puan = puan;
+  $('#soruKarti').innerHTML = `<p class="soru">Pratik sınav bitti: ${puan} / ${ozel.ist.length} puan</p>
+    <p class="kucuk">Tam doğru 1 puan, küçük yazım hatası yarım puan. Aşağıdaki listede bir satıra tıklarsan yapı modelde gösterilir.</p>
+    <div class="dugme-satiri"><button id="pratikYeni" class="ikincil">Yeni sınav</button><button id="pratikKapat">Kapat</button></div>`;
+  $('#pratikYeni').onclick = () => { ozelBitir(false); sinavCiz(); };
+  $('#pratikKapat').onclick = () => ozelBitir(true);
+  ozelYanCiz(); vadeliRozet();
+}
+
+// ---------- Klinik vaka soruları ----------
+function vakaListesi() {
+  const km = new Set(seciliKomiteler().map(k => k.id.replace(/-4$/, '')));
+  return VAKALAR.filter(v => yapilar[v.dogru] && v.k.some(x => km.has(x)));
+}
+function vakaBaslat(adet) {
+  const hepsi = C.karistir(vakaListesi()).sort((a, b) => C.kart(`vaka:${a.id}`).kutu - C.kart(`vaka:${b.id}`).kutu);
+  if (!hepsi.length) return;
+  ozel = { tip: 'vaka', liste: hepsi.slice(0, adet), sira: 0, dogru: 0, yanlislar: [], cevaplandi: false };
+  cekmeceKapat(); $('#secimEtiketi').hidden = true;
+  ozelYanCiz(); vakaGoster();
+}
+function vakaGoster() {
+  const k = $('#soruKarti');
+  if (ozel.sira >= ozel.liste.length) {
+    g.soru = new Set(); g.soluk = null; g.guncelle();
+    k.innerHTML = `<p class="soru">Vakalar bitti: ${ozel.dogru} / ${ozel.liste.length} doğru</p>
+      ${ozel.yanlislar.length ? `<p>Yanlış yaptıkların (sonraki sefer önce bunlar gelir):</p><ul>${ozel.yanlislar.map(v => `<li>${esc(ad(v.dogru))}</li>`).join('')}</ul>` : '<p>Hepsi doğru, harika!</p>'}
+      <div class="dugme-satiri"><button id="vakaYeni" class="ikincil">Yeni vakalar</button><button id="vakaKapat">Kapat</button></div>`;
+    $('#vakaYeni').onclick = () => { ozelBitir(false); sinavCiz(); };
+    $('#vakaKapat').onclick = () => ozelBitir(true);
+    return;
+  }
+  const v = ozel.liste[ozel.sira]; ozel.cevaplandi = false;
+  g.soru = new Set(); g.soluk = null; g.yalniz = null; g.secili = new Set(); g.guncelle();
+  let yanlis = v.celdirici.filter(a => yapilar[a]);
+  if (yanlis.length < 3) yanlis = [...yanlis, ...C.karistir(Object.values(yapilar).filter(y => y.sistem === yapilar[v.dogru].sistem && y.anahtar !== v.dogru && !yanlis.includes(y.anahtar) && DOGRULAMA[y.anahtar]?.durum === 'dogrulandi').map(y => y.anahtar))].slice(0, 3);
+  const secenek = C.karistir([v.dogru, ...yanlis]);
+  k.innerHTML = `<div class="ust-bilgi"><span>Vaka ${ozel.sira + 1} / ${ozel.liste.length}</span><span>Klinik vaka</span></div>
+    <p class="vaka-metin">${esc(v.metin)}</p><p class="soru">${esc(v.soru)}</p>
+    <div class="secenekler">${secenek.map(a => `<button data-vaka="${esc(a)}">${esc(ad(a))}</button>`).join('')}</div><div id="geri"></div>`;
+  k.querySelectorAll('[data-vaka]').forEach(b => b.addEventListener('click', () => {
+    if (ozel.cevaplandi) return; ozel.cevaplandi = true;
+    const dogru = b.dataset.vaka === v.dogru, y = yapilar[v.dogru];
+    k.querySelectorAll('[data-vaka]').forEach(x => { if (x.dataset.vaka === v.dogru) x.classList.add('dogru'); });
+    if (!dogru) { b.classList.add('yanlis'); ozel.yanlislar.push(v); } else ozel.dogru++;
+    C.cevapla(`vaka:${v.id}`, dogru ? 'dogru' : 'yanlis');
+    g.acikSistemler.add(y.sistem); g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar);
+    $('#geri').innerHTML = `<div class="geri-bildirim ${dogru ? 'dogru' : 'yanlis'}">${dogru ? 'Doğru!' : `Doğrusu: ${esc(ad(v.dogru))}`}</div>
+      <p style="margin:.5rem 0 0">${esc(v.aciklama)}</p><p class="kucuk">Yapı modelde turuncu gösteriliyor.</p>
+      <div class="dugme-satiri"><button id="vakaSonraki">${ozel.sira + 1 < ozel.liste.length ? 'Sonraki vaka' : 'Sonucu gör'}</button></div>`;
+    $('#vakaSonraki').onclick = () => { ozel.sira++; ozelYanCiz(); vakaGoster(); };
+    $('#vakaSonraki').focus({ preventScroll: true }); ozelYanCiz();
+  }));
+  k.hidden = false;
+}
+
+function ozelYanCiz() {
+  if (ozel.tip === 'pratik' && ozel.bitti) {
+    const etiket = { dogru: 'Doğru', yazim: 'Yazım hatası (yarım puan)', yanlis: 'Yanlış', bos: 'Boş' };
+    $('#yan').innerHTML = `<h2>Pratik sınav sonucu: ${ozel.puan} / ${ozel.ist.length}</h2>
+      <table class="sonuc-tablo"><thead><tr><th>No</th><th>Senin cevabın</th><th>Doğru cevap</th></tr></thead><tbody>
+      ${ozel.ist.map((s, n) => `<tr class="s-${s.sonuc}" data-ist="${n}" tabindex="0"><td>${n + 1}</td><td>${esc(s.cevap || '(boş)')}<br><small>${etiket[s.sonuc]}</small>${s.ek ? `<br><small>Sinir cevabın: ${esc(s.ek)}</small>` : ''}</td><td><b>${esc(TERIM[s.a].la)}</b><br><small>${esc(TERIM[s.a].tr === TERIM[s.a].la ? '' : TERIM[s.a].tr)}</small>${KAS_BILGI[s.a] ? `<br><small>Sinir: ${esc(KAS_BILGI[s.a].sinir)}</small>` : ''}</td></tr>`).join('')}
+      </tbody></table>`;
+    document.querySelectorAll('[data-ist]').forEach(t => t.addEventListener('click', () => { const y = yapilar[ozel.ist[Number(t.dataset.ist)].a]; g.soru = new Set(y.parcalar); g.soluk = new Set(y.parcalar); g.guncelle(); g.odakla(y.parcalar); }));
+    return;
+  }
+  const toplam = ozel.tip === 'pratik' ? ozel.ist.length : ozel.liste.length;
+  $('#yan').innerHTML = `<h2>${ozel.tip === 'pratik' ? 'Pratik sınav sürüyor' : 'Klinik vakalar'}</h2>
+    <p>${ozel.tip === 'pratik' ? 'İstasyon' : 'Vaka'} ${Math.min(ozel.sira + 1, toplam)} / ${toplam}${ozel.tip === 'vaka' ? ` · Doğru: ${ozel.dogru}` : ''}</p>
+    <div class="ilerleme-cubugu"><div style="width:${(100 * ozel.sira) / toplam}%"></div></div>
+    <p class="kucuk">${ozel.tip === 'pratik' ? 'Modeli döndürüp yakınlaştırabilirsin. Doğru cevaplar sınavın sonunda gösterilir.' : 'Önce öyküyü oku, sonra etkilenen yapıyı seç.'}</p>
+    <button id="ozelCik" class="ikincil" style="width:100%">${ozel.tip === 'pratik' ? 'Sınavı bırak' : 'Vakaları bırak'}</button>`;
+  $('#ozelCik').onclick = () => ozelBitir(true);
+}
+function ozelBitir(cizilsin = true) {
+  if (ozel?.zaman) clearInterval(ozel.zaman);
+  ozel = null; $('#soruKarti').hidden = true;
+  g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle();
   if (cizilsin) yanCiz();
 }
 

@@ -29,6 +29,16 @@
    - **Komite sınav tarihini** girersen aralıklar sınavı aşmaz; her kart sınavdan önce en az bir kez daha gelir.
 4. **İlerlemem** sekmesinde kaç gün üst üste çalıştığını, doğru oranını ve en çok zorlandığın yapıları gör.
 
+## Pratik sınav (istasyonlu)
+**Sınav** sekmesinde "Pratik sınavı başlat"a bas. Fakültedeki pratik sınav gibi çalışır:
+- Her istasyonda bir yapı turuncu gösterilir; süre dolmadan (30, 45 ya da 60 saniye) **Latince adını yazarsın**. Süre bitince zil çalar ve sonraki istasyona geçilir.
+- "M.", "A.", "V.", "N.", "Lig." gibi kısaltmalar kabul edilir. Küçük yazım hatası yarım puan alır. Adında yön geçen yapılarda (ör. Ventriculus sinister) yönü de doğru yazmalısın.
+- Kaslarda isteğe bağlı bir ek soru çıkar: kasın siniri. Bu soru puanlanmaz; sonuç listesinde doğru sinirle yan yana gösterilir, kendin karşılaştırırsın.
+- Doğru cevaplar ancak sınavın sonunda gösterilir. Listede bir satıra tıklarsan yapı modelde gösterilir.
+
+## Klinik vaka soruları
+**Sınav** sekmesinde "Vakaları başlat"a bas. Kısa bir hasta öyküsü okursun ve hangi yapının etkilendiğini seçersin. Cevaptan sonra açıklama çıkar ve yapı modelde turuncu gösterilir. Vakalar seçtiğin sınıf ve komiteye göre gelir; yanlış yaptıkların sonraki sefer önce gelir. Kadın organlarıyla ilgili vakalar Kadın modelinde çıkar.
+
 ## Kendi notların
 Bir yapıya tıkla, sağdaki **Benim notum** alanına yaz. Kendiliğinden kaydedilir. Bütün notların **Notlarım** sekmesinde toplanır ve tekrar kartının arka yüzünde de görünür.
 
