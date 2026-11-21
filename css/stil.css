@@ -239,3 +239,92 @@ body { background: #f3f5f8; }
 /* Dar ekranda görünüm kipleri alta iner; düğmeler ve ipucu yazısı modelin üstüne binmez. */
 @media (max-width: 900px) { .sahne-mod { top: auto; bottom: 12px; left: 12px; right: auto; } .gezinme-ipucu { display: none; } }
 @media (max-width: 900px) { .secim-etiketi { bottom: 64px; } }
+
+/* ===== Arayüz yenilemesi (22.11.2026): sahne öncelikli düzen, tek vurgu rengi (turuncu), IBM Plex yazı tipleri ===== */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url(../vendor/fonts/ibm-plex-sans-latin-ext-400.woff2) format("woff2"); unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url(../vendor/fonts/ibm-plex-sans-latin-400.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url(../vendor/fonts/ibm-plex-sans-latin-ext-600.woff2) format("woff2"); unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url(../vendor/fonts/ibm-plex-sans-latin-600.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url(../vendor/fonts/ibm-plex-mono-latin-ext-500.woff2) format("woff2"); unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url(../vendor/fonts/ibm-plex-mono-latin-500.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+:root {
+  --zemin: #f1ede4; --kart: #fbf9f5; --cizgi: #ddd6c8; --yazi: #1b1a17; --soluk: #6b665c;
+  --ana: #b8480a; --ana-acik: #fbe9dc; --vurgu: #f26b1d;
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+body { background: var(--zemin); font-family: var(--sans); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #f7b388; }
+/* Düğmeler: ana düğme mürekkep rengi, ikincil düğme çizgili; turuncu yalnız etkin olanı gösterir. */
+button { background: var(--yazi); border-color: var(--yazi); color: var(--kart); border-radius: 8px; font-weight: 600; }
+button.ikincil { background: transparent; color: var(--yazi); border-color: var(--cizgi); font-weight: 400; }
+button.ikincil:hover:not(:disabled) { border-color: var(--yazi); }
+input[type=checkbox], input[type=range], input[type=radio] { accent-color: var(--vurgu); }
+/* Küçük başlık düzeni: sabit genişlikli, büyük harfli etiket */
+.etiket-yazi, .duzey, .yan h2, .yan h3, .soru-karti .ust-bilgi, .gosterge small, .durum-seridi, .gorunum-dugmeleri button, .sahne-mod button, .sekmeler button, button.mini, .cip-grup button {
+  font-family: var(--mono); font-weight: 500; text-transform: uppercase; letter-spacing: .06em;
+}
+/* Üst bölüm */
+.ust { background: var(--kart); border-bottom: 1px solid var(--cizgi); padding: 10px 16px 0; gap: 8px 14px; align-items: center; }
+.ust h1 { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 600; letter-spacing: .01em; }
+.marka { width: 12px; height: 12px; background: var(--vurgu); border-radius: 2px; flex: none; }
+.duzey { flex-direction: row; align-items: center; gap: 8px; font-size: .64rem; color: var(--soluk); }
+.duzey select { font-family: var(--sans); font-size: .88rem; background: transparent; border-color: var(--cizgi); min-height: 34px; border-radius: 8px; }
+.duzey select.cipli { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; } /* yerine çip grubu gösterilir; seçim kutusu erişilebilirlik ve kod için durur */
+.cip-grup { display: inline-flex; border: 1px solid var(--cizgi); border-radius: 8px; overflow: hidden; }
+.cip-grup button { background: transparent; color: var(--soluk); border: 0; border-right: 1px solid var(--cizgi); border-radius: 0; padding: 6px 11px; font-size: .7rem; min-height: 34px; }
+.cip-grup button:last-child { border-right: 0; }
+.cip-grup button[aria-pressed="true"], .sahne-mod button[aria-pressed="true"], button.mini.acik { background: var(--vurgu); color: var(--yazi); border-color: var(--vurgu); }
+#yardimDugme { font-size: .8rem; min-height: 34px; border-color: var(--cizgi); color: var(--yazi); background: transparent; font-weight: 400; }
+.sekmeler { counter-reset: sekme; margin-top: 6px; }
+.sekmeler button, .sekmeler button[aria-selected="true"] { font-size: .72rem; padding: 10px 14px 9px; color: var(--soluk); border-bottom-width: 2px; }
+.sekmeler button::before { counter-increment: sekme; content: "0" counter(sekme); margin-right: 8px; opacity: .55; }
+.sekmeler button[aria-selected="true"] { color: var(--yazi); border-bottom-color: var(--vurgu); }
+.sekmeler button[aria-selected="true"]::before { color: var(--ana); opacity: 1; }
+.rozet { background: var(--vurgu); color: var(--yazi); font-family: var(--mono); }
+/* Sahne ve üstündeki denetimler */
+.sahne { background: radial-gradient(ellipse at 55% 38%, #fdfcf9 0%, #efeadf 62%, #e3dccd 100%); }
+.gorunum-dugmeleri, .sahne-mod { border-color: var(--cizgi); background: var(--kart); border-radius: 8px; }
+.gorunum-dugmeleri button, .sahne-mod button { background: transparent; color: var(--yazi); border-right-color: var(--cizgi); font-size: .68rem; padding: 8px 11px; }
+.gezinme button { border-radius: 10px; background: rgba(251,249,245,.94); border-color: var(--cizgi); color: var(--yazi); }
+.gezinme button:active { background: var(--ana-acik); } .gezinme [data-gez=orta] { color: var(--vurgu); }
+.secim-etiketi { background: var(--yazi); color: var(--kart); border-color: var(--yazi); border-radius: 8px; padding: 7px 12px; }
+.durum-seridi { position: absolute; left: 14px; bottom: 10px; margin: 0; z-index: 1; font-size: .62rem; color: var(--soluk); display: flex; gap: 6px 18px; flex-wrap: wrap; max-width: calc(100% - 200px); }
+.durum-seridi b { color: var(--yazi); font-weight: 500; }
+.yapi-etiketi { background: rgba(251,249,245,.95); border-color: var(--cizgi); font-family: var(--sans); }
+/* Yan panel */
+.yan { background: var(--kart); border-right-color: var(--cizgi); }
+#yan { counter-reset: bolum; }
+.yan h2 { font-size: .68rem; color: var(--soluk); margin: 0 0 .5rem; }
+.yan h3 { font-size: .68rem; color: var(--soluk); display: flex; align-items: center; gap: 8px; }
+.bolum { border-color: var(--cizgi); border-radius: 12px; background: transparent; }
+.bolum h3::before { counter-increment: bolum; content: "0" counter(bolum); color: var(--ana); }
+.arama { background: #fff; border: 1px solid var(--cizgi); border-radius: 8px; }
+.komite-bandi { background: transparent; border: 1px solid var(--cizgi); border-left: 3px solid var(--vurgu); border-radius: 8px; color: var(--soluk); }
+.komite-bandi b { color: var(--yazi); }
+/* Sistem satırı: aç-kapa anahtarı, renk çizgisi, ad, saydamlık, sayı */
+.sistemler li { border-radius: 0; border-bottom: 1px solid var(--cizgi); padding: 6px 2px; min-height: 42px; }
+.sistemler li:last-child { border-bottom: 0; } .sistemler li:hover { background: transparent; }
+.sistemler input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 34px; height: 20px; flex: none; border-radius: 10px; background: var(--cizgi); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
+.sistemler input[type=checkbox]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.sistemler input[type=checkbox]:checked { background: var(--yazi); } .sistemler input[type=checkbox]:checked::after { transform: translateX(14px); }
+.sistemler .nokta { width: 4px; height: 20px; border-radius: 2px; }
+.sistemler li > .kucuk { font-family: var(--mono); font-size: .7rem; min-width: 30px; text-align: right; }
+button.mini { font-size: .58rem; padding: 3px 7px; border-radius: 6px; background: transparent; min-height: 26px; }
+.liste-dugme { background: transparent !important; border-color: var(--cizgi) !important; color: var(--yazi); }
+.liste-dugme:hover:not(:disabled) { border-color: var(--yazi) !important; background: transparent !important; }
+.cekmece { background: var(--kart); }
+.gosterge b { font-family: var(--mono); font-weight: 500; }
+.soru-karti { background: var(--kart); border-color: var(--cizgi); border-radius: 12px; }
+/* Geniş ekran: model bütün alanı kaplar, panel modelin üstünde yüzer */
+@media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) {
+  .duzen { position: relative; display: block; }
+  .sahne { position: absolute; inset: 0; }
+  .yan { position: absolute; z-index: 3; top: 14px; left: 14px; bottom: 14px; width: var(--yan-gen); background: rgba(251,249,245,.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--cizgi); border-radius: 14px; }
+  .gorunum-dugmeleri { left: calc(var(--yan-gen) + 28px); top: 14px; }
+  .sahne-mod { top: 14px; right: 14px; }
+  .secim-etiketi, .durum-seridi { left: calc(var(--yan-gen) + 28px); }
+  .durum-seridi { max-width: calc(100% - var(--yan-gen) - 220px); }
+}
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) { .durum-seridi { display: none; } .ust h1 { font-size: .92rem; } }
+@media (pointer: coarse) { .cip-grup button, .gorunum-dugmeleri button, .sahne-mod button { min-height: 42px; } button.mini { min-height: 34px; } .sistemler input[type=checkbox] { width: 40px; height: 24px; border-radius: 12px; } .sistemler input[type=checkbox]::after { width: 20px; height: 20px; } .sistemler input[type=checkbox]:checked::after { transform: translateX(16px); } }
+@media print { .durum-seridi { display: none; } }

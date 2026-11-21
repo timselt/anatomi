@@ -14,7 +14,7 @@
 </head>
 <body>
 <header class="ust">
-  <h1>Anatomi Çalışma Masası</h1>
+  <h1><span class="marka" aria-hidden="true"></span>Anatomi Çalışma Masası</h1>
   <nav class="sekmeler" role="tablist" aria-label="Bölümler">
     <button role="tab" data-sekme="kesfet" aria-selected="true">Keşfet</button>
     <button role="tab" data-sekme="sinav">Sınav</button>
@@ -63,7 +63,7 @@
       <button data-gez="yakin" title="Yakınlaş (+)" aria-label="Yakınlaş">+</button>
       <button data-gez="uzak" title="Uzaklaş (−)" aria-label="Uzaklaş">−</button>
     </div>
-    <p class="gezinme-ipucu">Döndür: sürükle · Kaydır: sağ tuşla ya da Shift ile sürükle, ok tuşları · Yakınlaş: tekerlek, çift tıkla</p>
+    <p id="durumSeridi" class="durum-seridi" aria-live="off"></p>
     <div id="secimEtiketi" class="secim-etiketi" hidden></div>
   </section>
 </main>

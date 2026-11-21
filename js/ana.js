@@ -1161,3 +1161,21 @@ function notlarCiz() {
 
 yanCiz();
 window.__anatomi = { g, parcalar, yapilar, konular };
+
+// ---------- Arayüz: çip grupları, durum şeridi, yüzen panel için görüntü kaydırma ----------
+// Az seçenekli kutular (Model, Sınıf, Adlar) çip grubu olarak gösterilir; asıl seçim kutusu yerinde durur ve değişikliği o taşır.
+for (const [id, kisalt] of [['cinsiyet', t => t], ['sinif', t => t.match(/^\d+\. sınıf/i)?.[0] ?? t], ['dil', t => t]]) {
+  const kutu = $('#' + id), grup = document.createElement('span'); grup.className = 'cip-grup'; grup.setAttribute('role', 'group');
+  for (const o of kutu.options) { const b = document.createElement('button'); b.type = 'button'; b.textContent = kisalt(o.textContent); b.dataset.deger = o.value; b.onclick = () => { kutu.value = o.value; kutu.dispatchEvent(new Event('change', { bubbles: true })); isaretle(); }; grup.appendChild(b); }
+  const isaretle = () => { for (const b of grup.children) b.setAttribute('aria-pressed', String(b.dataset.deger === kutu.value)); };
+  kutu.classList.add('cipli'); kutu.tabIndex = -1; kutu.after(grup); kutu.addEventListener('change', isaretle); isaretle();
+}
+// Durum şeridi: görünen yapı sayısı, açık sistem sayısı ve seçili yapı. Model her güncellendiğinde yenilenir.
+function durumYaz() {
+  const gorunen = g.meshler.reduce((n, m) => n + (m?.visible ? 1 : 0), 0), p = seciliParca >= 0 ? parcalar[seciliParca] : null;
+  $('#durumSeridi').innerHTML = `<span>Model <b>${KADIN_MI ? 'Kadın' : 'Erkek'}</b></span><span>Görünen yapı <b>${gorunen}</b> / ${parcalar.length}</span><span>Açık sistem <b>${g.acikSistemler.size}</b></span><span>Seçili <b>${esc(p ? ((C.dil() === 'la' ? p.la : p.tr) || p.tr || p.en) : '—')}</b></span>`;
+}
+{ const asil = g.guncelle.bind(g); g.guncelle = () => { asil(); durumYaz(); }; durumYaz(); }
+{ const genis = matchMedia('(min-width: 901px) and (orientation: landscape), (min-width: 1101px)');
+  const ayarla = () => { g.yanBosluk = genis.matches ? document.querySelector('.yan').offsetWidth + 14 : 0; g._boyut(); };
+  genis.addEventListener('change', ayarla); addEventListener('resize', ayarla); ayarla(); }

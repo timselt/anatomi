@@ -411,7 +411,10 @@ export class Goruntuleyici {
   _boyut() {
     const w = this.kap.clientWidth, h = this.kap.clientHeight;
     if (!w || !h) return;
-    this.renderer.setSize(w, h, false); this.birlestirici?.setSize(w, h); this.kamera.aspect = w / h; this.kamera.updateProjectionMatrix(); this.kirli = true;
+    this.renderer.setSize(w, h, false); this.birlestirici?.setSize(w, h); this.kamera.aspect = w / h;
+    // Modelin üstünde yüzen panel varsa görüntü, panelin kapladığı alanın yarısı kadar sağa kayar: model açık alanın ortasında durur.
+    if (this.yanBosluk) this.kamera.setViewOffset(w, h, -this.yanBosluk / 2, 0, w, h); else this.kamera.clearViewOffset();
+    this.kamera.updateProjectionMatrix(); this.kirli = true;
   }
 
   // Yüksek görsel kaliteyi açar ya da kapatır (eski cihazlarda kapatılabilir).
