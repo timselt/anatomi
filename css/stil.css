@@ -215,3 +215,7 @@ body { background: #f3f5f8; }
 .mikro-pano svg { display: block; width: 100%; max-width: 720px; max-height: 52vh; margin: 6px auto; background: #fbfcfd; border: 1px solid var(--cizgi); border-radius: 12px; }
 .mikro-pano ol { max-width: 720px; margin: 10px auto; padding-left: 1.3rem; }
 .mikro-pano li { margin-bottom: .45rem; }
+
+/* Kalp atımı canlandırmasındaki şematik EKG */
+.ekg { width: 100%; max-width: 420px; height: auto; display: block; margin: 8px 0 2px; color: var(--yazi, #1f2933); }
+.ekg text { font-size: 9px; fill: currentColor; }

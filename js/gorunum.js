@@ -153,7 +153,7 @@ export class Goruntuleyici {
   // Akışı ilerletir; öndeki parçacığın yoldaki yerini (0-1) döndürür.
   akisAdim(ilerleme) {
     const a = this.akis; if (!a) return 0;
-    a.faz = (a.faz + ilerleme) % 1;
+    a.faz = (((a.faz + ilerleme) % 1) + 1) % 1;
     const m = new T.Matrix4(), c = new T.Color(), p = new T.Vector3(), K = a.egriler.length;
     for (let i = 0; i < a.adet; i++) {
       let t = a.faz - (Math.floor(i / K) / (a.adet / K)) * a.yayilim; t = ((t % 1) + 1) % 1;

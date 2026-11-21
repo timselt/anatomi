@@ -785,14 +785,29 @@ function kalpBaslat() {
   const kul = parcaListesi(KALP.kulakcik), kar = parcaListesi(KALP.karincik);
   const damar = parcaListesi(['cikan-aorta', 'aort-yayi', 'pulmoner-govde', 'pulmoner-arter', 'ust-ana-toplardamar', 'alt-ana-toplardamar', 'pulmoner-ven', 'mitral', 'trikuspit', 'aort-kapagi', 'pulmoner-kapak']);
   const c = kutuMerkezi([...kul, ...kar]);
-  g.yalniz = new Set([...kul, ...kar, ...damar]); g.soluk = null; g.secili = new Set(); g.soru = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla([...kul, ...kar]);
+  // Kalp cam gibi saydamlaşır; içinden geçen kan görünür (mavi: sağ kalp, kırmızı: sol kalp).
+  g.yalniz = new Set([...kul, ...kar, ...damar]); g.soluk = new Set(); g.secili = new Set(); g.soru = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla([...kul, ...kar]);
   [...kul, ...kar].forEach(i => canli.dokunulan.add(i));
+  const yolAdim = AKISLAR.find(a => a.id === 'dolasim').adimlar.map(ad => ({ yol: parcaListesi(ad.yol ?? ad.y) }));
+  if (yolAdim.every(ad => ad.yol.length)) {
+    const { yollar, adimBasi } = yolCikar(yolAdim), b = adimBasi[0];
+    g.akisKur([yollar[0].slice(b[0], b[6]), yollar[0].slice(b[7], b[12] + 2)], (t, k) => (k ? 0xff3b30 : 0x3d7bfd), { adet: 160, boyut: 0.0026 });
+  }
   canliKart(''); canliYanCiz();
+  // Şematik EKG: P dalgası kulakçık, QRS karıncık kasılmasından hemen önce gelir; T dalgası karıncıkların toparlanmasıdır.
+  $('#canliIcerik').insertAdjacentHTML('afterend', `<svg class="ekg" viewBox="0 0 300 70" role="img" aria-label="Şematik EKG">
+    <path d="M0 45 H12 Q21 31 30 45 H54 L58 50 L63 8 L68 60 L72 45 H128 Q148 22 168 45 H300" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <text x="16" y="66">P</text><text x="57" y="66">QRS</text><text x="143" y="66">T</text><line id="ekgImlec" x1="0" x2="0" y1="2" y2="56" stroke="var(--turuncu)" stroke-width="2"/></svg>
+    <p class="kucuk">Şematik EKG, ağır çekim. Mavi noktalar oksijeni az, kırmızı noktalar oksijeni bol kan.</p>`);
   evreGoster(KALP.evreler, 0); canli.evre = -1;
+  let son = performance.now();
   g.canli = t => {
     const p = (canliZaman(t) / 7000) % 1;
-    const a = p < 0.22 ? 1 - 0.1 * Math.sin((Math.PI * p) / 0.22) : 1;
-    const v = p >= 0.22 && p < 0.6 ? 1 - 0.13 * Math.sin((Math.PI * (p - 0.22)) / 0.38) : 1;
+    const a = p < 0.22 ? 1 - 0.14 * Math.sin((Math.PI * p) / 0.22) : 1;
+    const v = p >= 0.22 && p < 0.6 ? 1 - 0.19 * Math.sin((Math.PI * (p - 0.22)) / 0.38) : 1;
+    const dt = Math.min(t - son, 100); son = t; // kan, kasılma anında hızlanır
+    if (g.akis) g.akisAdim(canli.oynuyor ? (dt / 9000) * (0.35 + 14 * (2 - a - v)) : 0);
+    $('#ekgImlec')?.setAttribute('transform', `translate(${p * 300} 0)`);
     const ma = olcekMatrisi(c, a, a, a), mv = olcekMatrisi(c, v, v, v);
     kul.forEach(i => g.donusum(i, ma)); kar.forEach(i => g.donusum(i, mv));
     const n = p < 0.22 ? 0 : p < 0.6 ? 1 : 2;
@@ -806,15 +821,22 @@ function solunumBaslat() {
   const omur = parcalar.filter(p => /thoracic vertebra/i.test(p.en)).map(p => p.i);
   const akciger = parcaListesi([/^z:.*lobe of .*lung/]), diyafram = parcaListesi(['diyafram']);
   const c = kutuMerkezi(kafes);
-  g.yalniz = new Set([...kafes, ...omur, ...akciger, ...diyafram]); g.soluk = null; g.secili = new Set(); g.soru = new Set(diyafram); g.guncelle(); g.gorunus('on', false); g.odakla(kafes);
+  const yolAdim = AKISLAR.find(a => a.id === 'hava').adimlar.map(ad => ({ yol: parcaListesi(ad.yol ?? ad.y) })).filter(ad => ad.yol.length);
+  const boru = parcaListesi(['soluk-borusu', 'ana-bronş']);
+  g.yalniz = new Set([...kafes, ...omur, ...akciger, ...diyafram, ...boru]); g.soluk = null; g.secili = new Set(); g.soru = new Set(diyafram); g.guncelle(); g.gorunus('on', false); g.odakla(kafes);
   [...kafes, ...akciger, ...diyafram].forEach(i => canli.dokunulan.add(i));
   canliKart(''); canliYanCiz();
   evreGoster(SOLUNUM.evreler, 0);
+  // Hava parçacıkları: nefes alırken burundan akciğere, verirken geri akar (verilen hava gri gösterilir).
+  let veriyor = false, onceki = 0;
+  if (yolAdim.length > 2) g.akisKur(yolCikar(yolAdim).yollar, () => (veriyor ? 0x8e9aa8 : 0x40c4ff), { adet: 120, yayilim: 0.45, boyut: 0.003 });
+  $('#canliIcerik').insertAdjacentHTML('afterend', '<p class="kucuk">Mavi noktalar alınan, gri noktalar verilen havadır. Hareketler görülebilsin diye büyütülmüştür.</p>');
   g.canli = t => {
     const p = (canliZaman(t) / 8000) % 1;
     const k = yumusak(p < 0.45 ? p / 0.45 : 1 - (p - 0.45) / 0.55);
-    const mk = olcekMatrisi(c, 1 + 0.05 * k, 1, 1 + 0.06 * k, 0.006 * k), ma = olcekMatrisi(c, 1 + 0.06 * k, 1 + 0.05 * k, 1 + 0.07 * k, -0.006 * k);
-    const md = new T.Matrix4().makeTranslation(0, -0.02 * k, 0);
+    veriyor = p >= 0.45; if (g.akis) g.akisAdim((k - onceki) * 0.5); onceki = k;
+    const mk = olcekMatrisi(c, 1 + 0.08 * k, 1, 1 + 0.09 * k, 0.012 * k), ma = olcekMatrisi(c, 1 + 0.09 * k, 1 + 0.07 * k, 1 + 0.1 * k, -0.01 * k);
+    const md = new T.Matrix4().makeTranslation(0, -0.03 * k, 0);
     kafes.forEach(i => g.donusum(i, mk)); akciger.forEach(i => g.donusum(i, ma)); diyafram.forEach(i => g.donusum(i, md));
     evreGoster(SOLUNUM.evreler, p < 0.45 ? 0 : 1);
   };
@@ -833,17 +855,45 @@ function hareketBaslat(h) {
   const satir = a => `<li>${esc(ad(a))}${KAS_BILGI[a]?.sinir ? ` <small>· ${esc(KAS_BILGI[a].sinir)}</small>` : ''}</li>`;
   canliKart(`<p><b style="color:var(--turuncu)">Hareketi yapan kaslar</b></p><ul class="kucuk-liste">${h.yapan.filter(a => yapilar[a]).map(satir).join('')}</ul>
     <p><b style="color:var(--ana)">Karşıt kaslar</b></p><ul class="kucuk-liste">${h.karsit.filter(a => yapilar[a]).map(satir).join('')}</ul>
-    <p class="kucuk">${esc(h.not)}</p><p class="kucuk">Önce kaslar gösterilir, sonra hareket iskelette oynatılır. Kaslar modelde şekil değiştirmez.</p>`);
+    <p class="kucuk">${esc(h.not)}</p><p class="kucuk">Kasların kemikle birlikte uzayıp kısalması ve kasılan kasın kalınlaşması yaklaşık bir gösterimdir.</p>`);
   canliYanCiz();
   const eksen = h.eksen === 'x' ? new T.Vector3(1, 0, 0) : new T.Vector3(0, 0, 1), kaslar = [...yapan, ...karsit];
+  const dk = new T.Box3(); oynayan.forEach(i => dk.expandByPoint(g.merkezHam(i)));
+  const d = dk.getCenter(new T.Vector3()).sub(merkez).normalize(), yaricap = /bacak|baldir/.test(h.oynayan) ? [0.11, 0.17] : [0.07, 0.12], yapanKume = new Set(yapan);
+  const kasVeri = kaslar.filter(i => g.meshler[i]).map(i => {
+    const ag = g.meshler[i], p = ag.geometry.attributes.position, ilk = p.array.slice(), w = new Float32Array(p.count), v = new T.Vector3();
+    for (let n = 0; n < p.count; n++) {
+      v.set(ilk[n * 3], ilk[n * 3 + 1], ilk[n * 3 + 2]).sub(merkez); const s = v.dot(d), r = v.addScaledVector(d, -s).length();
+      w[n] = T.MathUtils.smoothstep(s, -0.03, 0.03) * (1 - T.MathUtils.smoothstep(r, yaricap[0], yaricap[1]));
+    }
+    ag.frustumCulled = false;
+    return { p, ilk, w, kc: g.merkezHam(i), sisme: yapanKume.has(i) ? 0.12 : -0.05 };
+  });
+  canli.geri = () => kasVeri.forEach(q => { q.p.array.set(q.ilk); q.p.needsUpdate = true; });
+  let sonK = -1;
   g.canli = t => {
     const p = (canliZaman(t) / 8000) % 1;
     let k = p < 0.3 ? 0 : p < 0.6 ? yumusak((p - 0.3) / 0.3) : p < 0.75 ? 1 : yumusak(1 - (p - 0.75) / 0.25);
-    const kasGizli = p >= 0.3;
+    const kasGizli = false;
     if (canli.kasGizli !== kasGizli) { canli.kasGizli = kasGizli; kaslar.forEach(i => (kasGizli ? g.gizli.add(i) : g.gizli.delete(i))); kaslar.forEach(i => canli.gizlenen.add(i)); g.yalniz = new Set([...iskelet, ...(kasGizli ? [] : kaslar)]); g.soru = new Set(kasGizli ? [] : yapan); g.secili = new Set(kasGizli ? [] : karsit); g.guncelle(); $('#canliDurum').textContent = kasGizli ? 'Hareket' : 'Kaslar'; }
     if (h.ters) k = 1 - k;
     const m = new T.Matrix4().makeTranslation(merkez.x, merkez.y, merkez.z).multiply(new T.Matrix4().makeRotationAxis(eksen, T.MathUtils.degToRad(h.aci) * k)).multiply(new T.Matrix4().makeTranslation(-merkez.x, -merkez.y, -merkez.z));
     oynayan.forEach(i => g.donusum(i, m));
+    if (k === sonK) return; sonK = k;
+    // Kaslar: eklemin uzağındaki bölüm kemikle döner, eklem çevresinde yumuşak geçiş olur; kasılan kas kalınlaşır, karşıt kas incelir.
+    const aci = T.MathUtils.degToRad(h.aci) * k;
+    for (const q of kasVeri) {
+      const dz = q.p.array, il = q.ilk, sis = 1 + q.sisme * (h.ters ? 1 - k : k);
+      for (let n = 0, j = 0; n < q.w.length; n++, j += 3) {
+        let x = il[j] - q.kc.x, y = il[j + 1] - q.kc.y, z = il[j + 2] - q.kc.z;
+        const s = x * d.x + y * d.y + z * d.z;
+        x = q.kc.x + d.x * s + (x - d.x * s) * sis - merkez.x; y = q.kc.y + d.y * s + (y - d.y * s) * sis - merkez.y; z = q.kc.z + d.z * s + (z - d.z * s) * sis - merkez.z;
+        const a = aci * q.w[n], co = Math.cos(a), si = Math.sin(a);
+        if (h.eksen === 'x') { dz[j] = x + merkez.x; dz[j + 1] = y * co - z * si + merkez.y; dz[j + 2] = y * si + z * co + merkez.z; }
+        else { dz[j] = x * co - y * si + merkez.x; dz[j + 1] = x * si + y * co + merkez.y; dz[j + 2] = z + merkez.z; }
+      }
+      q.p.needsUpdate = true;
+    }
   };
 }
 function canliYanCiz() {
@@ -855,7 +905,7 @@ function canliYanCiz() {
 }
 function canliBitir(cizilsin = true) {
   g.canli = null; g.akisSil();
-  if (canli) { canli.dokunulan.forEach(i => g.donusum(i, null)); canli.gizlenen.forEach(i => g.gizli.delete(i)); g.acikSistemler = canli.oncekiSistemler; }
+  if (canli) { canli.geri?.(); canli.dokunulan.forEach(i => g.donusum(i, null)); canli.gizlenen.forEach(i => g.gizli.delete(i)); g.acikSistemler = canli.oncekiSistemler; }
   canli = null; $('#soruKarti').hidden = true;
   g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; g.guncelle(); g.gorunus('on');
   if (cizilsin) yanCiz();

@@ -40,6 +40,8 @@
 
 **Yolculuklar (kan, lokma, hava, idrar, görme):** beden cam gibi saydamlaşır, parlak noktalar yolu izler. Kanda mavi noktalar oksijeni az, kırmızı noktalar oksijeni bol kandır. **"Yolculuğa katıl"** düğmesi kamerayı noktaların peşine takar; damarın ya da organın içinden geçersin. "Dışarıdan izle" ile geri dönersin.
 
+**Kalp, solunum ve kas hareketleri:** Kalp atımında kalp saydamdır; içinden geçen kan ve altta şematik bir EKG görünür. Solunumda hava noktaları nefes alırken içeri, verirken dışarı akar. Kas hareketlerinde kaslar kemikle birlikte bükülür, kasılan kas kalınlaşır; bu yaklaşık bir gösterimdir.
+
 **Parçalarına ayır ve içine gir:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçine gir" kamerayı yapının içine götürür.
 - **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
 - **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
