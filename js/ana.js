@@ -953,7 +953,7 @@ function solunumBaslat() {
   $('#canliGosterge').innerHTML = `<div class="gosterge">${gostergeKutu('gSoluk', 'Alınan hava')}${gostergeKutu('gAlveol', 'Alveol basıncı')}${gostergeKutu('gPlevra', 'Plevra basıncı')}</div>
     <canvas id="gEgri" class="egri" aria-label="Akciğere giren hava hacmi eğrisi"></canvas>
     <p class="kucuk">Eğri: bir solukta akciğere giren hava (0-500 mL). Basınçlar hava basıncına göredir. Mavi noktalar alınan, gri noktalar verilen havadır. Hareketler görülebilsin diye büyütülmüştür; dinlenmede dakikada 12-16 soluk alınır.</p>`;
-  const kOran = q => yumusak(q < 0.45 ? q / 0.45 : 1 - (q - 0.45) / 0.55), seriler = [{ f: q => 500 * kOran(q), min: 0, max: 520, renk: '#0f766e' }];
+  const kOran = q => yumusak(q < 0.45 ? q / 0.45 : 1 - (q - 0.45) / 0.55), seriler = [{ f: q => 500 * kOran(q), min: 0, max: 520, renk: '#1b1a17' }];
   g.canli = t => {
     const p = (((canliZaman(t) / 8000) % 1) + 1) % 1;
     const k = yumusak(p < 0.45 ? p / 0.45 : 1 - (p - 0.45) / 0.55);
@@ -1179,3 +1179,10 @@ function durumYaz() {
 { const genis = matchMedia('(min-width: 901px) and (orientation: landscape), (min-width: 1101px)');
   const ayarla = () => { g.yanBosluk = genis.matches ? document.querySelector('.yan').offsetWidth + 14 : 0; g._boyut(); };
   genis.addEventListener('change', ayarla); addEventListener('resize', ayarla); ayarla(); }
+
+// Sahnedeki büyük durum yazısı: canlandırma kartındaki evre ya da adım bilgisini büyük harflerle yansıtır.
+new MutationObserver(() => {
+  const d = $('#canliDurum'), kutu = $('#buyukDurum'), acik = !!canli && !!d?.textContent;
+  kutu.hidden = !acik; if (!acik) return;
+  kutu.firstElementChild.textContent = canli.ad; kutu.lastElementChild.textContent = d.textContent;
+}).observe($('#soruKarti'), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });

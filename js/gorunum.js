@@ -128,7 +128,7 @@ export class Goruntuleyici {
       }
       m.renderOrder = m.material.transparent ? 1 : 0;
     });
-    if (this.cerceve) this.cerceve.selectedObjects = [...this.secili, ...this.soru].map(i => this.meshler[i]).filter(m => m?.visible);
+    if (this.cerceve) this.cerceve.selectedObjects = [...this.secili].map(i => this.meshler[i]).filter(m => m?.visible);
     this.kirli = true;
   }
 

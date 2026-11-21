@@ -328,3 +328,35 @@ button.mini { font-size: .58rem; padding: 3px 7px; border-radius: 6px; backgroun
 @media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) { .durum-seridi { display: none; } .ust h1 { font-size: .92rem; } }
 @media (pointer: coarse) { .cip-grup button, .gorunum-dugmeleri button, .sahne-mod button { min-height: 42px; } button.mini { min-height: 34px; } .sistemler input[type=checkbox] { width: 40px; height: 24px; border-radius: 12px; } .sistemler input[type=checkbox]::after { width: 20px; height: 20px; } .sistemler input[type=checkbox]:checked::after { transform: translateX(16px); } }
 @media print { .durum-seridi { display: none; } }
+
+/* ===== Arayüz yenilemesi 2. adım: canlandırma kartı, sınav formu, ilerleme ve ayrıntı penceresi ===== */
+.soru-karti .ust-bilgi { gap: 10px; flex-wrap: wrap; font-size: .62rem; align-items: center; }
+#canliDurum { background: var(--vurgu); color: var(--yazi); border-radius: 6px; padding: 2px 8px; }
+#canliDurum:empty { display: none; }
+.soru-karti .soru { font-size: 1.1rem; }
+/* Sahnede büyük durum yazısı: o anda ne olduğu tek bakışta okunur */
+.buyuk-durum { position: absolute; left: 14px; bottom: 46px; z-index: 1; pointer-events: none; max-width: 46%; }
+.buyuk-durum small { display: block; font-family: var(--mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soluk); }
+.buyuk-durum b { font-family: var(--sans); font-weight: 600; font-size: 1.5rem; line-height: 1.15; color: var(--ana); text-transform: uppercase; letter-spacing: .01em; }
+.gosterge div { border-color: var(--cizgi); background: #fff; } .gosterge small { font-size: .56rem; } .gosterge b { font-size: 1.05rem; }
+.gosterge b.acik { color: var(--dogru); } .gosterge b.kapali { color: var(--soluk); }
+.ekg { color: var(--yazi); }
+#canliCizgi, .yan input[type=range], .cekmece input[type=range] { accent-color: var(--vurgu); }
+/* Form öğeleri: seçim kutuları ve metin alanları tek biçimde */
+.yan select, .cekmece select, .yan input[type=text], .yan input[type=number], .yan input[type=date], .yan textarea, .cekmece textarea { font-family: var(--sans); background: #fff; border: 1px solid var(--cizgi); border-radius: 8px; padding: 7px 9px; min-height: 38px; color: var(--yazi); max-width: 100%; }
+.yan label { font-size: .9rem; }
+/* İlerleme: büyük rakamlar sabit genişlikli */
+.sayi b, .sayilar b, .sayi strong { font-family: var(--mono); font-weight: 500; }
+.sayi { background: #fff; border-color: var(--cizgi); border-radius: 10px; }
+.ilerleme-cubugu { background: var(--cizgi); } .ilerleme-cubugu > * { background: var(--vurgu); }
+/* Ayrıntı penceresi */
+.cekmece-ust h2 { font-size: 1.3rem; font-weight: 600; }
+.cekmece h3 { font-family: var(--mono); font-weight: 500; font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 1.1rem 0 .35rem; }
+.ipucu { background: #fff; border: 1px solid var(--cizgi); border-left: 3px solid var(--vurgu); border-radius: 8px; }
+.durum { font-family: var(--mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; border-radius: 6px; padding: 3px 8px; }
+.komsular button, .komsular a { border-color: var(--cizgi); background: #fff; color: var(--yazi); font-weight: 400; }
+.tur-yazi { background: var(--yazi); color: var(--kart); border-radius: 10px; }
+dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--cizgi); border-radius: 14px; }
+@media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) { .buyuk-durum { left: calc(var(--yan-gen) + 28px); } }
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) { .buyuk-durum { bottom: 64px; } .buyuk-durum b { font-size: 1.15rem; } }
+@media print { .buyuk-durum { display: none; } }
