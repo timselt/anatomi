@@ -235,3 +235,6 @@ body { background: #f3f5f8; }
 .egri { width: 100%; height: 74px; display: block; }
 #canliCizgi { width: 100%; margin: 8px 0 0; accent-color: var(--ana); }
 @media print { .sahne-mod, .tur-yazi { display: none; } }
+
+/* Dar ekranda görünüm kipleri alta iner; düğmeler ve ipucu yazısı modelin üstüne binmez. */
+@media (max-width: 900px) { .sahne-mod { top: auto; bottom: 12px; left: 12px; right: auto; } .gezinme-ipucu { display: none; } }

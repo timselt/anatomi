@@ -264,10 +264,18 @@ export class Goruntuleyici {
   patlat(oran) {
     this.patlama = oran;
     const orta = this._govdeKutusu().getCenter(new T.Vector3());
+    // Aynı gruptaki parçalar (bir organın dilimleri, bir elin kemikleri) birlikte hareket eder; organlar bütün kalır.
+    if (this.patlamaGrubu && this._grupSayisi !== this.atlas.parts.length) {
+      const kutular = {}; this._grupSayisi = this.atlas.parts.length;
+      this._grupAdi = this.atlas.parts.map((p, i) => { const ad = this.patlamaGrubu(i); const k = (kutular[ad] ??= new T.Box3()); k.expandByPoint(new T.Vector3(...p.bounds[0])); k.expandByPoint(new T.Vector3(...p.bounds[1])); return ad; });
+      this._grupMerkez = Object.fromEntries(Object.entries(kutular).map(([ad, k]) => [ad, k.getCenter(new T.Vector3())]));
+    }
     this.meshler.forEach((m, i) => {
       if (!m) return;
       const b = this.atlas.parts[i].bounds;
-      m.position.set(((b[0][0] + b[1][0]) / 2 - orta.x) * oran, ((b[0][1] + b[1][1]) / 2 - orta.y) * oran, ((b[0][2] + b[1][2]) / 2 - orta.z) * oran);
+      const c = this._grupMerkez?.[this._grupAdi[i]] ?? new T.Vector3((b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2);
+      // Yana ve öne-arkaya çok, yukarı-aşağı az açılır: model çerçevede kalır.
+      m.position.set((c.x - orta.x) * oran * 1.5, (c.y - orta.y) * oran * 0.4, (c.z - orta.z) * oran * 1.5);
       m.updateMatrix();
     });
     this.kirli = true;
@@ -323,6 +331,17 @@ export class Goruntuleyici {
     const merkez = kutu.getCenter(new T.Vector3());
     const r = Math.max(kutu.getSize(new T.Vector3()).length() / 2, 0.06);
     const uzaklik = (r / Math.sin(T.MathUtils.degToRad(this.kamera.fov / 2))) * 1.8;
+    const yon = this.kamera.position.clone().sub(this.kontrol.target).normalize();
+    this._git(merkez.clone().add(yon.multiplyScalar(uzaklik)), merkez, true);
+  }
+
+  // Verilen yapıları, bakış yönünü bozmadan çerçeveyi dolduracak biçimde sığdırır.
+  sigdir(indeksler) {
+    const kutu = new T.Box3();
+    for (const i of indeksler) { const p = this.atlas.parts[i], k = this.meshler[i]?.position ?? new T.Vector3(); kutu.expandByPoint(new T.Vector3(...p.bounds[0]).add(k)); kutu.expandByPoint(new T.Vector3(...p.bounds[1]).add(k)); }
+    if (kutu.isEmpty()) return;
+    const merkez = kutu.getCenter(new T.Vector3()), b = kutu.getSize(new T.Vector3()), yatay = Math.max(b.x, b.z);
+    const uzaklik = (Math.max(b.y, yatay / this.kamera.aspect) / 2 / Math.tan(T.MathUtils.degToRad(this.kamera.fov / 2))) * 1.12 + yatay / 2;
     const yon = this.kamera.position.clone().sub(this.kontrol.target).normalize();
     this._git(merkez.clone().add(yon.multiplyScalar(uzaklik)), merkez, true);
   }

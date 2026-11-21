@@ -143,6 +143,23 @@ $('#dil').addEventListener('change', e => { C.dilAyarla(e.target.value); yanCiz(
 $('#yardimDugme').addEventListener('click', () => $('#yardim').showModal());
 document.querySelectorAll('[data-yon]').forEach(b => b.addEventListener('click', () => g.gorunus(b.dataset.yon)));
 
+// Parçalanmış görünümde birlikte hareket edecek gruplar: organlar ve el, ayak, göğüs kafesi gibi bölgeler bütün kalır.
+const ORGAN_GRUBU = [[/lung|bronch/, 'akciger'], [/hepat|liver|gallbladder/, 'karaciger'], [/colon|caecum|cecum|appendix|rectum/, 'kalin-bagirsak'], [/jejun|ileum|duoden/, 'ince-bagirsak'],
+  [/kidney|renal|ureter/, 'bobrek'], [/ventric|atrium|atrial|valve|papillary|heart|coronary/, 'kalp'], [/stomach|gastric/, 'mide']];
+const KEMIK_BOLGESI = [[/carpal|metacarpal|scaphoid|lunate|triquetr|pisiform|trapez|capitate|hamate|finger|thumb/, 'el'], [/tarsal|metatarsal|talus|calcaneus|cuboid|cuneiform|navicular|toe|foot/, 'ayak'],
+  [/\brib\b|costal|sternum|manubrium|xiphoid/, 'gogus-kafesi'], [/vertebra|sacrum|coccyx|atlas|axis|intervertebral/, 'omurga']];
+g.patlamaGrubu = i => {
+  const p = parcalar[i], en = p.en.toLowerCase(), yan = /\bright\b/.test(en) ? 'R' : /\bleft\b/.test(en) ? 'L' : '';
+  if (p.sistem === 'iskelet' || p.sistem === 'bag') {
+    for (const [d, ad] of KEMIK_BOLGESI) if (d.test(en)) return ad + (ad === 'el' || ad === 'ayak' ? yan : '');
+    if ((p.bounds[0][1] + p.bounds[1][1]) / 2 > 1.47) return 'kafatasi';
+    return p.sistem === 'bag' ? 'bag' + yan : p.anahtar + yan;
+  }
+  if (['atardamar', 'toplardamar', 'sinir', 'lenf', 'deri'].includes(p.sistem)) return p.sistem; // damar ve sinir ağları tek blok
+  if (p.sistem !== 'kas') for (const [d, ad] of ORGAN_GRUBU) if (d.test(en)) return ad + (ad === 'akciger' || ad === 'bobrek' ? yan : '');
+  return p.anahtar + yan;
+};
+
 // ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
 const mod = { parcali: false, cam: false, doner: false, tur: null, kalite: false };
 // Yüksek kalite varsayılan olarak açıktır; kapatılırsa tercih bu cihazda hatırlanır.
@@ -150,8 +167,9 @@ function kaliteAyarla(acik) { mod.kalite = acik; g.kaliteAyarla(acik); try { loc
 const modDugme = ad => document.querySelector(`[data-mod=${ad}]`);
 const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur', 'kalite']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
 function parcaliAyarla(acik) {
-  mod.parcali = acik; const ilk = g.patlama, son = acik ? 0.55 : 0, bas = performance.now();
-  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); };
+  mod.parcali = acik; const ilk = g.patlama, son = acik ? 0.8 : 0, bas = performance.now();
+  const gorunen = () => parcalar.filter(p => g.meshler[p.i]?.visible).map(p => p.i);
+  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); else if (acik) g.sigdir(gorunen()); else g.gorunus('on'); };
   adim(); modIsaretle();
 }
 function camAyarla(acik) {
