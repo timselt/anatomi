@@ -147,3 +147,7 @@ button.mini { padding: 1px 7px; font-size: .72rem; background: var(--kart); colo
 button.mini.acik { background: var(--ana-acik); color: var(--ana); border-color: var(--ana); }
 a.dugme { flex: 1; text-align: center; text-decoration: none; border: 1px solid var(--ana); border-radius: 8px; padding: 7px 12px; color: var(--ana); background: var(--kart); }
 @media print { .etiket-katmani, .ustune-gel { display: none !important; } }
+
+.kucuk-liste { margin: .2rem 0 .5rem; padding-left: 1.2rem; font-size: .88rem; }
+.kucuk-liste small { color: var(--soluk); }
+.liste-dugme:disabled { opacity: .45; }

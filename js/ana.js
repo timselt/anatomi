@@ -7,6 +7,8 @@ import * as C from './calisma.js';
 import { ekModelleriYukle } from './ekmodel.js';
 import { KAS_BILGI } from './kasbilgi.js';
 import { VAKALAR } from './vakalar.js';
+import { AKISLAR, KALP, SOLUNUM, HAREKETLER, KEMIK_GRUBU } from './canli.js';
+import * as T from 'three';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -77,7 +79,7 @@ function baglantiAc() {
 // Görünüm araçlarının durumu
 let odakModu = false, etiketAcik = false, olcumModu = false;
 function etiketleriGuncelle() {
-  if (!etiketAcik || sinav || tekrar || ozel) return g.etiketle([]);
+  if (!etiketAcik || sinav || tekrar || ozel || canli) return g.etiketle([]);
   const yazi = i => (C.dil() === 'la' ? parcalar[i].la : parcalar[i].tr) || parcalar[i].tr || parcalar[i].en;
   let liste = [];
   if (aktifKonu) liste = konular().find(k => k.id === aktifKonu)?.liste.slice(0, 30).map(a => yapilar[a].parcalar[0]) ?? [];
@@ -86,18 +88,18 @@ function etiketleriGuncelle() {
 }
 const ustuneGel = document.createElement('div'); ustuneGel.className = 'ustune-gel'; ustuneGel.hidden = true; document.body.appendChild(ustuneGel);
 g.uzerinde = (i, x, y) => {
-  if (i < 0 || sinav || tekrar || ozel) { ustuneGel.hidden = true; return; }
+  if (i < 0 || sinav || tekrar || ozel || canli) { ustuneGel.hidden = true; return; }
   ustuneGel.textContent = (C.dil() === 'la' ? parcalar[i].la : parcalar[i].tr) || parcalar[i].tr || parcalar[i].en;
   ustuneGel.style.left = `${x + 14}px`; ustuneGel.style.top = `${y + 14}px`; ustuneGel.hidden = false;
 };
 
-let sekme = 'kesfet', aktifKonu = null, sinav = null, tekrar = null, ozel = null, seciliParca = -1;
+let sekme = 'kesfet', aktifKonu = null, sinav = null, tekrar = null, ozel = null, canli = null, seciliParca = -1;
 const kesit = { acik: false, eksen: 'y', oran: 0.5, ters: false };
 
 g.tikla = (i, nokta) => {
   if (olcumModu && !sinav && !tekrar && !ozel) { if (nokta) { const cm = g.olcumNoktasi(nokta); const d = $('#olcumDurum'); if (d) d.textContent = cm === null ? 'İkinci noktayı tıkla.' : `Mesafe: ${cm.toFixed(1).replace('.', ',')} cm. Yeni ölçüm için yeniden tıkla.`; } return; }
   if (sinav && !sinav.cevaplandi && sinav.sorular[sinav.sira].tip === 'bul') return sinavBulCevap(i);
-  if (sinav || tekrar || ozel) return;
+  if (sinav || tekrar || ozel || canli) return;
   if (i < 0) { secimiBirak(); return; }
   parcaSec(i, false);
 };
@@ -107,13 +109,14 @@ document.querySelectorAll('[data-sekme]').forEach(b => b.addEventListener('click
 function sekmeAc(ad) {
   if (sinav && ad !== 'sinav') sinavBitir(false);
   if (ozel && ad !== 'sinav') ozelBitir(false);
+  if (canli && ad !== 'canli') canliBitir(false);
   if (tekrar && ad !== 'tekrar') tekrarBitir();
   sekme = ad;
   document.querySelectorAll('[data-sekme]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.sekme === ad)));
   yanCiz();
 }
 function yanCiz() {
-  ({ kesfet: kesfetCiz, sinav: sinavCiz, tekrar: tekrarCiz, plan: planCiz, ilerleme: ilerlemeCiz, notlar: notlarCiz })[sekme]();
+  ({ kesfet: kesfetCiz, canli: canliCiz, sinav: sinavCiz, tekrar: tekrarCiz, plan: planCiz, ilerleme: ilerlemeCiz, notlar: notlarCiz })[sekme]();
   vadeliRozet();
 }
 function vadeliRozet() {
@@ -611,6 +614,153 @@ function ozelBitir(cizilsin = true) {
   if (ozel?.zaman) clearInterval(ozel.zaman);
   ozel = null; $('#soruKarti').hidden = true;
   g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle();
+  if (cizilsin) yanCiz();
+}
+
+// ---------- Canlandırmalar: fizyoloji akışları, kalp atımı, solunum, kas hareketleri ----------
+const parcaListesi = ys => ys.flatMap(y => (y instanceof RegExp ? Object.values(yapilar).filter(v => y.test(v.anahtar)).flatMap(v => v.parcalar) : yapilar[y]?.parcalar ?? []));
+const sagTaraf = is => { const s = is.filter(i => /right/i.test(parcalar[i].en)); return s.length ? s : is; };
+const kutuMerkezi = is => { const k = new T.Box3(); for (const i of is) { k.expandByPoint(new T.Vector3(...parcalar[i].bounds[0])); k.expandByPoint(new T.Vector3(...parcalar[i].bounds[1])); } return k.getCenter(new T.Vector3()); };
+const olcekMatrisi = (c, sx, sy, sz, dy = 0) => new T.Matrix4().makeTranslation(c.x, c.y + dy, c.z).multiply(new T.Matrix4().makeScale(sx, sy, sz)).multiply(new T.Matrix4().makeTranslation(-c.x, -c.y, -c.z));
+const yumusak = k => k * k * (3 - 2 * k);
+
+function canliCiz() {
+  if (canli) return canliYanCiz();
+  const akisVar = a => a.adimlar.filter(ad => parcaListesi(ad.y).length).length >= 3;
+  $('#yan').innerHTML = `<h2>Canlandırmalar</h2>
+    <p class="kucuk">Vücudun nasıl çalıştığını adım adım izle. Her canlandırmada açıklama modelin altındaki kartta çıkar; duraklatıp modeli döndürebilirsin.</p>
+    <h3>Hareketli gösterimler</h3>
+    <button class="liste-dugme" data-canli="kalp" ${parcaListesi(KALP.karincik).length ? '' : 'disabled'}>${esc(KALP.ad)}<small>Kulakçık ve karıncıkların sırayla kasılması, kapaklar ve kalp sesleri</small></button>
+    <button class="liste-dugme" data-canli="solunum" ${KADIN_MI ? 'disabled' : ''}>${esc(SOLUNUM.ad)}<small>Diyafram ve kaburgaların nefes alıp verirken hareketi${KADIN_MI ? ' (Erkek modelde)' : ''}</small></button>
+    <h3>Adım adım yollar</h3>
+    ${AKISLAR.map(a => `<button class="liste-dugme" data-akis="${a.id}" ${akisVar(a) ? '' : 'disabled'}>${esc(a.ad)}<small>${a.adimlar.length} adım</small></button>`).join('')}
+    <h3>Kas hareketleri</h3>
+    <p class="kucuk">Hareket iskelette gösterilir; hareketi yapan kaslar turuncu, karşıt kaslar yeşil renkle işaretlenir. Kaslar modelde şekil değiştirmez.${KADIN_MI ? ' Kas hareketleri için üstten Erkek modeline geç.' : ''}</p>
+    ${HAREKETLER.map(h => `<button class="liste-dugme" data-hareket="${h.id}" ${KADIN_MI ? 'disabled' : ''}>${esc(h.ad)}</button>`).join('')}`;
+  document.querySelectorAll('[data-akis]').forEach(b => b.addEventListener('click', () => akisBaslat(AKISLAR.find(a => a.id === b.dataset.akis))));
+  document.querySelectorAll('[data-hareket]').forEach(b => b.addEventListener('click', () => hareketBaslat(HAREKETLER.find(h => h.id === b.dataset.hareket))));
+  document.querySelectorAll('[data-canli]').forEach(b => b.addEventListener('click', () => (b.dataset.canli === 'kalp' ? kalpBaslat() : solunumBaslat())));
+}
+function canliHazirla(tip, ad, sistemler) {
+  cekmeceKapat(); $('#secimEtiketi').hidden = true; g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
+  if (g.patlama) { g.patlat(0); }
+  const oncekiSistemler = new Set(g.acikSistemler);
+  g.acikSistemler = new Set(sistemler); // canlandırma boyunca yalnız ilgili sistemler görünür
+  canli = { oncekiSistemler, tip, ad, oynuyor: true, dokunulan: new Set(), gizlenen: new Set(), bas: performance.now(), durakta: 0 };
+}
+function canliKart(icerik) {
+  const k = $('#soruKarti');
+  k.innerHTML = `<div class="ust-bilgi"><span>Canlandırma</span><span id="canliDurum"></span></div><p class="soru">${esc(canli.ad)}</p><div id="canliIcerik">${icerik}</div>
+    <div class="dugme-satiri">${canli.tip === 'akis' ? '<button id="canliOnceki" class="ikincil">Önceki</button>' : ''}<button id="canliOynat">Duraklat</button>${canli.tip === 'akis' ? '<button id="canliSonraki" class="ikincil">Sonraki</button>' : ''}<button id="canliKapat" class="ikincil">Kapat</button></div>`;
+  k.hidden = false;
+  $('#canliOynat').onclick = () => { canli.oynuyor = !canli.oynuyor; if (canli.oynuyor) canli.bas += performance.now() - canli.durakta; else canli.durakta = performance.now(); $('#canliOynat').textContent = canli.oynuyor ? 'Duraklat' : 'Oynat'; };
+  $('#canliKapat').onclick = () => canliBitir(true);
+}
+const canliZaman = t => (canli.oynuyor ? t : canli.durakta) - canli.bas;
+
+function akisBaslat(a) {
+  canliHazirla('akis', a.ad, a.sistemler);
+  canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y) })).filter(ad => ad.p.length);
+  canli.sira = 0; canli.sonGecis = performance.now();
+  const hepsi = canli.adimlar.flatMap(ad => ad.p);
+  g.yalniz = null; g.soluk = new Set(hepsi); g.gorunus('on', false); g.odakla(hepsi);
+  canliKart(''); canliYanCiz();
+  const goster = () => {
+    const ad = canli.adimlar[canli.sira];
+    g.soru = new Set(ad.p); g.secili = new Set(canli.adimlar.slice(0, canli.sira).flatMap(x => x.p)); g.guncelle();
+    $('#canliDurum').textContent = `Adım ${canli.sira + 1} / ${canli.adimlar.length}`;
+    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Turuncu: şu anki adım. Yeşil: geçilen yapılar.</p>`;
+    canli.sonGecis = performance.now(); canliYanCiz();
+  };
+  const git = d => { canli.sira = (canli.sira + d + canli.adimlar.length) % canli.adimlar.length; goster(); };
+  $('#canliOnceki').onclick = () => git(-1); $('#canliSonraki').onclick = () => git(1);
+  goster();
+  g.canli = t => { if (canli.oynuyor && t - canli.sonGecis > 6000) git(1); };
+}
+
+function evreGoster(evreler, n) {
+  if (canli.evre === n) return; canli.evre = n;
+  $('#canliDurum').textContent = evreler[n].ad;
+  $('#canliIcerik').innerHTML = `<p><b>${esc(evreler[n].ad)}:</b> ${esc(evreler[n].m)}</p>`;
+}
+function kalpBaslat() {
+  canliHazirla('kalp', KALP.ad, KALP.sistemler);
+  const kul = parcaListesi(KALP.kulakcik), kar = parcaListesi(KALP.karincik);
+  const damar = parcaListesi(['cikan-aorta', 'aort-yayi', 'pulmoner-govde', 'pulmoner-arter', 'ust-ana-toplardamar', 'alt-ana-toplardamar', 'pulmoner-ven', 'mitral', 'trikuspit', 'aort-kapagi', 'pulmoner-kapak']);
+  const c = kutuMerkezi([...kul, ...kar]);
+  g.yalniz = new Set([...kul, ...kar, ...damar]); g.soluk = null; g.secili = new Set(); g.soru = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla([...kul, ...kar]);
+  [...kul, ...kar].forEach(i => canli.dokunulan.add(i));
+  canliKart(''); canliYanCiz();
+  evreGoster(KALP.evreler, 0); canli.evre = -1;
+  g.canli = t => {
+    const p = (canliZaman(t) / 7000) % 1;
+    const a = p < 0.22 ? 1 - 0.1 * Math.sin((Math.PI * p) / 0.22) : 1;
+    const v = p >= 0.22 && p < 0.6 ? 1 - 0.13 * Math.sin((Math.PI * (p - 0.22)) / 0.38) : 1;
+    const ma = olcekMatrisi(c, a, a, a), mv = olcekMatrisi(c, v, v, v);
+    kul.forEach(i => g.donusum(i, ma)); kar.forEach(i => g.donusum(i, mv));
+    const n = p < 0.22 ? 0 : p < 0.6 ? 1 : 2;
+    if (canli.evre !== n) { g.soru = new Set(n === 0 ? kul : n === 1 ? kar : []); g.guncelle(); }
+    evreGoster(KALP.evreler, n);
+  };
+}
+function solunumBaslat() {
+  canliHazirla('solunum', SOLUNUM.ad, SOLUNUM.sistemler);
+  const kafes = parcalar.filter(p => p.sistem === 'iskelet' && /\brib$|costal cartilage|sternum|manubrium|xiphoid/i.test(p.en)).map(p => p.i);
+  const omur = parcalar.filter(p => /thoracic vertebra/i.test(p.en)).map(p => p.i);
+  const akciger = parcaListesi([/^z:.*lobe of .*lung/]), diyafram = parcaListesi(['diyafram']);
+  const c = kutuMerkezi(kafes);
+  g.yalniz = new Set([...kafes, ...omur, ...akciger, ...diyafram]); g.soluk = null; g.secili = new Set(); g.soru = new Set(diyafram); g.guncelle(); g.gorunus('on', false); g.odakla(kafes);
+  [...kafes, ...akciger, ...diyafram].forEach(i => canli.dokunulan.add(i));
+  canliKart(''); canliYanCiz();
+  evreGoster(SOLUNUM.evreler, 0);
+  g.canli = t => {
+    const p = (canliZaman(t) / 8000) % 1;
+    const k = yumusak(p < 0.45 ? p / 0.45 : 1 - (p - 0.45) / 0.55);
+    const mk = olcekMatrisi(c, 1 + 0.05 * k, 1, 1 + 0.06 * k, 0.006 * k), ma = olcekMatrisi(c, 1 + 0.06 * k, 1 + 0.05 * k, 1 + 0.07 * k, -0.006 * k);
+    const md = new T.Matrix4().makeTranslation(0, -0.02 * k, 0);
+    kafes.forEach(i => g.donusum(i, mk)); akciger.forEach(i => g.donusum(i, ma)); diyafram.forEach(i => g.donusum(i, md));
+    evreGoster(SOLUNUM.evreler, p < 0.45 ? 0 : 1);
+  };
+}
+function hareketBaslat(h) {
+  canliHazirla('hareket', h.ad, ['iskelet', 'kas', 'bag']);
+  const eklemKemigi = parcalar.find(p => p.sistem === 'iskelet' && p.en.toLowerCase() === `right ${h.eklem[0]}`);
+  if (!eklemKemigi) { canli = null; return; }
+  const merkez = g.ucNokta(eklemKemigi.i, h.eklem[1]);
+  const oynayan = parcalar.filter(p => p.sistem === 'iskelet' && KEMIK_GRUBU[h.oynayan].test(p.en.toLowerCase())).map(p => p.i);
+  const yapan = sagTaraf(parcaListesi(h.yapan)), karsit = sagTaraf(parcaListesi(h.karsit));
+  const iskelet = parcalar.filter(p => p.sistem === 'iskelet').map(p => p.i);
+  g.yalniz = new Set([...iskelet, ...yapan, ...karsit]); g.soluk = null; g.soru = new Set(yapan); g.secili = new Set(karsit); g.guncelle();
+  g.gorunus(h.eksen === 'x' ? 'sag' : 'on', false); g.odakla([eklemKemigi.i, ...oynayan, ...yapan]);
+  oynayan.forEach(i => canli.dokunulan.add(i));
+  const satir = a => `<li>${esc(ad(a))}${KAS_BILGI[a]?.sinir ? ` <small>· ${esc(KAS_BILGI[a].sinir)}</small>` : ''}</li>`;
+  canliKart(`<p><b style="color:var(--turuncu)">Hareketi yapan kaslar</b></p><ul class="kucuk-liste">${h.yapan.filter(a => yapilar[a]).map(satir).join('')}</ul>
+    <p><b style="color:var(--ana)">Karşıt kaslar</b></p><ul class="kucuk-liste">${h.karsit.filter(a => yapilar[a]).map(satir).join('')}</ul>
+    <p class="kucuk">${esc(h.not)}</p><p class="kucuk">Önce kaslar gösterilir, sonra hareket iskelette oynatılır. Kaslar modelde şekil değiştirmez.</p>`);
+  canliYanCiz();
+  const eksen = h.eksen === 'x' ? new T.Vector3(1, 0, 0) : new T.Vector3(0, 0, 1), kaslar = [...yapan, ...karsit];
+  g.canli = t => {
+    const p = (canliZaman(t) / 8000) % 1;
+    let k = p < 0.3 ? 0 : p < 0.6 ? yumusak((p - 0.3) / 0.3) : p < 0.75 ? 1 : yumusak(1 - (p - 0.75) / 0.25);
+    const kasGizli = p >= 0.3;
+    if (canli.kasGizli !== kasGizli) { canli.kasGizli = kasGizli; kaslar.forEach(i => (kasGizli ? g.gizli.add(i) : g.gizli.delete(i))); kaslar.forEach(i => canli.gizlenen.add(i)); g.yalniz = new Set([...iskelet, ...(kasGizli ? [] : kaslar)]); g.soru = new Set(kasGizli ? [] : yapan); g.secili = new Set(kasGizli ? [] : karsit); g.guncelle(); $('#canliDurum').textContent = kasGizli ? 'Hareket' : 'Kaslar'; }
+    if (h.ters) k = 1 - k;
+    const m = new T.Matrix4().makeTranslation(merkez.x, merkez.y, merkez.z).multiply(new T.Matrix4().makeRotationAxis(eksen, T.MathUtils.degToRad(h.aci) * k)).multiply(new T.Matrix4().makeTranslation(-merkez.x, -merkez.y, -merkez.z));
+    oynayan.forEach(i => g.donusum(i, m));
+  };
+}
+function canliYanCiz() {
+  $('#yan').innerHTML = `<h2>${esc(canli.ad)}</h2>
+    <p class="kucuk">${canli.tip === 'akis' ? 'Adımlar kendiliğinden ilerler; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.' : 'Canlandırma sürekli döner. Duraklatıp modeli döndürebilir, yakınlaştırabilirsin.'}</p>
+    ${canli.tip === 'akis' ? `<ol class="kucuk-liste">${canli.adimlar.map((x, n) => `<li ${n === canli.sira ? 'style="font-weight:600"' : ''}>${esc(x.m.split('.')[0])}.</li>`).join('')}</ol>` : ''}
+    <button id="canliCik" class="ikincil" style="width:100%">Canlandırmayı kapat</button>`;
+  $('#canliCik').onclick = () => canliBitir(true);
+}
+function canliBitir(cizilsin = true) {
+  g.canli = null;
+  if (canli) { canli.dokunulan.forEach(i => g.donusum(i, null)); canli.gizlenen.forEach(i => g.gizli.delete(i)); g.acikSistemler = canli.oncekiSistemler; }
+  canli = null; $('#soruKarti').hidden = true;
+  g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; g.guncelle(); g.gorunus('on');
   if (cizilsin) yanCiz();
 }
 

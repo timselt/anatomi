@@ -119,6 +119,20 @@ export class Goruntuleyici {
     this._git(new T.Vector3(...h), new T.Vector3(0, 0.9, 0), animasyon);
   }
 
+  // Canlandırmalar: bir parçaya dönüşüm uygular; matris verilmezse parça yerine döner.
+  donusum(i, matris) {
+    const m = this.meshler[i]; if (!m) return;
+    if (matris) m.matrix.copy(matris); else m.updateMatrix();
+    m.matrixWorldNeedsUpdate = true; this.kirli = true;
+  }
+  // Parçanın üst ya da alt ucundaki noktaların ortalaması (eklem merkezi için).
+  ucNokta(i, uc) {
+    const p = this.meshler[i].geometry.attributes.position, b = this.atlas.parts[i].bounds;
+    const esik = uc === 'ust' ? b[1][1] - (b[1][1] - b[0][1]) * 0.07 : b[0][1] + (b[1][1] - b[0][1]) * 0.07;
+    const t = new T.Vector3(); let n = 0;
+    for (let k = 0; k < p.count; k++) { const y = p.getY(k); if (uc === 'ust' ? y >= esik : y <= esik) { t.x += p.getX(k); t.y += y; t.z += p.getZ(k); n++; } }
+    return n ? t.divideScalar(n) : new T.Vector3((b[0][0] + b[1][0]) / 2, uc === 'ust' ? b[1][1] : b[0][1], (b[0][2] + b[1][2]) / 2);
+  }
   // Parçanın merkezi (ayırarak gösterme kayması dahil).
   merkez(i) {
     const b = this.atlas.parts[i].bounds;
@@ -243,6 +257,7 @@ export class Goruntuleyici {
 
   _kare() {
     this._anim?.();
+    if (this.canli) { this.canli(performance.now()); this.kirli = true; }
     if (this.kontrol.update()) this.kirli = true;
     if (!this.kirli) return;
     this.kirli = false;
