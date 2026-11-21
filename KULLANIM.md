@@ -39,6 +39,7 @@
 **Canlandırmalar** sekmesinde üç tür gösterim var. Açıklama modelin altındaki kartta çıkar; "Duraklat"a basıp modeli döndürebilirsin.
 - **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
 - **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
+- **Mikroskobik sahneler:** hava keseciğinde gaz alışverişi, nefron, sarkomer (kas kasılması), sinaps, bağırsak villusu ve damar duvarı. Hareketli şematik çizimlerdir; her birinin altında adım adım açıklama ve "Bu yapıyı modelde göster" düğmesi vardır.
 - **Kas hareketleri:** omuz, dirsek, el bileği, kalça, diz ve ayak bileğinin 12 hareketi. Önce hareketi yapan kaslar (turuncu) ve karşıt kaslar (yeşil) sinirleriyle birlikte gösterilir, sonra hareket iskelette oynatılır. Kaslar modelde şekil değiştirmez. Kas hareketleri ve solunum Erkek modelde çalışır.
 Bu gösterimler öğretim amaçlı sadeleştirmelerdir; hareket açıları ve kasılma miktarları yaklaşıktır.
 

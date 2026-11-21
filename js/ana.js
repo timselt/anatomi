@@ -9,6 +9,7 @@ import { KAS_BILGI } from './kasbilgi.js';
 import { VAKALAR } from './vakalar.js';
 import { AKISLAR, KALP, SOLUNUM, HAREKETLER, KEMIK_GRUBU } from './canli.js';
 import * as T from 'three';
+import { MIKRO } from './mikro.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -110,6 +111,7 @@ function sekmeAc(ad) {
   if (sinav && ad !== 'sinav') sinavBitir(false);
   if (ozel && ad !== 'sinav') ozelBitir(false);
   if (canli && ad !== 'canli') canliBitir(false);
+  if (ad !== 'canli') document.querySelector('#mikroPano')?.remove();
   if (tekrar && ad !== 'tekrar') tekrarBitir();
   sekme = ad;
   document.querySelectorAll('[data-sekme]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.sekme === ad)));
@@ -655,14 +657,32 @@ function canliCiz() {
     <button class="liste-dugme" data-canli="solunum" ${KADIN_MI ? 'disabled' : ''}>${esc(SOLUNUM.ad)}<small>Diyafram ve kaburgaların nefes alıp verirken hareketi${KADIN_MI ? ' (Erkek modelde)' : ''}</small></button>
     <h3>Adım adım yollar</h3>
     ${AKISLAR.map(a => `<button class="liste-dugme" data-akis="${a.id}" ${akisVar(a) ? '' : 'disabled'}>${esc(a.ad)}<small>${a.adimlar.length} adım</small></button>`).join('')}
+    <h3>Mikroskobik sahneler</h3>
+    <p class="kucuk">Organların içinde, gözle görülmeyen düzeyde ne olduğunu gösteren şematik çizimler.</p>
+    ${MIKRO.map(m => `<button class="liste-dugme" data-mikro="${m.id}">${esc(m.ad)}</button>`).join('')}
     <h3>Kas hareketleri</h3>
     <p class="kucuk">Hareket iskelette gösterilir; hareketi yapan kaslar turuncu, karşıt kaslar yeşil renkle işaretlenir. Kaslar modelde şekil değiştirmez.${KADIN_MI ? ' Kas hareketleri için üstten Erkek modeline geç.' : ''}</p>
     ${HAREKETLER.map(h => `<button class="liste-dugme" data-hareket="${h.id}" ${KADIN_MI ? 'disabled' : ''}>${esc(h.ad)}</button>`).join('')}`;
+  document.querySelectorAll('[data-mikro]').forEach(b => b.addEventListener('click', () => mikroAc(MIKRO.find(m => m.id === b.dataset.mikro))));
   document.querySelectorAll('[data-akis]').forEach(b => b.addEventListener('click', () => akisBaslat(AKISLAR.find(a => a.id === b.dataset.akis))));
   document.querySelectorAll('[data-hareket]').forEach(b => b.addEventListener('click', () => hareketBaslat(HAREKETLER.find(h => h.id === b.dataset.hareket))));
   document.querySelectorAll('[data-canli]').forEach(b => b.addEventListener('click', () => (b.dataset.canli === 'kalp' ? kalpBaslat() : solunumBaslat())));
 }
+// Mikroskobik sahne: modelin üstünde açılan şematik çizim.
+function mikroAc(m) {
+  document.querySelector('#mikroPano')?.remove();
+  const p = document.createElement('div'); p.id = 'mikroPano'; p.className = 'mikro-pano';
+  p.innerHTML = `<div class="mikro-ust"><h2>${esc(m.ad)}</h2><button id="mikroKapat" class="ikincil">Kapat</button></div>
+    <svg viewBox="0 0 480 300" role="img" aria-label="${esc(m.ad)} şeması">${m.svg}</svg>
+    <ol>${m.adimlar.map(a => `<li>${esc(a)}</li>`).join('')}</ol>
+    <p class="kucuk">Şematik çizimdir; gerçek ölçekli değildir.</p>
+    ${yapilar[m.ilgili] ? '<button id="mikroModel" class="ikincil">Bu yapıyı modelde göster</button>' : ''}`;
+  $('#sahne').appendChild(p);
+  $('#mikroKapat').onclick = () => p.remove();
+  if ($('#mikroModel')) $('#mikroModel').onclick = () => { p.remove(); sekmeAc('kesfet'); parcaSec(yapilar[m.ilgili].parcalar[0], true); };
+}
 function canliHazirla(tip, ad, sistemler) {
+  document.querySelector('#mikroPano')?.remove();
   cekmeceKapat(); $('#secimEtiketi').hidden = true; g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   if (g.patlama) { g.patlat(0); }
   const oncekiSistemler = new Set(g.acikSistemler);
