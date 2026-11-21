@@ -29,6 +29,13 @@
 - **Bağlantıyı kopyala:** bir yapının ayrıntı penceresinden, o yapıyı doğrudan açan bağlantıyı kopyalayıp arkadaşına gönderebilirsin.
 - **Yapay zekâya sor:** yapının adıyla hazırlanmış bir soruyu Claude'da açar (ayrı bir site; hesabınla giriş ister). Verdiği bilgiyi ders kitabınla karşılaştır.
 
+## Canlandırmalar
+**Canlandırmalar** sekmesinde üç tür gösterim var. Açıklama modelin altındaki kartta çıkar; "Duraklat"a basıp modeli döndürebilirsin.
+- **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
+- **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
+- **Kas hareketleri:** omuz, dirsek, el bileği, kalça, diz ve ayak bileğinin 12 hareketi. Önce hareketi yapan kaslar (turuncu) ve karşıt kaslar (yeşil) sinirleriyle birlikte gösterilir, sonra hareket iskelette oynatılır. Kaslar modelde şekil değiştirmez. Kas hareketleri ve solunum Erkek modelde çalışır.
+Bu gösterimler öğretim amaçlı sadeleştirmelerdir; hareket açıları ve kasılma miktarları yaklaşıktır.
+
 ## Ders çalışmak için önerilen sıra
 1. **Çalışma planı** sekmesinde sıradaki konuyu aç, **İncele**ye bas. Model yalnız o konunun yapılarını gösterir. Listeden ya da modelden her yapıya tıkla, görevini ve ipucunu oku.
 2. Aynı konuda **Sınav ol**a bas. İki tür soru gelir:
