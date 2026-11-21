@@ -44,7 +44,7 @@
 
 **Göstergeler, zaman çizgisi ve ses:** Kalp atımında sol karıncık ve aort basıncı, karıncık hacmi ve kapakların açık ya da kapalı olduğu; solunumda alınan hava, alveol ve plevra basıncı; kas hareketinde eklem açısı canlı gösterilir. Kartın altındaki çubukla canlandırmayı ileri geri sarabilirsin. "Ses" düğmesi kalp seslerini ve nefes sesini açar. Rakamlar dinlenmedeki sağlıklı erişkin için tipik ders kitabı değerleridir.
 
-**Görünüm kipleri (modelin üstündeki düğmeler):** "Parçalanmış" bütün yapıları birbirinden ayırır. "Cam" iskelet dışındaki her şeyi saydam yapar. "Döner tabla" modeli kendi çevresinde döndürür. "Tur" sistemleri sırayla tanıtır; modele dokununca tur biter.
+**Görünüm kipleri (modelin üstündeki düğmeler):** "Parçalanmış" bütün yapıları birbirinden ayırır. "Cam" iskelet dışındaki her şeyi saydam yapar. "Döner tabla" modeli kendi çevresinde döndürür. "Tur" sistemleri sırayla tanıtır; modele dokununca tur biter. "Kalite" yüzeyler arasına gölge ve seçili yapıya parlak çerçeve ekler; iPad yavaşlarsa bu düğmeyi kapat, tercih hatırlanır.
 
 **Parçalarına ayır ve içine gir:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçine gir" kamerayı yapının içine götürür.
 - **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).

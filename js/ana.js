@@ -144,9 +144,11 @@ $('#yardimDugme').addEventListener('click', () => $('#yardim').showModal());
 document.querySelectorAll('[data-yon]').forEach(b => b.addEventListener('click', () => g.gorunus(b.dataset.yon)));
 
 // ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
-const mod = { parcali: false, cam: false, doner: false, tur: null };
+const mod = { parcali: false, cam: false, doner: false, tur: null, kalite: false };
+// Yüksek kalite varsayılan olarak açıktır; kapatılırsa tercih bu cihazda hatırlanır.
+function kaliteAyarla(acik) { mod.kalite = acik; g.kaliteAyarla(acik); try { localStorage.setItem('anatomi-kalite', acik ? '1' : '0'); } catch {} modIsaretle(); }
 const modDugme = ad => document.querySelector(`[data-mod=${ad}]`);
-const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
+const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur', 'kalite']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
 function parcaliAyarla(acik) {
   mod.parcali = acik; const ilk = g.patlama, son = acik ? 0.55 : 0, bas = performance.now();
   const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); };
@@ -178,9 +180,10 @@ function turBaslat() {
 }
 document.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => {
   const ad = b.dataset.mod;
-  if (ad === 'parcali') parcaliAyarla(!mod.parcali); else if (ad === 'cam') camAyarla(!mod.cam); else if (ad === 'doner') donerAyarla(!mod.doner);
+  if (ad === 'kalite') kaliteAyarla(!mod.kalite); else if (ad === 'parcali') parcaliAyarla(!mod.parcali); else if (ad === 'cam') camAyarla(!mod.cam); else if (ad === 'doner') donerAyarla(!mod.doner);
   else { mod.tur ? turBitir() : turBaslat(); modIsaretle(); }
 }));
+{ let kayit = null; try { kayit = localStorage.getItem('anatomi-kalite'); } catch {} kaliteAyarla(kayit !== '0'); }
 // Modele dokunmak turu bitirir: denetim kullanıcıya geçer.
 $('#sahne').addEventListener('pointerdown', e => { if (mod.tur && e.target.tagName === 'CANVAS') { turBitir(); modIsaretle(); } });
 // Gezinme: düğmeler ve klavye (ok tuşları kaydırır, + ve − yakınlaştırır).

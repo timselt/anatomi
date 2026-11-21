@@ -1,6 +1,11 @@
 // 3 boyutlu görüntüleyici: modeli yükler, döndürme/yakınlaştırma, kesit alma, seçme ve vurgulama.
 import * as T from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const VURGU = new T.Color('#16b8a6');   // seçili yapı
@@ -48,7 +53,9 @@ export class Goruntuleyici {
     this.malzeme = {}; this.solukMalzeme = {};
     for (const [id, renk] of Object.entries(renkler)) {
       const saydam = id === 'deri';
-      this.malzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.55, metalness: 0.05, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
+      // Yumuşak dokular hafif ıslak ve parlak, kemik mat görünür.
+      const islak = ['kalp', 'sindirim', 'solunum', 'bosaltim', 'ureme', 'hormon', 'duyu', 'gebelik', 'lenf'].includes(id);
+      this.malzeme[id] = new T.MeshPhysicalMaterial({ color: renk, roughness: id === 'iskelet' ? 0.75 : islak ? 0.45 : 0.6, metalness: 0.03, clearcoat: islak ? 0.35 : 0, clearcoatRoughness: 0.35, envMapIntensity: 0.75, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
       this.solukMalzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.6, side: T.DoubleSide, transparent: true, opacity: 0.12, depthWrite: false });
     }
     this.vurguMalzeme = new T.MeshStandardMaterial({ color: VURGU, emissive: VURGU, emissiveIntensity: 0.35, roughness: 0.4, side: T.DoubleSide });
@@ -115,6 +122,7 @@ export class Goruntuleyici {
       m.material = soru ? this.soruMalzeme : secili ? this.vurguMalzeme : ((this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s)) ? this.solukMalzeme[s] : this.malzeme[s];
       m.renderOrder = m.material.transparent ? 1 : 0;
     });
+    if (this.cerceve) this.cerceve.selectedObjects = [...this.secili, ...this.soru].map(i => this.meshler[i]).filter(m => m?.visible);
     this.kirli = true;
   }
 
@@ -127,6 +135,7 @@ export class Goruntuleyici {
     this.kesit.normal.copy(normal);
     this.kesit.constant = ters ? -deger : deger;
     for (const mz of this.tumMalzemeler) { mz.clippingPlanes = acik ? [this.kesit] : []; mz.needsUpdate = true; }
+    if (this.ao) { this.ao.normalMaterial.clippingPlanes = acik ? [this.kesit] : []; this.ao.normalMaterial.needsUpdate = true; }
     this.kirli = true;
   }
 
@@ -366,7 +375,35 @@ export class Goruntuleyici {
   _boyut() {
     const w = this.kap.clientWidth, h = this.kap.clientHeight;
     if (!w || !h) return;
-    this.renderer.setSize(w, h, false); this.kamera.aspect = w / h; this.kamera.updateProjectionMatrix(); this.kirli = true;
+    this.renderer.setSize(w, h, false); this.birlestirici?.setSize(w, h); this.kamera.aspect = w / h; this.kamera.updateProjectionMatrix(); this.kirli = true;
+  }
+
+  // Yüksek görsel kaliteyi açar ya da kapatır (eski cihazlarda kapatılabilir).
+  kaliteAyarla(acik) {
+    if (acik && !this.birlestirici) {
+      const w = this.kap.clientWidth || 2, h = this.kap.clientHeight || 2, o = this.renderer.getPixelRatio();
+      this.birlestirici = new EffectComposer(this.renderer, new T.WebGLRenderTarget(w * o, h * o, { type: T.HalfFloatType, samples: 4 }));
+      this.birlestirici.addPass(new RenderPass(this.sahne, this.kamera));
+      const ao = this.ao = new GTAOPass(this.sahne, this.kamera, w, h);
+      ao.updateGtaoMaterial({ radius: 0.035, distanceExponent: 1, thickness: 1, scale: 1.15, samples: 12, screenSpaceRadius: false }); ao.blendIntensity = 0.9;
+      // Saydam yapılar ve parçacıklar gölge üretmesin.
+      const gizle = ao.overrideVisibility.bind(ao), goster = ao.restoreVisibility.bind(ao); let saklanan = [];
+      ao.overrideVisibility = () => { gizle(); saklanan = []; this.sahne.traverse(n => { if (n.isMesh && n.visible && n.material.transparent) { n.visible = false; saklanan.push(n); } }); };
+      ao.restoreVisibility = () => { for (const n of saklanan) n.visible = true; goster(); };
+      if (this.kesitAcik) ao.normalMaterial.clippingPlanes = [this.kesit];
+      this.birlestirici.addPass(ao);
+      this.cerceve = new OutlinePass(new T.Vector2(w, h), this.sahne, this.kamera);
+      this.cerceve.visibleEdgeColor.set(0x14b8a6); this.cerceve.hiddenEdgeColor.set(0x0b5d57); this.cerceve.edgeStrength = 4; this.cerceve.edgeThickness = 1.4;
+      this.birlestirici.addPass(this.cerceve);
+      // Tuval saydam olduğu için renkler saydamlıkla çarpılmış gelir; ton eşlemeden önce ayrılıp sonra yeniden çarpılır (yoksa yarı saydam yüzeyler parlar).
+      const cikis = new OutputPass();
+      cikis.material.fragmentShader = cikis.material.fragmentShader
+        .replace('gl_FragColor = texture2D( tDiffuse, vUv );', 'gl_FragColor = texture2D( tDiffuse, vUv ); float alfa = gl_FragColor.a; if ( alfa > 0.001 ) gl_FragColor.rgb /= alfa;')
+        .replace(/\}\s*$/, 'gl_FragColor.rgb *= alfa; gl_FragColor.a = alfa; }');
+      this.birlestirici.addPass(cikis);
+      this.birlestirici.setPixelRatio(o); this.birlestirici.setSize(w, h);
+    }
+    this.yuksekKalite = acik; this.guncelle();
   }
 
   _kare() {
@@ -375,7 +412,8 @@ export class Goruntuleyici {
     if (this.kontrol.update()) this.kirli = true;
     if (!this.kirli) return;
     this.kirli = false;
-    this.renderer.render(this.sahne, this.kamera);
+    // Yüksek kalite: yüzeyler arası gölgelendirme ve seçim çerçevesi. Saydam akış canlandırmalarında kapalıdır.
+    if (this.yuksekKalite && !this.akis) this.birlestirici.render(); else this.renderer.render(this.sahne, this.kamera);
     if (this.etiketler.length || this.olcumEtiketi) this._etiketleriYerlestir();
   }
 }
