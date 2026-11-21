@@ -78,7 +78,7 @@ function baglantiAc() {
   baglantiAcildi = true; parcaSec(yapilar[a].parcalar[0], true);
 }
 // Görünüm araçlarının durumu
-let odakModu = false, etiketAcik = false, olcumModu = false;
+let odakModu = false, etiketAcik = false, olcumModu = false, parcali = null;
 function etiketleriGuncelle() {
   if (!etiketAcik || sinav || tekrar || ozel || canli) return g.etiketle([]);
   const yazi = i => (C.dil() === 'la' ? parcalar[i].la : parcalar[i].tr) || parcalar[i].tr || parcalar[i].en;
@@ -319,11 +319,23 @@ function cekmeceAc(i) {
       <button id="yakinlas" class="ikincil">Yakınlaştır</button>
       <button id="yalnizBu" class="ikincil">${g.yalniz?.size === 1 && g.yalniz.has(i) ? 'Hepsini göster' : 'Yalnız bunu göster'}</button>
       <button id="gizle" class="ikincil">Bunu gizle</button>
+      <button id="parcalaDugme" class="ikincil">${parcali ? 'Topla' : 'Parçalarına ayır'}</button>
+      <button id="icineGir" class="ikincil">İçine gir</button>
     </div>
     ${p.anahtar ? `<div class="dugme-satiri"><button id="baglantiKopyala" class="ikincil">Bağlantıyı kopyala</button><a class="dugme ikincil" target="_blank" rel="noopener" href="https://claude.ai/new?q=${encodeURIComponent(`Tıp fakültesi öğrencisiyim. ${p.la || y.la} (${p.tr}) yapısını Türkçe anlat: yeri, komşulukları, damarı ve siniri, klinik önemi. Yapı adlarını Latince yaz. Sonunda beni sınamak için 3 kısa soru sor.`)}">Yapay zekâya sor</a></div><p id="baglantiDurum" class="kucuk"></p>` : ''}
     ${p.anahtar ? `<h3>Benim notum</h3><textarea id="notAlani" class="not" placeholder="Bu yapıyla ilgili kendi notunu yaz. Kendiliğinden kaydedilir.">${esc(C.notAl(p.anahtar))}</textarea><p id="notDurum" class="kucuk"></p>` : ''}`;
   $('#cekmeceIcerik').querySelectorAll('[data-komsu]').forEach(b => b.addEventListener('click', () => parcaSec(Number(b.dataset.komsu), true)));
   $('#yakinlas').onclick = () => g.odakla([i]);
+  $('#icineGir').onclick = () => { cekmeceKapat(); g.icineGir(i); };
+  $('#parcalaDugme').onclick = () => {
+    if (parcali) { g.parcala(parcali, 0); parcali = null; g.yalniz = null; g.guncelle(); etiketleriGuncelle(); g.odakla([i]); return cekmeceAc(i); }
+    // Seçilen yapının çevresindeki aynı sistemden yapılar birlikte ayrılır (ör. kalbin odacıkları, el bileği kemikleri).
+    const c = g.merkezHam(i), b = parcalar[i].bounds, cap = Math.max(0.07, Math.hypot(b[1][0] - b[0][0], b[1][1] - b[0][1], b[1][2] - b[0][2]) * 0.9);
+    parcali = parcalar.filter(q => q.sistem === p.sistem && g.meshler[q.i] && g.merkezHam(q.i).distanceTo(c) < cap).map(q => q.i).slice(0, 80);
+    g.yalniz = new Set(parcali); g.guncelle(); g.parcala(parcali, 1.15);
+    g.etiketle(parcali.slice(0, 28).map(n => ({ i: n, metin: (C.dil() === 'la' ? parcalar[n].la : parcalar[n].tr) || parcalar[n].tr || parcalar[n].en })));
+    setTimeout(() => g.odakla(parcali), 700); cekmeceKapat(); // pencere modeli kapatmasın; toplamak için bir parçaya dokunup "Topla" denir
+  };
   if ($('#baglantiKopyala')) $('#baglantiKopyala').onclick = async () => {
     const adres = `${location.origin}${location.pathname}?model=${C.cinsiyet()}&yapi=${encodeURIComponent(p.anahtar)}`;
     try { await navigator.clipboard.writeText(adres); $('#baglantiDurum').textContent = 'Bağlantı kopyalandı; arkadaşına gönderebilirsin.'; } catch { $('#baglantiDurum').textContent = adres; }
@@ -699,24 +711,68 @@ function canliKart(icerik) {
 }
 const canliZaman = t => (canli.oynuyor ? t : canli.durakta) - canli.bas;
 
+const AKIS_AYAR = {
+  dolasim: { renk: n => (n < 7 ? 0x3d7bfd : 0xff3b30), adet: 220, yayilim: 1, ad: 'kan hücreleri' },
+  sindirim: { renk: () => 0xffa000, adet: 18, yayilim: 0.035, boyut: 0.006, ad: 'lokma' },
+  hava: { renk: () => 0x40c4ff, adet: 120, yayilim: 0.5, ad: 'hava (oksijen)' },
+  idrar: { renk: n => (n < 3 ? 0xff3b30 : 0xffd600), adet: 120, yayilim: 0.6, ad: 'süzüntü' },
+  gorme: { renk: () => 0xfff176, adet: 40, yayilim: 0.12, boyut: 0.0028, ad: 'sinir uyarısı' },
+};
+// Adımların yapılarından geçen yolları çıkarır: biri sağ, biri sol taraftaki yapılardan geçen iki kol (ortak yapılar ikisinde de var).
+// Boru biçimli yapılarda yol, yapının orta hattını izler.
+function yolCikar(adimlar) {
+  const yollar = [[], []], adimBasi = [[], []];
+  const orta = is => { const k = new T.Box3(); for (const i of is) { k.expandByPoint(new T.Vector3(...parcalar[i].bounds[0])); k.expandByPoint(new T.Vector3(...parcalar[i].bounds[1])); } return k.getCenter(new T.Vector3()); };
+  adimlar.forEach((ad, n) => {
+    const gruplar = {};
+    for (const i of ad.yol) { const yan = /right/i.test(parcalar[i].en) ? 'R' : /left/i.test(parcalar[i].en) ? 'L' : ''; (gruplar[parcalar[i].anahtar + '|' + yan] ??= { yan, is: [] }).is.push(i); }
+    const liste = Object.values(gruplar), sonraki = adimlar[n + 1] ? orta(adimlar[n + 1].yol) : null;
+    yollar.forEach((yol, k) => {
+      adimBasi[k].push(yol.length);
+      let benim = liste.filter(gr => !gr.yan || gr.yan === (k ? 'L' : 'R'));
+      if (!benim.length) benim = liste;
+      if (n === 0 && benim.length === 2 && !benim[0].yan && !benim[1].yan) benim = [benim[k]]; // ör. üst ve alt ana toplardamar: iki ayrı kol
+      benim = benim.map(gr => ({ hat: g.ortaHat(gr.is), c: orta(gr.is) })).filter(gr => gr.hat.length);
+      let kalan = 4; // çok parçalı adımlarda (ör. segment bronşları) yol dolanmasın
+      while (benim.length && kalan-- > 0) {
+        const once = yol[yol.length - 1];
+        if (once) benim.sort((x, y) => x.c.distanceTo(once) - y.c.distanceTo(once));
+        const hat = benim.shift().hat, bas = hat[0], son = hat[hat.length - 1];
+        if (once ? once.distanceTo(son) < once.distanceTo(bas) : sonraki && sonraki.distanceTo(bas) < sonraki.distanceTo(son)) hat.reverse();
+        yol.push(...hat);
+      }
+    });
+  });
+  return { yollar, adimBasi };
+}
 function akisBaslat(a) {
   canliHazirla('akis', a.ad, a.sistemler);
-  canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y) })).filter(ad => ad.p.length);
-  canli.sira = 0; canli.sonGecis = performance.now();
-  const hepsi = canli.adimlar.flatMap(ad => ad.p);
-  g.yalniz = null; g.soluk = new Set(hepsi); g.gorunus('on', false); g.odakla(hepsi);
+  canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y), yol: parcaListesi(ad.yol ?? ad.y) })).filter(ad => ad.p.length && ad.yol.length);
+  canli.sira = -1;
+  const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi } = yolCikar(canli.adimlar);
+  let adimT = [[], []];
+  const adimBul = (t, k = 0) => { let n = 0; for (let i = 0; i < adimT[k].length; i++) if (t >= adimT[k][i] - 1e-6) n = i; return n; };
+  g.yalniz = null; g.soluk = new Set(); g.soru = new Set(); g.secili = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla(hepsi);
+  g.akisKur(yollar, (t, k) => ayar.renk(adimBul(t, k)), ayar);
+  adimT = adimBasi.map((b, k) => b.map(n => g.akisOran(k, n)));
   canliKart(''); canliYanCiz();
-  const goster = () => {
-    const ad = canli.adimlar[canli.sira];
-    g.soru = new Set(ad.p); g.secili = new Set(canli.adimlar.slice(0, canli.sira).flatMap(x => x.p)); g.guncelle();
-    $('#canliDurum').textContent = `Adım ${canli.sira + 1} / ${canli.adimlar.length}`;
-    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Turuncu: şu anki adım. Yeşil: geçilen yapılar.</p>`;
-    canli.sonGecis = performance.now(); canliYanCiz();
+  $('#canliKapat').insertAdjacentHTML('beforebegin', '<button id="canliTakip" class="ikincil">Yolculuğa katıl</button>');
+  $('#canliTakip').onclick = () => { g.akis.takip = !g.akis.takip; $('#canliTakip').textContent = g.akis.takip ? 'Dışarıdan izle' : 'Yolculuğa katıl'; if (!g.akis.takip) g.odakla(hepsi); };
+  const goster = n => {
+    canli.sira = n; const ad = canli.adimlar[n];
+    $('#canliDurum').textContent = `Adım ${n + 1} / ${canli.adimlar.length}`;
+    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Parlak noktalar: ${esc(ayar.ad)}. "Yolculuğa katıl" ile kamera onların peşinden gider.</p>`;
+    canliYanCiz();
   };
-  const git = d => { canli.sira = (canli.sira + d + canli.adimlar.length) % canli.adimlar.length; goster(); };
+  const git = d => { const n = (canli.sira + d + canli.adimlar.length) % canli.adimlar.length; g.akis.faz = adimT[0][n] + 0.002; goster(n); };
   $('#canliOnceki').onclick = () => git(-1); $('#canliSonraki').onclick = () => git(1);
-  goster();
-  g.canli = t => { if (canli.oynuyor && t - canli.sonGecis > 6000) git(1); };
+  goster(0);
+  let son = performance.now();
+  g.canli = t => {
+    const dt = Math.min(t - son, 100); son = t;
+    const faz = g.akisAdim(canli.oynuyor ? dt / (canli.adimlar.length * 4200) : 0), n = adimBul(faz);
+    if (n !== canli.sira) goster(n);
+  };
 }
 
 function evreGoster(evreler, n) {
@@ -798,7 +854,7 @@ function canliYanCiz() {
   $('#canliCik').onclick = () => canliBitir(true);
 }
 function canliBitir(cizilsin = true) {
-  g.canli = null;
+  g.canli = null; g.akisSil();
   if (canli) { canli.dokunulan.forEach(i => g.donusum(i, null)); canli.gizlenen.forEach(i => g.gizli.delete(i)); g.acikSistemler = canli.oncekiSistemler; }
   canli = null; $('#soruKarti').hidden = true;
   g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; g.guncelle(); g.gorunus('on');

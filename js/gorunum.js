@@ -25,7 +25,7 @@ export class Goruntuleyici {
     this.kontrol = new OrbitControls(this.kamera, this.renderer.domElement);
     this.kontrol.enableDamping = true; this.kontrol.dampingFactor = 0.09;
     this.kontrol.zoomToCursor = true; this.kontrol.screenSpacePanning = true; this.kontrol.panSpeed = 1.1; this.kontrol.rotateSpeed = 0.9;
-    this.kontrol.minDistance = 0.05; this.kontrol.maxDistance = 8;
+    this.kontrol.minDistance = 0.012; this.kontrol.maxDistance = 8;
     this.kontrol.addEventListener('change', () => { this.kirli = true; });
     // Yumuşak ortam ışığı (stüdyo aydınlatması): yüzeyler daha hacimli görünür.
     const pmrem = new T.PMREMGenerator(this.renderer), oda = new RoomEnvironment();
@@ -127,6 +127,90 @@ export class Goruntuleyici {
   gorunus(yon, animasyon = true) {
     const h = { on: [0, 0.95, 3.4], arka: [0, 0.95, -3.4], sol: [3.4, 0.95, 0], sag: [-3.4, 0.95, 0], ust: [0, 4, 0.01] }[yon];
     this._git(new T.Vector3(...h), new T.Vector3(0, 0.9, 0), animasyon);
+  }
+
+  // ---- 3 boyutlu akış: bir yol boyunca akan parçacıklar (kan, lokma, hava...) ----
+  // noktalar: yolun geçtiği noktalar; renk(t): yolun t (0-1) yerindeki renk; yayilim: sürünün yolda kapladığı oran (1 = kesintisiz akış).
+  // yollar: bir ya da birkaç yol (her biri nokta dizisi; ör. sağ ve sol akciğere ayrılan iki kol). renk(t, k): k. yolun t yerindeki renk.
+  akisKur(yollar, renk, { adet = 140, boyut = 0.0035, yayilim = 1 } = {}) {
+    this.akisSil();
+    const egriler = yollar.map(n => new T.CatmullRomCurve3(n, false, 'centripetal', 0.5));
+    const ag = new T.InstancedMesh(new T.SphereGeometry(boyut, 12, 12), new T.MeshBasicMaterial({ toneMapped: false, depthTest: false, transparent: true, opacity: 0.95 }), adet);
+    ag.renderOrder = 30; ag.frustumCulled = false; this.sahne.add(ag);
+    const sapma = Array.from({ length: adet }, () => new T.Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)).multiplyScalar(boyut * 2.2));
+    const cizgiler = egriler.map(e => { // yolun kendisi: ince çizgi
+      const c = new T.Line(new T.BufferGeometry().setFromPoints(e.getSpacedPoints(400)), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false }));
+      c.renderOrder = 29; this.sahne.add(c); return c;
+    });
+    for (const m of Object.values(this.solukMalzeme)) m.opacity = 0.2;
+    this.akis = { egriler, ag, cizgiler, adet, renk, yayilim, sapma, faz: 0, takip: false };
+  }
+  // k. yolun n. noktasının yol uzunluğuna göre yeri (0-1).
+  akisOran(k, n) {
+    const e = this.akis.egriler[k], u = e.getLengths(600), son = e.points.length - 1;
+    return u[Math.round((n / son) * 600)] / u[600];
+  }
+  // Akışı ilerletir; öndeki parçacığın yoldaki yerini (0-1) döndürür.
+  akisAdim(ilerleme) {
+    const a = this.akis; if (!a) return 0;
+    a.faz = (a.faz + ilerleme) % 1;
+    const m = new T.Matrix4(), c = new T.Color(), p = new T.Vector3(), K = a.egriler.length;
+    for (let i = 0; i < a.adet; i++) {
+      let t = a.faz - (Math.floor(i / K) / (a.adet / K)) * a.yayilim; t = ((t % 1) + 1) % 1;
+      a.egriler[i % K].getPointAt(t, p).add(a.sapma[i]);
+      // Kamera yolculuğa katıldığında yakınındaki parçacıklar küçülür ki görüşü kapatmasın.
+      const olcek = (a.yayilim < 1 && i < K ? 2.6 : 1) * (a.takip ? Math.min(1, Math.max(0, (p.distanceTo(this.kamera.position) - 0.03) / 0.1)) * 0.6 : 1);
+      m.makeScale(olcek, olcek, olcek).setPosition(p); a.ag.setMatrixAt(i, m); a.ag.setColorAt(i, c.set(a.renk(t, i % K)));
+    }
+    a.ag.instanceMatrix.needsUpdate = true; if (a.ag.instanceColor) a.ag.instanceColor.needsUpdate = true;
+    if (a.takip) { // kamera öndeki parçacığın peşinden gider
+      const e = a.egriler[0], on = e.getPointAt(a.faz), ileri = e.getPointAt(Math.min(a.faz + 0.025, 1)), teget = e.getTangentAt(a.faz);
+      const yer = on.clone().addScaledVector(teget, -0.11).add(new T.Vector3(0, 0.03, 0));
+      this.kamera.position.lerp(yer, 0.08); this.kontrol.target.lerp(ileri, 0.12);
+    }
+    this.kirli = true; return a.faz;
+  }
+  // Bir grup yapının orta hattı: boru biçimli yapılarda (damar, yemek borusu...) uzun eksen boyunca dilimlerin ağırlık merkezleri; değilse tek merkez.
+  ortaHat(indeksler) {
+    const kutu = new T.Box3(), v = new T.Vector3(), nokta = [];
+    for (const i of indeksler) {
+      const p = this.meshler[i]?.geometry.attributes.position; if (!p) continue;
+      const adim = Math.max(1, Math.floor(p.count / 2500));
+      for (let k = 0; k < p.count; k += adim) { v.fromBufferAttribute(p, k); kutu.expandByPoint(v); nokta.push(v.x, v.y, v.z); }
+    }
+    if (!nokta.length) return [];
+    const b = kutu.getSize(new T.Vector3()), boy = [b.x, b.y, b.z], e = boy.indexOf(Math.max(...boy)), sirali = [...boy].sort((x, y) => y - x);
+    if (sirali[0] < 0.04 || sirali[0] < sirali[1] * 1.8) return [kutu.getCenter(new T.Vector3())];
+    const n = Math.min(9, Math.max(3, Math.round(sirali[0] / 0.03))), alt = kutu.min.getComponent(e), top = Array.from({ length: n }, () => [0, 0, 0, 0]);
+    for (let k = 0; k < nokta.length; k += 3) {
+      const d = top[Math.min(n - 1, Math.floor(((nokta[k + e] - alt) / sirali[0]) * n))];
+      d[0] += nokta[k]; d[1] += nokta[k + 1]; d[2] += nokta[k + 2]; d[3]++;
+    }
+    return top.filter(d => d[3]).map(d => new T.Vector3(d[0] / d[3], d[1] / d[3], d[2] / d[3]));
+  }
+  akisSil() {
+    const a = this.akis; if (!a) return;
+    for (const n of [a.ag, ...a.cizgiler]) { this.sahne.remove(n); n.geometry.dispose(); n.material.dispose(); }
+    for (const m of Object.values(this.solukMalzeme)) m.opacity = 0.12;
+    this.akis = null; this.kirli = true;
+  }
+  // ---- Parçalama: bir grup yapıyı ortak merkezden dışa doğru yumuşakça ayırır (oran 0 = topla) ----
+  parcala(indeksler, oran) {
+    const orta = new T.Box3(); for (const i of indeksler) orta.expandByPoint(this.merkezHam(i));
+    const c = orta.getCenter(new T.Vector3()), bas = performance.now();
+    const hedef = indeksler.map(i => this.merkezHam(i).sub(c).multiplyScalar(oran)), ilk = indeksler.map(i => this.meshler[i].position.clone());
+    const adim = () => {
+      const k = Math.min((performance.now() - bas) / 650, 1), e = 1 - Math.pow(1 - k, 3);
+      indeksler.forEach((i, n) => { const m = this.meshler[i]; m.position.lerpVectors(ilk[n], hedef[n], e); m.updateMatrix(); });
+      this.kirli = true; if (k < 1) requestAnimationFrame(adim);
+    };
+    adim();
+  }
+  merkezHam(i) { const b = this.atlas.parts[i].bounds; return new T.Vector3((b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2); }
+  // Yapının içine girer: kamera yapının merkezine uçar (iç yüzeyler görünür).
+  icineGir(i) {
+    const c = this.merkez(i), yon = this.kamera.position.clone().sub(c).normalize();
+    this._git(c.clone().addScaledVector(yon, 0.03), c, true);
   }
 
   // Gezinme düğmeleri ve klavye için: görüntüyü kaydırır (ekranın oranı olarak).

@@ -37,6 +37,10 @@
 
 ## Canlandırmalar
 **Canlandırmalar** sekmesinde üç tür gösterim var. Açıklama modelin altındaki kartta çıkar; "Duraklat"a basıp modeli döndürebilirsin.
+
+**Yolculuklar (kan, lokma, hava, idrar, görme):** beden cam gibi saydamlaşır, parlak noktalar yolu izler. Kanda mavi noktalar oksijeni az, kırmızı noktalar oksijeni bol kandır. **"Yolculuğa katıl"** düğmesi kamerayı noktaların peşine takar; damarın ya da organın içinden geçersin. "Dışarıdan izle" ile geri dönersin.
+
+**Parçalarına ayır ve içine gir:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçine gir" kamerayı yapının içine götürür.
 - **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
 - **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
 - **Mikroskobik sahneler:** hava keseciğinde gaz alışverişi, nefron, sarkomer (kas kasılması), sinaps, bağırsak villusu ve damar duvarı. Hareketli şematik çizimlerdir; her birinin altında adım adım açıklama ve "Bu yapıyı modelde göster" düğmesi vardır.
