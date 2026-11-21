@@ -109,11 +109,13 @@ g.tikla = (i, nokta) => {
 // ---------- Sekmeler ----------
 document.querySelectorAll('[data-sekme]').forEach(b => b.addEventListener('click', () => sekmeAc(b.dataset.sekme)));
 function sekmeAc(ad) {
+  const degisti = ad !== sekme;
   if (sinav && ad !== 'sinav') sinavBitir(false);
   if (ozel && ad !== 'sinav') ozelBitir(false);
   if (canli && ad !== 'canli') canliBitir(false);
   if (ad !== 'canli') document.querySelector('#mikroPano')?.remove();
   if (tekrar && ad !== 'tekrar') tekrarBitir();
+  if (degisti) sahneSifirla(); // sekme değişince önceki sekmeden kalan süzgeç, ayırma ve kesit taşınmaz
   sekme = ad;
   document.querySelectorAll('[data-sekme]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.sekme === ad)));
   yanCiz();
@@ -148,6 +150,7 @@ const ORGAN_GRUBU = [[/lung|bronch/, 'akciger'], [/hepat|liver|gallbladder/, 'ka
   [/kidney|renal|ureter/, 'bobrek'], [/ventric|atrium|atrial|valve|papillary|heart|coronary/, 'kalp'], [/stomach|gastric/, 'mide'], [/^(?!.*ligament).*((body|fundus|wall|cavity|cervix) of uterus|uterus$)/, 'rahim']];
 const KEMIK_BOLGESI = [[/carpal|metacarpal|scaphoid|lunate|triquetr|pisiform|trapez|capitate|hamate|finger|thumb/, 'el'], [/tarsal|metatarsal|talus|calcaneus|cuboid|cuneiform|navicular|toe|foot/, 'ayak'],
   [/\brib\b|costal|sternum|manubrium|xiphoid/, 'gogus-kafesi'], [/vertebra|sacrum|coccyx|atlas|axis|intervertebral/, 'omurga']];
+g.patlamaBlok = new Set(['atardamar', 'toplardamar', 'sinir', 'lenf', 'deri']); // tek blok kalan ağ sistemleri
 g.patlamaGrubu = i => {
   const p = parcalar[i], en = p.en.toLowerCase(), yan = /\bright\b/.test(en) ? 'R' : /\bleft\b/.test(en) ? 'L' : '';
   if (p.sistem === 'iskelet' || p.sistem === 'bag') {
@@ -169,7 +172,7 @@ function parcaliEtiketle() {
   const hacim = p => (p.bounds[1][0] - p.bounds[0][0]) * (p.bounds[1][1] - p.bounds[0][1]) * (p.bounds[1][2] - p.bounds[0][2]), gruplar = {};
   for (const p of parcalar) {
     if (!g.meshler[p.i]?.visible) continue;
-    const ad = g.patlamaGrubu(p.i), h = hacim(p), gr = (gruplar[ad] ??= { i: p.i, h: 0, toplam: 0 });
+    const ad = g.patlamaParca && !g.patlamaBlok.has(p.sistem) ? 'parca' + p.i : g.patlamaGrubu(p.i), h = hacim(p), gr = (gruplar[ad] ??= { i: p.i, h: 0, toplam: 0 });
     gr.toplam += h; if (h > gr.h) { gr.h = h; gr.i = p.i; }
   }
   const la = C.dil() === 'la';
@@ -180,6 +183,17 @@ function parcaliEtiketle() {
   }));
 }
 
+// Kipler arası geçişte sahneyi temiz hâle getirir: süzgeç, soluklaştırma, seçim, kesit açma, ayırma, cam görünüm, tur ve etiketler kapanır.
+// Açık sistemler ile kullanıcının gizlediği yapılar korunur.
+function sahneSifirla() {
+  turBitir(); icKapat();
+  if (parcali) { g.parcala(parcali, 0); parcali = null; }
+  if (g.patlama) g.patlat(0);
+  mod.parcali = false; if (mod.cam) camAyarla(false);
+  aktifKonu = null; seciliParca = -1; g.yalniz = null; g.soluk = null; g.secili = new Set(); g.soru = new Set();
+  g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true; $('#secimEtiketi').hidden = true; cekmeceKapat(); modIsaretle(); g.guncelle();
+}
+
 // ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
 const mod = { parcali: false, cam: false, doner: false, tur: null, kalite: false };
 // Yüksek kalite varsayılan olarak açıktır; kapatılırsa tercih bu cihazda hatırlanır.
@@ -187,9 +201,13 @@ function kaliteAyarla(acik) { mod.kalite = acik; g.kaliteAyarla(acik); try { loc
 const modDugme = ad => document.querySelector(`[data-mod=${ad}]`);
 const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur', 'kalite']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
 function parcaliAyarla(acik) {
-  mod.parcali = acik; const ilk = g.patlama, son = acik ? 0.8 : 0, bas = performance.now();
+  // Ayrıntı penceresinden açılmış yerel ayırma varsa önce o toplanır; ikisi aynı parçaları ayrı ayrı oynatmasın.
+  if (acik && parcali) { g.parcala(parcali, 0); parcali = null; g.yalniz = null; g.guncelle(); }
   const gorunen = () => parcalar.filter(p => g.meshler[p.i]?.visible).map(p => p.i);
-  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); else if (acik) { g.sigdir(gorunen()); parcaliEtiketle(); } else { g.gorunus('on'); etiketleriGuncelle(); } };
+  // Az sayıda yapı görünüyorsa (ör. yalnız kalp) parçalar tek tek ayrılır; damar ağı gibi kalabalık sistemler açıkken gruplar korunur.
+  { const gr = gorunen().filter(i => !g.patlamaBlok.has(parcalar[i].sistem)); g.patlamaParca = acik ? gr.length > 0 && gr.length <= 60 && new Set(gr.map(i => g.patlamaGrubu(i))).size < 3 : g.patlamaParca; }
+  mod.parcali = acik; const ilk = g.patlama, son = acik ? (g.patlamaParca ? 2.4 : 0.8) : 0, bas = performance.now();
+  const adim = () => { const k = Math.min((performance.now() - bas) / 700, 1); g.patlat(ilk + (son - ilk) * (1 - Math.pow(1 - k, 3))); const s = $('#patlat'); if (s) s.value = g.patlama; if (k < 1) requestAnimationFrame(adim); else if (acik) { g.sigdir(gorunen().filter(i => !g.patlamaParca || !g.patlamaBlok.has(parcalar[i].sistem))); parcaliEtiketle(); } else { g.gorunus('on'); etiketleriGuncelle(); } };
   adim(); modIsaretle();
 }
 function camAyarla(acik) {
@@ -289,10 +307,14 @@ function kesfetCiz() {
   $('#olcumModu').onchange = e => { olcumModu = e.target.checked; if (!olcumModu) g.olcumTemizle(); $('#olcumDurum').textContent = olcumModu ? 'Modelde ilk noktayı tıkla.' : ''; };
   $('#goruntuKaydet').onclick = () => { const a = document.createElement('a'); a.href = g.goruntu(); a.download = `anatomi-${new Date().toLocaleDateString('sv-SE')}.png`; a.click(); };
   document.querySelectorAll('[data-sistem]').forEach(k => k.addEventListener('change', () => {
+    // Bir sistemi elle açıp kapatmak süzgeci kaldırır: işaretli sistem her zaman görünür.
+    const suzgecVardi = !!g.yalniz; icKapat(); if (parcali) { g.parcala(parcali, 0); parcali = null; } g.yalniz = null; aktifKonu = null;
     k.checked ? g.acikSistemler.add(k.dataset.sistem) : g.acikSistemler.delete(k.dataset.sistem); g.guncelle();
+    if (mod.parcali) parcaliAyarla(true);
+    if (suzgecVardi) kesfetCiz();
   }));
-  $('#hepsiAc').onclick = () => { g.acikSistemler = new Set(SISTEMLER.map(s => s.id).filter(s => s !== 'deri')); g.guncelle(); kesfetCiz(); };
-  $('#hepsiKapa').onclick = () => { g.acikSistemler = new Set(); g.guncelle(); kesfetCiz(); };
+  $('#hepsiAc').onclick = () => { icKapat(); g.yalniz = null; aktifKonu = null; g.acikSistemler = new Set(SISTEMLER.map(s => s.id).filter(s => s !== 'deri')); g.guncelle(); kesfetCiz(); };
+  $('#hepsiKapa').onclick = () => { icKapat(); g.yalniz = null; aktifKonu = null; g.acikSistemler = new Set(); g.guncelle(); kesfetCiz(); };
   $('#gizlileriGoster').onclick = () => { g.gizli = new Set(); g.guncelle(); kesfetCiz(); };
   const kesitUygula = () => { g.kesitAyarla(kesit.acik, kesit.eksen, kesit.oran, kesit.ters); };
   $('#kesitAcik').onchange = e => { kesit.acik = e.target.checked; kesitUygula(); };
@@ -456,7 +478,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#cekme
 // ---------- Konu gösterimi ----------
 function konuGoster(id) {
   const k = konular().find(x => x.id === id); if (!k) return;
-  aktifKonu = id;
+  sahneSifirla(); aktifKonu = id;
   const ps = k.liste.flatMap(a => yapilar[a].parcalar);
   g.yalniz = new Set(ps); g.secili = new Set(); g.guncelle(); g.odakla(ps); etiketleriGuncelle();
 }
@@ -496,6 +518,7 @@ function sinavCiz(seciliKonu) {
 }
 
 function sinavBaslat(liste, adet, tur, konuId) {
+  sahneSifirla();
   g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   const secilen = C.soruSec(liste, adet);
   sinav = { liste, konuId, sorular: secilen.map(a => ({ a, tip: tur === 'karisik' ? (Math.random() < 0.5 ? 'bul' : 'ad') : tur })), sira: 0, dogru: 0, yanlislar: [], cevaplandi: false };
@@ -624,6 +647,7 @@ function cevapPuani(cevap, a) {
 function zil() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), k = ac.createGain(); o.frequency.value = 880; k.gain.value = 0.08; o.connect(k); k.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.18); } catch { /* ses yoksa sessiz geç */ } }
 
 function pratikBaslat(liste, adet, sure) {
+  sahneSifirla();
   g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   const havuz = liste.filter(a => yapilar[a] && !['ta_disi', 'belirsiz'].includes(DOGRULAMA[a]?.durum));
   const secilen = C.karistir(C.soruSec(havuz, adet));
@@ -682,6 +706,7 @@ function vakaListesi() {
   return VAKALAR.filter(v => yapilar[v.dogru] && v.k.some(x => km.has(x)));
 }
 function vakaBaslat(adet) {
+  sahneSifirla();
   g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
   const hepsi = C.karistir(vakaListesi()).sort((a, b) => C.kart(`vaka:${a.id}`).kutu - C.kart(`vaka:${b.id}`).kutu);
   if (!hepsi.length) return;
@@ -758,14 +783,15 @@ const yumusak = k => k * k * (3 - 2 * k);
 
 function canliCiz() {
   if (canli) return canliYanCiz();
-  const akisVar = a => a.adimlar.filter(ad => parcaListesi(ad.y).length).length >= 3;
+  // Yolculuk yalnız bütün adımlarının yapıları modelde varsa açılır; eksikse yarım bir yol göstermek yanıltır.
+  const akisVar = a => a.adimlar.every(ad => parcaListesi(ad.yol ?? ad.y).length);
   $('#yan').innerHTML = `<h2>Canlandırmalar</h2>
     <p class="kucuk">Vücudun nasıl çalıştığını adım adım izle. Her canlandırmada açıklama modelin altındaki kartta çıkar; duraklatıp modeli döndürebilirsin.</p>
     <h3>Hareketli gösterimler</h3>
     <button class="liste-dugme" data-canli="kalp" ${parcaListesi(KALP.karincik).length ? '' : 'disabled'}>${esc(KALP.ad)}<small>Kulakçık ve karıncıkların sırayla kasılması, kapaklar ve kalp sesleri</small></button>
     <button class="liste-dugme" data-canli="solunum" ${KADIN_MI ? 'disabled' : ''}>${esc(SOLUNUM.ad)}<small>Diyafram ve kaburgaların nefes alıp verirken hareketi${KADIN_MI ? ' (Erkek modelde)' : ''}</small></button>
     <h3>Adım adım yollar</h3>
-    ${AKISLAR.map(a => `<button class="liste-dugme" data-akis="${a.id}" ${akisVar(a) ? '' : 'disabled'}>${esc(a.ad)}<small>${a.adimlar.length} adım</small></button>`).join('')}
+    ${AKISLAR.map(a => `<button class="liste-dugme" data-akis="${a.id}" ${akisVar(a) ? '' : 'disabled'}>${esc(a.ad)}<small>${akisVar(a) ? `${a.adimlar.length} adım` : 'Bu modelde bazı yapılar yok. Erkek modelde izle.'}</small></button>`).join('')}
     <h3>Mikroskobik sahneler</h3>
     <p class="kucuk">Organların içinde, gözle görülmeyen düzeyde ne olduğunu gösteren şematik çizimler.</p>
     ${MIKRO.map(m => `<button class="liste-dugme" data-mikro="${m.id}">${esc(m.ad)}</button>`).join('')}
@@ -792,10 +818,7 @@ function mikroAc(m) {
 }
 function canliHazirla(tip, ad, sistemler) {
   document.querySelector('#mikroPano')?.remove();
-  cekmeceKapat(); $('#secimEtiketi').hidden = true; g.etiketle([]); g.olcumTemizle(); ustuneGel.hidden = true;
-  turBitir(); icKapat(); if (mod.cam) camAyarla(false);
-  if (g.patlama) { g.patlat(0); mod.parcali = false; }
-  modIsaretle();
+  sahneSifirla();
   const oncekiSistemler = new Set(g.acikSistemler);
   g.acikSistemler = new Set(sistemler); // canlandırma boyunca yalnız ilgili sistemler görünür
   canli = { oncekiSistemler, tip, ad, oynuyor: true, dokunulan: new Set(), gizlenen: new Set(), bas: performance.now(), durakta: 0, sure: 8000 };
@@ -1061,6 +1084,7 @@ function tekrarCiz() {
     const kid = $('#tekrarKonu').value, liste = kid === 'hepsi' ? tumAnahtarlar() : ks.find(k => k.id === kid).liste;
     const kartlar = C.tekrarListesi(liste, Number($('#yeniSinir').value));
     if (!kartlar.length) { $('#tekrarBasla').insertAdjacentHTML('afterend', '<p class="geri-bildirim dogru">Şu an tekrar edilecek kart yok. Yarın yeniden bak!</p>'); return; }
+    sahneSifirla();
     tekrar = { kartlar, sira: 0, bilinen: 0, gosterildi: false, toplam: kartlar.length };
     cekmeceKapat(); $('#secimEtiketi').hidden = true; tekrarYanCiz(); kartGoster();
   };
@@ -1115,7 +1139,7 @@ function kartCevap() {
     tekrar.sira++; tekrarYanCiz(); kartGoster();
   }));
 }
-function tekrarBitir() { tekrar = null; $('#soruKarti').hidden = true; g.soru = new Set(); g.soluk = null; g.guncelle(); }
+function tekrarBitir() { tekrar = null; $('#soruKarti').hidden = true; g.soru = new Set(); g.soluk = null; g.yalniz = null; g.guncelle(); }
 
 // ---------- Çalışma planı ----------
 function planCiz() {
@@ -1181,7 +1205,13 @@ function durumYaz() {
   const gorunen = g.meshler.reduce((n, m) => n + (m?.visible ? 1 : 0), 0), p = seciliParca >= 0 ? parcalar[seciliParca] : null;
   $('#durumSeridi').innerHTML = `<span>Model <b>${KADIN_MI ? 'Kadın' : 'Erkek'}</b></span><span>Görünen yapı <b>${gorunen}</b> / ${parcalar.length}</span><span>Açık sistem <b>${g.acikSistemler.size}</b></span><span>Seçili <b>${esc(p ? ((C.dil() === 'la' ? p.la : p.tr) || p.tr || p.en) : '—')}</b></span>`;
 }
-{ const asil = g.guncelle.bind(g); g.guncelle = () => { asil(); durumYaz(); }; durumYaz(); }
+// Süzgeç bildirimi: modelin yalnız bir bölümü gösterilirken (sınav ve canlandırma dışında) bunu sahnede söyler.
+function suzgecYaz() {
+  const b = $('#suzgec'), acik = !!g.yalniz && !canli && !sinav && !tekrar && !ozel;
+  b.hidden = !acik; if (acik) b.innerHTML = `Yalnız ${g.yalniz.size} yapı gösteriliyor<b>Tümünü göster</b>`;
+}
+$('#suzgec').onclick = () => { sahneSifirla(); g.gorunus('on'); yanCiz(); };
+{ const asil = g.guncelle.bind(g); g.guncelle = () => { asil(); durumYaz(); suzgecYaz(); }; durumYaz(); suzgecYaz(); }
 { const genis = matchMedia('(min-width: 901px) and (orientation: landscape), (min-width: 1101px)');
   const ayarla = () => { g.yanBosluk = genis.matches ? document.querySelector('.yan').offsetWidth + 14 : 0; g._boyut(); };
   genis.addEventListener('change', ayarla); addEventListener('resize', ayarla); ayarla(); }

@@ -361,3 +361,8 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 @media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) { .buyuk-durum { bottom: 64px; } .buyuk-durum b { font-size: 1.15rem; } }
 @media print { .buyuk-durum { display: none; } }
 @media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) { .yan .soru-karti .dugme-satiri button { flex: 1 1 40%; } }
+
+/* Süzgeç bildirimi: modelin yalnız bir bölümü gösterilirken sahnede görünür; dokununca her şey geri gelir. */
+.suzgec { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 2; background: var(--yazi); color: var(--kart); border-color: var(--yazi); border-radius: 20px; padding: 7px 14px; font-size: .8rem; font-weight: 400; white-space: nowrap; }
+.suzgec b { color: var(--vurgu); font-weight: 600; margin-left: 6px; }
+@media print { .suzgec { display: none; } }

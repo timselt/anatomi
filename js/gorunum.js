@@ -274,19 +274,27 @@ export class Goruntuleyici {
   // Parçaları gövde merkezinden dışa doğru ayırır (0 = birleşik).
   patlat(oran) {
     this.patlama = oran;
-    const orta = this._govdeKutusu().getCenter(new T.Vector3());
-    // Aynı gruptaki parçalar (bir organın dilimleri, bir elin kemikleri) birlikte hareket eder; organlar bütün kalır.
     if (this.patlamaGrubu && this._grupSayisi !== this.atlas.parts.length) {
       const kutular = {}; this._grupSayisi = this.atlas.parts.length;
       this._grupAdi = this.atlas.parts.map((p, i) => { const ad = this.patlamaGrubu(i); const k = (kutular[ad] ??= new T.Box3()); k.expandByPoint(new T.Vector3(...p.bounds[0])); k.expandByPoint(new T.Vector3(...p.bounds[1])); return ad; });
       this._grupMerkez = Object.fromEntries(Object.entries(kutular).map(([ad, k]) => [ad, k.getCenter(new T.Vector3())]));
     }
+    let orta = this._govdeKutusu().getCenter(new T.Vector3());
+    if (this.patlamaParca) { // az yapı görünürken parçalar kendi ortak merkezlerinden, her yöne eşit açılır
+      const k = new T.Box3(); this.meshler.forEach((m, i) => { if (m?.visible && !this.patlamaBlok?.has(this._grupAdi?.[i])) { k.expandByPoint(new T.Vector3(...this.atlas.parts[i].bounds[0])); k.expandByPoint(new T.Vector3(...this.atlas.parts[i].bounds[1])); } });
+      if (!k.isEmpty()) orta = k.getCenter(new T.Vector3());
+    }
+    const [fx, fy, fz] = this.patlamaParca ? [1, 1, 1] : [1.5, 0.4, 1.5];
+    // Aynı gruptaki parçalar (bir organın dilimleri, bir elin kemikleri) birlikte hareket eder; organlar bütün kalır.
+    const grupla = this.patlamaGrubu && !this.patlamaParca; // az sayıda grup görünüyorsa (ör. yalnız kalp) parçalar tek tek ayrılır
     this.meshler.forEach((m, i) => {
       if (!m) return;
       const b = this.atlas.parts[i].bounds;
-      const c = this._grupMerkez?.[this._grupAdi[i]] ?? new T.Vector3((b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2);
+      // Tek tek ayırma kipinde damar ve sinir ağları yerinde durur; yalnız organ parçaları açılır.
+      if (this.patlamaParca && this.patlamaBlok?.has(this._grupAdi?.[i])) { m.position.set(0, 0, 0); m.updateMatrix(); return; }
+      const c = (grupla && this._grupMerkez?.[this._grupAdi[i]]) || new T.Vector3((b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2);
       // Yana ve öne-arkaya çok, yukarı-aşağı az açılır: model çerçevede kalır.
-      m.position.set((c.x - orta.x) * oran * 1.5, (c.y - orta.y) * oran * 0.4, (c.z - orta.z) * oran * 1.5);
+      m.position.set((c.x - orta.x) * oran * fx, (c.y - orta.y) * oran * fy, (c.z - orta.z) * oran * fz);
       m.updateMatrix();
     });
     this.kirli = true;
