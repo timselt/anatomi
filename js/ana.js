@@ -61,17 +61,27 @@ async function ekKatman() {
     if (not) not.textContent = 'Ek katman yükleniyor: sinirler, lenf düğümleri, akciğer ve karaciğer…';
     const ekler = await ekModelleriYukle(parcalar);
     for (const e of ekler) {
+      const ozel = EK_TERIM[e.enKucuk]; if (ozel) { e.tr = ozel[0]; e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
       const i = g.ekParca(e.geometry, e.sistem, e.bounds);
-      TERIM[e.anahtar] ??= { tr: e.la, la: e.la, lv: 3, fn: e.fn, ip: '', ek: true };
+      TERIM[e.anahtar] ??= { tr: ozel ? e.tr : e.la, la: e.la, lv: 3, fn: e.fn, ip: '', ek: true };
       parcalar.push({ i, en: e.en, sistem: e.sistem, anahtar: e.anahtar, tr: e.tr, la: e.la, ek: '', bounds: e.bounds, kaynak: 'Z-Anatomy' });
       const y = (yapilar[e.anahtar] ??= { anahtar: e.anahtar, ...TERIM[e.anahtar], sistem: e.sistem, parcalar: [], enler: [] });
       y.parcalar.push(i); y.enler.push(e.enKucuk);
       aramaDizini.push({ i, metin: norm([e.tr, e.la, e.en].join(' | ')) });
     }
+    // Büyük omentum ince bağırsağın ve kalın bağırsağın önündeki örtüdür: taşan kıvrımların önüne itilir.
+    for (const om of parcalar.filter(p => /^greater omentum$/i.test(p.en))) g.ortuOneAl(om.i, parcalar.filter(p => p.kaynak !== 'Z-Anatomy' && /jejun|ileum|colon|caecum|cecum|appendix/i.test(p.en)).map(p => p.i));
     g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc();
   } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; }
 }
 let ekYuklendi = 0;
+// Ek katmandan gelen ve modelde bağırsakların önünde ilk göze çarpan karın zarı yapıları (Türkçe ad, görev). Ders kitabı bilgisidir; kaynakla ayrıca karşılaştırılmadı.
+const EK_TERIM = {
+  'greater omentum': ['Büyük omentum (büyük karın zarı örtüsü)', 'Midenin büyük eğriliğinden sarkıp enine kolonun önünden geçen, ince bağırsakların önünü önlük gibi örten periton katlantısıdır. İçinde yağ ve lenf düğümleri bulunur; iltihaplı bir organın çevresine yapışarak iltihabın yayılmasını sınırlayabilir.'],
+  'lesser omentum': ['Küçük omentum', 'Karaciğer ile midenin küçük eğriliği ve onikiparmak bağırsağının ilk bölümü arasında uzanan periton katlantısıdır. Serbest kenarında kapı toplardamarı (vena portae), karaciğer atardamarı ve ana safra kanalı (ductus choledochus) bulunur.'],
+  'mesocolon': ['Mezokolon (kalın bağırsak askısı)', 'Kalın bağırsağı karın arka duvarına bağlayan periton katlantısıdır; kalın bağırsağın damar, sinir ve lenf yollarını taşır.'],
+  'mesentery': ['Mezenter (ince bağırsak askısı)', 'Boş ve kıvrımlı bağırsağı (jejunum ve ileum) karın arka duvarına bağlayan yelpaze biçimli periton katlantısıdır; içinde üst bağırsak askısı damarlarının dalları, lenf düğümleri ve sinirler bulunur.'],
+};
 let baglantiAcildi = false;
 function baglantiAc() {
   const a = BAGLANTI.get('yapi');
@@ -152,15 +162,33 @@ const KEMIK_BOLGESI = [[/carpal|metacarpal|scaphoid|lunate|triquetr|pisiform|tra
   [/\brib\b|costal|sternum|manubrium|xiphoid/, 'gogus-kafesi'], [/vertebra|sacrum|coccyx|atlas|axis|intervertebral/, 'omurga']];
 // Organların kendi doğal renkleri (ders atlası tonları). Sıra önemlidir: "hepatic flexure of colon" önce kalın bağırsak sayılır.
 const ORGAN_RENK = [
+  // Beyin: gri cevher pembemsi gri, ak cevher beyazımsı, beyincik biraz koyu; beyin karıncıkları ve su kemeri beyin omurilik sıvısıdır (saydam).
+  [/ventricle of brain|lateral ventricle|third ventricle|fourth ventricle|cerebral aqueduct|horn of lateral ventricle|interventricular foramen/i, '#bcdcea|0.35'],
+  [/choroid plexus/i, '#b5535a'], [/white matter|corpus callosum|internal capsule|fornix/i, '#eee5da'], [/cerebell/i, '#cfa79c'],
+  [/gyrus|cerebr|lobe of brain|(frontal|parietal|temporal|occipital|limbic) lobe|insula|hippocamp|amygdal|thalam|pons|medulla oblongata|midbrain|peduncle|caudate nucleus|(head|body|tail) of caudate|putamen|globus pallidus|claustrum|cuneus|uncus|mammillary|pineal|stria medullaris/i, '#d6b5aa'],
+  [/spinal cord|conus medullaris/i, '#ebdfcf'],
+  // Göz: göz akı beyaz, iris kahve, damar tabakası koyu, ağ tabaka turuncu-kırmızı; kornea, mercek ve saydam bölmeler cam gibi.
+  [/sclera/i, '#f4f1ea'], [/cornea/i, '#f4fbfd|0.1'], [/suspensory ligament of (right |left )?lens|zonul/i, '#e9e2d4|0.35'], [/\blens\b/i, '#eef4f6|0.15'], [/iris/i, '#5e3f25||mat'], [/choroid(?! plexus)/i, '#4a2019||mat'], [/retina(?!culum)/i, '#b8613f||mat'],
+  [/vitreous|anterior chamber|posterior chamber|(anterior|posterior) segment of eyeball/i, '#e3f0f4|0.04'], [/optic (nerve|chiasm|tract)/i, '#efe3c9'], [/tarsal plate|eyelid/i, '#e7d2c3'],
+  // Kalp: kas duvarı koyu kırmızı-kahve, kapakçıklar beyazımsı lifli doku. Boşluk modelleri duvarın iç yüzüyle aynı yerde durduğu için duvarla aynı renktedir (farklı renk lekeli titreşme yapıyordu).
+  [/cusp|leaflet|chordae|(?<!ileocecal )valve/i, '#efe4d8'], [/wall of (left |right )?(ventricle|atrium)|myocard|papillary|ventricle|atrium/i, '#b04d45'],
   // Karın zarı katlantıları (omentum, mezenter, mezokolon) organların önünde perde olmasın diye ince bir tül gibi çizilir; "mesocolon" adı kalın bağırsaktan önce tanınır.
-  [/omentum|mesenter|mesocolon/i, '#e2bd62|0.16'], [/colon|caecum|cecum|appendix|rectum|taenia|anal canal/i, '#c4916a'], [/gallbladder|cystic duct|bile duct|hepatic duct/i, '#6f8a3c'],
+  // Bağırsakların önünde birden çok zar üst üste biner; yalnız büyük omentum biraz belirgin, arkadakiler neredeyse saydamdır.
+  // Bağlar lifli beyazımsı dokudur; organın adını taşısalar da organ renginde değil. Geniş bağ ve periton cepleri organı örten ince tüllerdir.
+  [/broad ligament|mesometrium|mesosalpinx|mesovarium|pouch/i, '#e8d6cc|0.3'], [/ligament/i, '#e8ddd0'],
+  [/greater omentum/i, '#e2bd62|0.12'], [/omentum|mesenter|mesocolon/i, '#e2bd62|0.04'], [/colon|caecum|cecum|appendix|rectum|taenia|anal canal/i, '#c4916a'], [/gallbladder|cystic duct|bile duct|hepatic duct/i, '#6f8a3c'],
   [/hepat|liver/i, '#8e4434'], [/pancrea/i, '#dcb36c'], [/stomach|gastric|pylor/i, '#d98a7c'], [/duoden|jejun|ileum|ileocecal|small intestine/i, '#e3a08a'],
   [/oesophag|esophag/i, '#cf8f80'], [/tongue/i, '#c46a6a'], [/tooth|teeth|incisor|canine|premolar|molar/i, '#efe8d8'], [/gingiva/i, '#d98f90'],
   [/spleen/i, '#7b3346'], [/kidney|renal (cortex|medulla|pyramid|column|papilla)/i, '#8f4a3e'],
   [/ureter|urinary bladder|urethra|renal pelvis|calyx/i, '#d7ab95'], [/thyroid gland|parathyroid/i, '#a9505c'], [/adrenal|suprarenal/i, '#d0a052'],
-  [/parotid|submandibular gland|sublingual gland|salivary/i, '#d7b08a'], [/pharyn|larynx|epiglott/i, '#d79a92'],
+  [/parotid|submandibular gland|sublingual gland|salivary/i, '#d7b08a'],
+  // Akciğer pembemsi gri, hava yolu kıkırdağı açık; timus pembemsi sarı.
+  [/lobe of (left |right )?lung|\blung\b/i, '#d4a3a8'], [/trachea|bronch/i, '#e6cfc6'], [/thymus/i, '#e0c6b4'],
+  // Üreme organları (erkek ve kadın modeli): her yapı kendi tonunda, birbirinden ayırt edilsin.
+  [/testis/i, '#ece0da'], [/epididym/i, '#c99a8a'], [/deferent|ejaculatory|vas deferens/i, '#efe5d8'], [/seminal vesicle/i, '#d8b29a'], [/prostat/i, '#c58b78'],
+  [/corpus cavernosum|corpus spongiosum|glans|penis/i, '#c98784'], [/ovary/i, '#e4cfc2'], [/uterine tube|fallopian/i, '#d79e94'], [/uter|cervix/i, '#c6847f'], [/vagina/i, '#d39892'], [/pharyn|larynx|epiglott/i, '#d79a92'],
 ];
-const ORGAN_SISTEM = new Set(['sindirim', 'bosaltim', 'hormon', 'lenf', 'solunum', 'ureme']);
+const ORGAN_SISTEM = new Set(['sindirim', 'bosaltim', 'hormon', 'lenf', 'solunum', 'ureme', 'sinir', 'duyu', 'kalp']);
 const organRengi = [];
 g.parcaRenk = i => {
   if (organRengi[i] === undefined) { const p = parcalar[i]; organRengi[i] = (ORGAN_SISTEM.has(p.sistem) && ORGAN_RENK.find(([d]) => d.test(p.en))?.[1]) || null; }

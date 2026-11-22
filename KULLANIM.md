@@ -90,4 +90,4 @@ Bir yapıya tıkla, sağdaki **Benim notum** alanına yaz. Kendiliğinden kayded
 - Kaslara tıklayınca başlangıç, sonlanma, sinir, atardamar, görev ve klinik bilgisi görünür.
 - İlerlemen bu bilgisayardaki tarayıcıda saklanır. Kaybetmemek ya da başka bilgisayarda devam etmek için **İlerlemem → Yedek al** düğmesini kullan.
 
-**Renkler:** Organlar kendi doğal renkleriyle görünür (karaciğer kızıl kahve, safra kesesi yeşil, mide ve ince bağırsak pembe, kalın bağırsak açık kahve). Karın zarı katlantıları (omentum, mezenter) ince bir tül gibidir. Seçtiğin yapı bütünüyle yeşil-mavi renge boyanır.
+**Renkler:** Organlar kendi doğal renkleriyle görünür: karaciğer kızıl kahve, safra kesesi yeşil, mide ve ince bağırsak pembe, kalın bağırsak açık kahve; beyin pembemsi gri, içi (ak cevher) beyazımsı; gözde göz akı beyaz, iris kahve, kornea ve mercek saydam; kalpte kas duvarı koyu kırmızı, kapakçıklar beyazımsı; bağlar lifli beyaz. Büyük omentum bağırsakların önünü örten ince bir tüldür; diğer karın zarları neredeyse saydamdır. Seçtiğin yapı kendi gölgesini ve dokusunu koruyarak yeşil-mavi tona döner.

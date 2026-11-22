@@ -21,8 +21,8 @@ float dokuG(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * 
   return mix(mix(mix(dokuH(i), dokuH(i + vec3(1,0,0)), f.x), mix(dokuH(i + vec3(0,1,0)), dokuH(i + vec3(1,1,0)), f.x), f.y),
              mix(mix(dokuH(i + vec3(0,0,1)), dokuH(i + vec3(1,0,1)), f.x), mix(dokuH(i + vec3(0,1,1)), dokuH(i + vec3(1,1,1)), f.x), f.y), f.z); }`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-{ vec3 q = vDoku * 650.0; vec3 b = vec3(dokuG(q), dokuG(q + 19.1), dokuG(q + 37.7)) - 0.5;
-  normal = normalize(normal + 0.22 * b); }`);
+{ vec3 q = vDoku * 360.0; vec3 b = vec3(dokuG(q), dokuG(q + 19.1), dokuG(q + 37.7)) - 0.5;
+  normal = normalize(normal + 0.12 * b); }`);
   };
   m.customProgramCacheKey = () => 'doku1';
 }
@@ -74,14 +74,12 @@ export class Goruntuleyici {
       // Yumuşak dokular hafif ıslak ve parlak, kemik mat görünür.
       const islak = ['kalp', 'sindirim', 'solunum', 'bosaltim', 'ureme', 'hormon', 'duyu', 'gebelik', 'lenf'].includes(id);
       // Islak dokularda kadifemsi kenar parlaklığı (sheen) ve ince yüzey pürüzü de vardır.
-      this.malzeme[id] = new T.MeshPhysicalMaterial({ color: renk, roughness: id === 'iskelet' ? 0.75 : islak ? 0.45 : 0.6, metalness: 0.03, clearcoat: islak ? 0.35 : 0, clearcoatRoughness: 0.35, sheen: islak ? 0.35 : 0, sheenRoughness: 0.55, sheenColor: 0xfff0ea, envMapIntensity: 0.75, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
+      this.malzeme[id] = new T.MeshPhysicalMaterial({ color: renk, roughness: id === 'iskelet' ? 0.75 : islak ? 0.45 : 0.6, metalness: 0.03, clearcoat: islak ? 0.35 : 0, clearcoatRoughness: 0.35, sheen: islak ? 0.18 : 0, sheenRoughness: 0.6, sheenColor: 0xffd2c4, envMapIntensity: 0.75, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
       this.solukMalzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.6, side: T.DoubleSide, transparent: true, opacity: 0.12, depthWrite: false });
     }
     for (const [id, m] of Object.entries(this.malzeme)) if (m.sheen) dokuEkle(m);
-    // Seçili yapı kenar çizgisiyle değil, bütünüyle renklendirilir.
-    this.vurguMalzeme = new T.MeshPhysicalMaterial({ color: VURGU, emissive: VURGU, emissiveIntensity: 0.22, roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.35, side: T.DoubleSide });
     this.soruMalzeme = new T.MeshStandardMaterial({ color: SORU, emissive: SORU, emissiveIntensity: 0.45, roughness: 0.4, side: T.DoubleSide });
-    this.tumMalzemeler = [...Object.values(this.malzeme), ...Object.values(this.solukMalzeme), this.vurguMalzeme, this.soruMalzeme];
+    this.tumMalzemeler = [...Object.values(this.malzeme), ...Object.values(this.solukMalzeme), this.soruMalzeme];
     this.gorunus('on', false);
     this._olaylar();
     new ResizeObserver(() => this._boyut()).observe(kap);
@@ -135,12 +133,32 @@ export class Goruntuleyici {
     const depo = soluk ? this.solukMalzeme : this.malzeme, k = s + '|' + renk;
     if (!depo[k]) {
       // Renk "#rrggbb|0.55" biçimindeyse ikinci kısım saydamlıktır (ör. arkasındaki bağırsakları gösteren yağlı omentum).
-      const [hex, alfa] = renk.split('|'), m = depo[s].clone(); m.color.set(hex);
-      if (alfa && !soluk) { m.transparent = true; m.opacity = Number(alfa); m.depthWrite = false; m.userData.secilebilir = true; } // tül gibi çizilse de tıklanabilir
+      // Üçüncü kısım "mat" ise cila ve kadife parlaklık kapatılır (ör. iris: küçük ve koyu bir yüzey parlaklıkla beyazlaşıyordu).
+      const [hex, alfa, tip] = renk.split('|'), m = depo[s].clone(); m.color.set(hex);
+      if (tip === 'mat') { m.clearcoat = 0; m.sheen = 0; m.roughness = 0.8; m.envMapIntensity = 0.45; }
+      if (alfa && alfa !== '' && !soluk) {
+        m.transparent = true; m.opacity = Number(alfa); m.depthWrite = false; m.userData.secilebilir = Number(alfa) >= 0.1; // görünür tüller tıklanabilir; neredeyse saydam zarlar arkadaki organın tıklanmasını engellemesin
+        // Kalite kipinde sahne yüksek parlaklık aralığında çizilir; saydam yüzeyin ortam yansıması orada çok parlak kalıp arkasını beyazlatıyordu (ör. kornea irisi).
+        // Ayrıca ışık altındaki açık renkli yüzey ekranın sınırının ~2,4 katı parlaklıkta hesaplanır; opak yüzeyde bu kırpılır, saydam katman ise fazlayı arkasına ekler.
+        // Bu yüzden saydam katmanın kendi rengi kısılır (omentum tülü bağırsakları da bu yüzden soluk gösteriyordu).
+        m.clearcoat = 0; m.sheen = 0; m.specularIntensity = 0.25; m.envMapIntensity = 0.15; m.color.multiplyScalar(0.3);
+      }
       if (depo[s].onBeforeCompile) { m.onBeforeCompile = depo[s].onBeforeCompile; m.customProgramCacheKey = depo[s].customProgramCacheKey; }
       depo[k] = m; this.tumMalzemeler.push(m);
     }
     return depo[k];
+  }
+  // Seçili yapı: kendi malzemesi (doku, parlaklık) korunur, rengi yeşil-maviye doğru kayar ve hafif ışık verir; biçimi ve gölgesi okunur.
+  _secili(s, renk) {
+    const k = 'secili|' + s + '|' + (renk ?? '');
+    if (!this.malzeme[k]) {
+      const taban = this.malzeme[s], m = taban.clone();
+      m.color.set(renk ? renk.split('|')[0] : taban.color).lerp(VURGU, 0.72); m.emissive.copy(VURGU); m.emissiveIntensity = 0.2;
+      m.transparent = false; m.opacity = 1; m.depthWrite = true;
+      if (taban.onBeforeCompile) { m.onBeforeCompile = taban.onBeforeCompile; m.customProgramCacheKey = taban.customProgramCacheKey; }
+      this.malzeme[k] = m; this.tumMalzemeler.push(m);
+    }
+    return this.malzeme[k];
   }
   // Görünürlük ve renkleri durum bilgisine göre yeniden kurar.
   guncelle() {
@@ -153,7 +171,7 @@ export class Goruntuleyici {
       if (soru) gorunur = true;
       m.visible = gorunur;
       const r = this.parcaRenk?.(i), soluk = (this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s);
-      m.material = soru ? this.soruMalzeme : secili ? this.vurguMalzeme : r ? this._renkli(soluk, s, r) : soluk ? this.solukMalzeme[s] : this.malzeme[s];
+      m.material = soru ? this.soruMalzeme : secili ? this._secili(s, r) : r ? this._renkli(soluk, s, r) : soluk ? this.solukMalzeme[s] : this.malzeme[s];
       const kes = this.icAcik?.duzlem.get(i);
       if (kes) { // kesilen yapı kendi malzemesinin kesitli kopyasıyla çizilir
         const mz = this.icAcik.malzeme, anahtar = m.material.uuid + kes.constant;
@@ -311,6 +329,26 @@ export class Goruntuleyici {
     const par = new Float32Array(n);
     for (let v = 0; v < n; v++) par[v] = parca[es[v]] === enIyi ? dA[es[v]] / boyu : -1;
     return { noktalar, par, boyu };
+  }
+  // Önde duran ince bir örtüyü (ör. büyük omentum) arkasındaki yapıların taştığı yerlerde öne iter.
+  // Ek katman ana modele yaklaşık 1 cm hassasiyetle oturduğu için bağırsak kıvrımları örtünün önüne geçebiliyor; gerçekte örtü onları kapatır.
+  // 1 cm'lik ızgarada her hücre için gereken itme = arkadaki en ön nokta - örtünün ön yüzü + 3 mm; komşu hücrelere yayılıp yumuşatılır.
+  ortuOneAl(i, altlar) {
+    const P = this.meshler[i]?.geometry.attributes.position; if (!P) return 0;
+    const h = 0.01, anahtar = (x, y) => Math.round(x / h) + ',' + Math.round(y / h), on = new Map(), arka = new Map();
+    for (let k = 0; k < P.count; k++) { const a = anahtar(P.getX(k), P.getY(k)), z = P.getZ(k); if (!on.has(a) || on.get(a) < z) on.set(a, z); }
+    for (const j of altlar) {
+      const Q = this.meshler[j]?.geometry.attributes.position; if (!Q) continue;
+      for (let k = 0; k < Q.count; k++) { const a = anahtar(Q.getX(k), Q.getY(k)); if (on.has(a) && Q.getZ(k) > (arka.get(a) ?? -Infinity)) arka.set(a, Q.getZ(k)); }
+    }
+    const gerek = new Map(); for (const [a, z] of arka) { const f = z - on.get(a) + 0.003; if (f > 0) gerek.set(a, f); }
+    if (!gerek.size) return 0;
+    const komsu = (a, f) => { const [x, y] = a.split(',').map(Number); let t = 0, n = 0; for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) { t += f(x + dx + ',' + (y + dy)); n++; } return t / n; };
+    const yayilan = new Map(); for (const a of on.keys()) { const [x, y] = a.split(',').map(Number); let m = 0; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) m = Math.max(m, gerek.get(x + dx + ',' + (y + dy)) ?? 0); if (m) yayilan.set(a, m); }
+    let enCok = 0;
+    for (let k = 0; k < P.count; k++) { const d = komsu(anahtar(P.getX(k), P.getY(k)), a => yayilan.get(a) ?? 0) * 1.6; if (d) { P.setZ(k, P.getZ(k) + d); enCok = Math.max(enCok, d); } }
+    P.needsUpdate = true; this.meshler[i].geometry.computeBoundingSphere(); this.meshler[i].geometry.computeBoundingBox(); this.kirli = true;
+    return enCok;
   }
   // Kasılma dalgası (peristaltizm): borunun t (0-1) yerindeki lokmanın arkasını daraltır, bulunduğu yeri hafif genişletir.
   // yon: yolun boruyu hangi yönde geçtiği (+1 ya da -1). t null verilirse boru eski hâline döner.
@@ -494,7 +532,7 @@ export class Goruntuleyici {
     if (kutu.isEmpty()) return;
     const merkez = kutu.getCenter(new T.Vector3());
     const r = Math.max(kutu.getSize(new T.Vector3()).length() / 2, 0.06);
-    const uzaklik = (r / Math.sin(T.MathUtils.degToRad(this.kamera.fov / 2))) * 1.8;
+    const uzaklik = (r / Math.sin(T.MathUtils.degToRad(this.kamera.fov / 2))) * 1.35; // organ ekranın çoğunu kaplasın
     const yon = this.kamera.position.clone().sub(this.kontrol.target).normalize();
     this._git(merkez.clone().add(yon.multiplyScalar(uzaklik)), merkez, true);
   }
