@@ -239,7 +239,7 @@ t('splenic artery','dalak-arter','Splenik arter','Arteria splenica',3,'Dalağı 
 t('common iliac artery','ortak-iliak-arter','Ana iliak arter','Arteria iliaca communis',2,'Karın aortasının ikiye ayrılmasıyla oluşur; leğen ve bacağa kan taşır.','');
 t('external iliac artery','dis-iliak-arter','Eksternal iliak arter','Arteria iliaca externa',3,'Bacağa giden kanı taşır; kasıkta femoral arter adını alır.','');
 t('internal iliac artery','ic-iliak-arter','İnternal iliak arter','Arteria iliaca interna',3,'Leğen organlarını ve kalça kaslarını besler.','');
-t('femoral artery','uyluk-arter','Femoral arter','Arteria femoralis',1,'Uyluğun ana arteridir; kasıkta nabzı hissedilir.','');
+t('femoral artery','uyluk-arter','Femoral arter','Arteria femoralis',1,'Bacağın ana arter gövdesidir; kasıkta nabzı hissedilir. Uyluk kaslarını asıl olarak dalı a. profunda femoris besler.','');
 t('popliteal artery','diz-arkasi-arter','Popliteal arter','Arteria poplitea',2,'Diz arkasından bacağa geçen arterdir.','');
 t('anterior tibial artery','on-kaval-arter','Ön tibial arter','Arteria tibialis anterior',3,'Bacağın ön kaslarını besler.','');
 t('posterior tibial artery','arka-kaval-arter','Arka tibial arter','Arteria tibialis posterior',3,'Baldır kaslarını ve ayak tabanını besler.','');
@@ -259,7 +259,8 @@ t('basilic vein','bazilik','Bazilik ven','Vena basilica',3,'Kolun iç tarafında
 t('median cubital vein','dirsek-ortasi-ven','Median kubital ven','Vena mediana cubiti',2,'Dirsek iç yüzünde deri altındadır; kan tahlili için kan çoğunlukla buradan alınır.','');
 t('great saphenous vein','buyuk-safen','Büyük safen ven','Vena saphena magna',2,'Vücudun en uzun venidir; ayaktan kasığa bacağın iç yüzünde deri altında uzanır.','');
 t('small saphenous vein','kucuk-safen','Küçük safen ven','Vena saphena parva',3,'Baldırın arkasında deri altında uzanır.','');
-t('femoral vein|deep femoral vein','uyluk-ven','Femoral ven','Vena femoralis',2,'Bacağın kanını toplar.','');
+t('femoral vein','uyluk-ven','Femoral ven','Vena femoralis',2,'Bacağın kanını toplar; kasıkta femoral arterin iç yanında yer alır.','');
+t('deep femoral vein','derin-femoral-ven','Derin femoral ven','Vena profunda femoris',3,'Uyluğun derin bölümünün kanını toplar ve femoral vene açılır; a. profunda femoris ile birlikte seyreder.','');
 t('popliteal vein','diz-arkasi-ven','Popliteal ven','Vena poplitea',3,'Bacağın alt kısmından gelen kanı toplar.','');
 t('portal vein|hepatic portal vein|trunk of portal vein|pre-hepatic portal vein','kapi-ven','Portal ven','Vena portae hepatis',2,'Bağırsaklardan emilen besinleri taşıyan kanı karaciğere götürür.','Sindirim kanı önce karaciğerden geçer: "gümrük kapısı".');
 t('hepatic vein|middle hepatic vein','karaciger-ven','Hepatik ven','Vena hepatica',3,'Karaciğerden çıkan kanı vena cava inferior\'a döker.','');
@@ -416,7 +417,7 @@ const BOLUM = { anterior: 'ön bölümü', posterior: 'arka bölümü', acromial
 const BAS = { long: 'uzun baş', short: 'kısa baş', lateral: 'dış baş', medial: 'iç baş', humeral: 'kol kemiği başı', ulnar: 'dirsek kemiği başı' };
 const kucuk = s => s.charAt(0).toLocaleLowerCase('tr') + s.slice(1);
 const buyuk = s => s.charAt(0).toLocaleUpperCase('tr') + s.slice(1);
-const kaburgaTuru = n => (n <= 7 ? 'gerçek kaburgadır (göğüs kemiğine doğrudan bağlanır)' : n <= 10 ? 'yalancı kaburgadır (göğüs kemiğine üstteki kıkırdak üzerinden bağlanır)' : 'serbest (yüzen) kaburgadır (ön ucu hiçbir yere bağlanmaz)');
+const kaburgaTuru = n => (n <= 7 ? 'gerçek kaburgadır (göğüs kemiğine doğrudan bağlanır)' : n <= 10 ? 'yalancı kaburgadır (göğüs kemiğine üstteki kıkırdak üzerinden bağlanır)' : 'yalancı kaburgadır; ön ucu serbest olduğu için yüzen kaburga (costa fluctuans) da denir');
 
 // Bir yapının İngilizce adını çözümler. Sonuç: {anahtar, tr (tam Türkçe ad), la, ek (ek bilgi)} ya da null.
 export function coz(adIng) {
