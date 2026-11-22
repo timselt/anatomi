@@ -15,7 +15,7 @@ const DOSYALAR = ['visceral', 'lymphatic', 'nervous', 'cardiovascular', 'muscula
 const OFSET = new T.Vector3(0, 0.007, 0);
 // Bu dosyalarda sabit OFSET yerine bölgeye göre ölçülmüş düzeltme alanı kullanılır (ekkayma.js): ek katman başta
 // yaklaşık 11 mm önde, bacakta 12 mm dışta ve arkada duruyordu; sinirler kafatasından ve kemiklerden taşıyordu.
-const KAYMA_DOSYALARI = new Set(['nervous', 'cardiovascular']); // damar katmanı da aynı kaynaktan, aynı kaymayla gelir
+const KAYMA_DOSYALARI = new Set(['nervous']); // damar katmanı burada değil: boyun damarlarında tek bir kayma yok, kafa içi arterler BAS_BOYUN ile düzeltilir
 // Sinir katmanında asıl modelde başka adla bulunan göz yapıları; göz küresinin ön ve arka bölümü, tabakaları tek yüzeyde
 // birleştiren örtülerdir (asıl modelin sklera, koroid ve retinasının üstüne biner).
 const SINIR_KOPYA = /^(anterior|posterior) segment of eyeball$/;
@@ -23,9 +23,13 @@ const SINIR_KOPYA = /^(anterior|posterior) segment of eyeball$/;
 const DUYU = /^(cornea|iris|lens|retina|sclera|vitreous body|zonular fibres|suspensory ligament of eyeball|anterior chamber of eyeball|(anterior|posterior) segment of eyeball|lacrimal (gland|sac|canaliculus)|ampulla of lacrimal canaliculus|nasolacrimal duct|cochlea|vestibule|tympanic membrane|auditory tube)$/;
 // Baş ve boyunda Z-Anatomy ana modelden ~1,15 cm öndedir (dil, epiglot, hipofiz, göz ve beyin aynı adlı parçalarla ölçüldü, 22.11.2026);
 // yutak bu yüzden gırtlağın üstüne biniyordu. Kayma göğüs girişine doğru azalır (soluk borusu y=1,42'de 0,6 cm, 1,38'de ~0).
-// Bu katmanlarda her nokta yüksekliğine göre geri çekilir: y≥1,48'de tam, 1,38–1,48 arasında doğrusal azalarak.
-const BAS_BOYUN_DOSYALAR = new Set(['visceral', 'lymphatic']);
-const BAS_BOYUN = { dz: -0.0115, alt: 1.38, ust: 1.48 };
+// Bu katmanlarda her nokta yüksekliğine göre geri çekilir: 'ust' yüksekliğinin üstünde tam, alt–ust arasında doğrusal azalarak.
+// Geçiş aralığı katmana göre ölçüldü: iç organ ve lenfte 1,38–1,48. Damarda kafa içi arterler 1,1 cm öndedir (düzeltilince ana modelde başka adla
+// bulunan 6 beyin arteri dalının kopya olduğu ortaya çıkar: aralarındaki uzaklık 4–8 mm'den 1–1,7 mm'ye iner). Boyunda ise tek kayma yoktur:
+// vertebral arter 1,2 cm önde, karotisler 0,5 cm arkada; Z'de eksternal karotis iç karotisin 3 mm önündedir (doğru ilişki). Bu yüzden damarda
+// düzeltme kafatası tabanından başlar (1,54–1,58), boyun damarlarına dokunmaz. Sinir katmanı sinir-duyu oturumunun bölgesel
+// düzeltme alanıyla (ekkayma.js) düzeltildiği için burada yok; ikisi birlikte uygulanırsa çift düzeltme olur.
+const BAS_BOYUN = { dz: -0.0115, visceral: [1.38, 1.48], lymphatic: [1.38, 1.48], cardiovascular: [1.54, 1.58] };
 // Leğende Z-Anatomy'nin organları ana modelden aşağıdadır: mesane 2,6 cm, tohum kesesi 3,1 cm, prostat 3,3 cm (z yönünde 0,1–0,8 cm önde).
 // Bu organlar ana modelde olduğu için eklenmez; ama onlara bağlı eklenen parçalar aynı kaymayla, organın altında kalıyordu
 // (ör. boşaltma kanalı prostatın içinden geçeceğine tamamen altında duruyordu). Bu parçalar bağlı oldukları organın ölçülen kayması kadar taşınır.
@@ -34,15 +38,21 @@ const LEGEN_TASI = {
   'ejaculatory duct': [0, 0.032, -0.002], // prostat ve tohum kesesine göre
   'prevesical nodes': [0, 0.026, -0.008], 'postvesical nodes': [0, 0.026, -0.008], 'lateral vesical nodes': [0, 0.026, -0.008], // mesaneye göre
   'pararectal nodes': [0, 0.033, -0.004], // prostat düzeyine göre (Z-Anatomy'de rektum yok)
+  // Penisin kendi damarları penis cisimleriyle birlikte kaymıştır (Z'de cisimler 3,3 cm, dorsal penis arteri 2,9 cm aşağıda).
+  // Uyluktan gelen dış pudendal damarlar ve leğen duvarından gelen iç pudendal arter bir uçta kaymamış yapıya bağlandığı için taşınmaz.
+  'deep artery of penis': [0, 0.033, -0.003], 'superficial dorsal veins of penis': [0, 0.033, -0.003],
 };
+// Z-Anatomy'nin "Mesocolon" parçası enine kolon askısının yalnız sol üçte ikisidir ve ana modeldeki enine kolon askısıyla (organduzelt.js ile
+// leğene sarkan perdesi kaldırıldıktan sonra) ~9 mm arayla üst üste iki katman oluşturuyordu; eklenmez.
+const PERITON_KOPYA = /^mesocolon$/;
 // Z-Anatomy'nin segment bronşları ana modeldeki segment bronş ağaçlarından 5–17 mm uzakta ikinci bir ağaç çiziyordu (22.11.2026 ölçümü);
 // ana modelin ağacı daha ayrıntılı olduğu için bunlar eklenmez. Lob bronşları ve ara bronş ana ağaca 2–3 mm uzakta ve ana modelde ayrı adla
 // bulunmadığı için kalır.
 const BRONS_KOPYA = /segmental bronchus of lung/; // ad buraya "left/right" sözcüğü silinmiş olarak gelir
-function basBoyunDuzelt(g) {
+function basBoyunDuzelt(g, [alt, ust]) {
   const p = g.attributes.position;
   for (let k = 0; k < p.count; k++) {
-    const o = Math.min(1, Math.max(0, (p.getY(k) - BAS_BOYUN.alt) / (BAS_BOYUN.ust - BAS_BOYUN.alt)));
+    const o = Math.min(1, Math.max(0, (p.getY(k) - alt) / (ust - alt)));
     if (o > 0) p.setZ(k, p.getZ(k) + BAS_BOYUN.dz * o);
   }
 }
@@ -151,7 +161,7 @@ export async function ekModelleriYukle(mevcut, ilerleme, meshAl) {
       const kucuk = parantezsiz.toLowerCase().replace(/\b(left|right)\b ?/g, '').replace(/ \((i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii)\)$/, '').trim(); // kafa çifti numarası adı eşleştirmede sayılmaz
       const yarimTamamla = dosya === 'nervous' && kucuk === 'tentorium cerebelli' && yan === 'sol'; // asıl modelde beyincik çadırının yalnız sağ yarısı var
       if (mevcutAdlar.has(ES_AD[kucuk] || kucuk) && !yarimTamamla) return; // asıl modelde zaten var
-      if (dosya === 'visceral' && BRONS_KOPYA.test(kucuk)) return; // ana modelin segment bronş ağaçlarının kopyası
+      if (dosya === 'visceral' && (BRONS_KOPYA.test(kucuk) || PERITON_KOPYA.test(kucuk))) return; // ana modelin segment bronş ağaçlarının ya da enine kolon askısının kopyası
       if (dosya === 'cardiovascular' && DAMAR_KOPYA.test(kucuk)) return; // asıl modelde başka adla var (yüzey çakışması ölçülerek bulundu)
       if (dosya === 'muscular' && kasKopyaMi(kucuk, yan)) return; // asıl modelde başka adla var ya da geniş fasya (kaskatman.js)
       if (dosya === 'skeletal' && !ISKELET_EKLE.test(kucuk)) return; // asıl modelde var (yüzey çakışması ölçülerek bulundu)
@@ -163,7 +173,7 @@ export async function ekModelleriYukle(mevcut, ilerleme, meshAl) {
       // yüzey içten aydınlatılıyor ve koyu görünüyordu. Üçgen sırası çevrilerek düzeltilir.
       const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld); if (m.matrixWorld.determinant() < 0) aynaDuzelt(g);
       if (iskeletDosyasi) esnet(g, alan); else if (KAYMA_DOSYALARI.has(dosya)) kaymaUygula(g); else g.translate(OFSET.x, OFSET.y, OFSET.z);
-      if (BAS_BOYUN_DOSYALAR.has(dosya)) basBoyunDuzelt(g);
+      if (BAS_BOYUN[dosya]) basBoyunDuzelt(g, BAS_BOYUN[dosya]);
       if (LEGEN_TASI[kucuk]) g.translate(...LEGEN_TASI[kucuk]);
       if (dosya === 'muscular') kasYerlestir(g); // kas dosyası bölge bölge kaymış; ana modelin kaslarına göre yerine oturtulur
       g.computeBoundingBox(); g.computeBoundingSphere();
@@ -172,8 +182,8 @@ export async function ekModelleriYukle(mevcut, ilerleme, meshAl) {
       // (ör. iç oblik ile dış oblik karın kası) kopya sanıyordu.
       // Sinir dosyasında oluk (sulcus) yüzeyi komşu kıvrımın kutusuna düşse de ayrı yapıdır. Yutak bölümleri gırtlağın arkasına sarılır;
       // kutusu gırtlak kıkırdağının kutusuyla çakışır ama kopyası değildir.
-      // Damar dosyasında da kopyalar yüzey ölçümüyle ayıklandı (DAMAR_KOPYA); kutu benzerliği orada ana arterin kutusu içinde kalan dalları (ör. derin femoral arter) düşürüyordu.
-      if (dosya !== 'muscular' && dosya !== 'cardiovascular' && !(dosya === 'nervous' && /sulcus/.test(kucuk)) && !/^(naso|oro|laryngo)pharynx$/.test(kucuk) && (sisteme[sistem] || []).some(b => iou(b, bounds) > 0.45)) { g.dispose(); return; }
+      // Damar dosyasında kutu benzerliği kafa içi arterlerin kopyalarını ayıklar; ama derin femoral arter femoral arterin kutusu içinde kaldığı için korunur.
+      if (dosya !== 'muscular' && !(dosya === 'cardiovascular' && kucuk === 'deep femoral artery') && !(dosya === 'nervous' && /sulcus/.test(kucuk)) && !/^(naso|oro|laryngo)pharynx$/.test(kucuk) && (sisteme[sistem] || []).some(b => iou(b, bounds) > 0.45)) { g.dispose(); return; }
       if (!g.attributes.normal) g.computeVertexNormals();
       // Kaynak sözlükte birkaç adda Fransızca aksan kalmış (ör. "latérales"); Latincede aksan olmaz.
       // Terminologia Anatomica ile karşılaştırmada düzeltilen adlar kaynak sözlüğün önüne geçer (ekdogrulama.js).

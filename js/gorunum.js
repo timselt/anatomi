@@ -270,12 +270,23 @@ export class Goruntuleyici {
   baglantiSil() { if (!this.baglantiNokta) return; this.sahne.remove(this.baglantiNokta); this.baglantiNokta.geometry.dispose(); this.baglantiNokta.material.dispose(); this.baglantiNokta = null; this.kirli = true; }
   // Görünürlük ve renkleri durum bilgisine göre yeniden kurar.
   guncelle() {
+    // Kalp tek başına incelenirken (yalnız kalp parçaları gösteriliyorsa ya da arter ve ven sistemleri kapalıysa)
+    // koroner damarlar kalbin üstünde kalır, büyük damarlar kalbe bağlandıkları yerde kısa kütük olarak görünür.
+    const ke = this.kalpEki;
+    let kalpModu = false;
+    if (ke) {
+      if (this.yalniz) kalpModu = this.yalniz.size > 0 && [...this.yalniz].every(i => this.parcaSistem[i] === 'kalp');
+      else kalpModu = this.acikSistemler.has('kalp') && !this.acikSistemler.has('atardamar') && !this.acikSistemler.has('toplardamar');
+    }
     this.meshler.forEach((m, i) => {
       if (!m) return;
       const s = this.parcaSistem[i];
       const soru = this.soru.has(i), secili = this.secili.has(i);
       let gorunur = this.acikSistemler.has(s) && !this.gizli.has(i) && !this.katmanGizli.has(i);
       if (this.yalniz) gorunur = this.yalniz.has(i);
+      const kok = ke?.kok.get(i);
+      if (kalpModu && (ke.koroner.has(i) || kok) && !this.gizli.has(i)) gorunur = true;
+      if (kok) { const hedef = kalpModu ? kok.kisa : kok.tam; if (m.geometry !== hedef) m.geometry = hedef; }
       if (soru) gorunur = true;
       m.visible = gorunur;
       const r = this.parcaRenk?.(i), soluk = (this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s) || this.solukParca.has(i);
@@ -548,6 +559,24 @@ export class Goruntuleyici {
   yakinlastir(oran) {
     const h = this.kontrol.target, yeni = h.clone().add(this.kamera.position.clone().sub(h).multiplyScalar(oran));
     if (yeni.distanceTo(h) > this.kontrol.minDistance && yeni.distanceTo(h) < this.kontrol.maxDistance) this._git(yeni, h.clone(), true);
+  }
+
+  // Kalbe eşlik eden damarlar: koroner damarlar (parça listesi) ve büyük damarların kalp çevresindeki kısa bölümü.
+  // Kısa bölüm, kalbin kutusunun 'pay' kadar genişletilmiş hâlinin içinde kalan üçgenlerden kurulur; köşe verisi asıl geometriyle paylaşılır.
+  kalpEkiKur(koroner, kokler, kutu, pay = 0.015) {
+    const k = kutu.clone().expandByScalar(pay), v = new T.Vector3(), kok = new Map();
+    for (const i of kokler) {
+      const m = this.meshler[i]; if (!m) continue;
+      const tam = this.kalpEki?.kok.get(i)?.tam ?? m.geometry, p = tam.attributes.position, ix = tam.index ? tam.index.array : null, n = ix ? ix.length : p.count, secilen = [];
+      const icinde = a => k.containsPoint(v.fromBufferAttribute(p, a));
+      for (let t = 0; t < n; t += 3) { const a = ix ? ix[t] : t, b = ix ? ix[t + 1] : t + 1, c = ix ? ix[t + 2] : t + 2; if (icinde(a) && icinde(b) && icinde(c)) secilen.push(a, b, c); }
+      if (!secilen.length) continue;
+      const kisa = new T.BufferGeometry();
+      for (const [ad, at] of Object.entries(tam.attributes)) kisa.setAttribute(ad, at);
+      kisa.setIndex(secilen); kisa.computeBoundingBox(); kisa.computeBoundingSphere();
+      kok.set(i, { tam, kisa });
+    }
+    this.kalpEki = { koroner: new Set(koroner), kok };
   }
 
   // Canlandırmalar: bir parçaya dönüşüm uygular; matris verilmezse parça yerine döner.

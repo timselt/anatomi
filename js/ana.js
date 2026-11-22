@@ -85,11 +85,25 @@ async function ekKatman() {
     }
     // Büyük omentum ince bağırsağın ve kalın bağırsağın önündeki örtüdür: taşan kıvrımların önüne itilir.
     for (const om of parcalar.filter(p => /^greater omentum$/i.test(p.en))) g.ortuOneAl(om.i, parcalar.filter(p => p.kaynak !== 'Z-Anatomy' && /jejun|ileum|colon|caecum|cecum|appendix/i.test(p.en)).map(p => p.i));
-    g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc();
+    kalpEkiKur(); g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc();
     g.yavasDenetim = true; // akıcılık denetimi yükleme bittikten sonra başlar
-  } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; g.yavasDenetim = true; }
+  } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; g.yavasDenetim = true; kalpEkiKur(); g.guncelle(); }
 }
 let ekYuklendi = 0;
+// Kalp tek başına incelenirken üstünde kalan damarlar (kızımızın isteği: koroner damarlarla birlikte çalışılıyor).
+// Koroner damarlar: kalbin kutusunun içinde kalan arter ve venler (akciğer, yemek borusu ve kolon damarları hariç).
+// Büyük damarlar: aorta, pulmoner gövde ve arterler, vena cava'lar ve pulmoner venler; bunlar kalbe bağlandıkları yerde kısa gösterilir.
+const KALP_DAMARI = /coronary|cardiac|interventricular|conus|marginal|ventricular|septal|diagonal|circumflex|inferolateral|vein of left ventricle/i;
+const KALP_KOKU = /^(ascending aorta|arch of aorta|pulmonary trunk|(left|right) pulmonary artery|superior vena cava|inferior vena cava|(left|right) (superior|inferior) pulmonary vein)$/i;
+function kalpEkiKur() {
+  const kalp = parcalar.filter(p => p.sistem === 'kalp' && g.meshler[p.i]); if (!kalp.length) return;
+  const kutu = new T.Box3(); for (const p of kalp) { kutu.expandByPoint(new T.Vector3(...p.bounds[0])); kutu.expandByPoint(new T.Vector3(...p.bounds[1])); }
+  const genis = kutu.clone().expandByScalar(0.01), icinde = p => genis.containsBox(new T.Box3(new T.Vector3(...p.bounds[0]), new T.Vector3(...p.bounds[1])));
+  const damar = parcalar.filter(p => (p.sistem === 'atardamar' || p.sistem === 'toplardamar') && g.meshler[p.i]);
+  const koroner = damar.filter(p => icinde(p) && KALP_DAMARI.test(p.en) && !/colon|colic|lung|segmental|esophag/i.test(p.en)).map(p => p.i);
+  const kok = damar.filter(p => KALP_KOKU.test(p.en.replace(/\s*\((left|right)\)$/i, ''))).map(p => p.i);
+  g.kalpEkiKur(koroner, kok, kutu);
+}
 // Ek katmanın türüne göre açıklama alamayan yapıları (Türkçe ad, görev). Ders kitabı bilgisidir; kaynakla ayrıca karşılaştırılmadı.
 const EK_TERIM = {
   'greater omentum': ['Büyük omentum (büyük karın zarı örtüsü)', 'Midenin büyük eğriliğinden sarkıp enine kolonun önünden geçen, ince bağırsakların önünü önlük gibi örten periton katlantısıdır. İçinde yağ ve lenf düğümleri bulunur; iltihaplı bir organın çevresine yapışarak iltihabın yayılmasını sınırlayabilir.'],
