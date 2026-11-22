@@ -366,3 +366,7 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 .suzgec { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 2; background: var(--yazi); color: var(--kart); border-color: var(--yazi); border-radius: 20px; padding: 7px 14px; font-size: .8rem; font-weight: 400; white-space: nowrap; }
 .suzgec b { color: var(--vurgu); font-weight: 600; margin-left: 6px; }
 @media print { .suzgec { display: none; } }
+
+/* Başlığın altındaki ithaf satırı */
+.baslik-metin { display: flex; flex-direction: column; line-height: 1.15; }
+.ithaf { font-family: var(--sans); font-size: .7rem; font-weight: 400; color: var(--soluk); letter-spacing: 0; margin-top: 2px; }
