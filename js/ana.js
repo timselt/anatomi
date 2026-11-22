@@ -62,6 +62,9 @@ async function ekKatman() {
     if (not) not.textContent = 'Ek katman yükleniyor: sinirler, lenf düğümleri, akciğer ve karaciğer…';
     const ekler = await ekModelleriYukle(parcalar);
     for (const e of ekler) {
+      // Ana modelde aynı adla zaten bulunan yapı (ör. 23 parçalı boş bağırsağın yerini tek parçayla kaplayan "Jejunum") eklenmez;
+      // iki yüzey üst üste binince seçim boyaması şerit şerit görünüyor ve dokunuş yanlış parçayı seçiyordu.
+      if (yapilar[e.enKucuk]?.parcalar.some(j => parcalar[j].kaynak !== 'Z-Anatomy')) { e.geometry.dispose(); continue; }
       if (/^(greater|lesser) omentum$|mesocolon|^mesentery/i.test(e.en)) e.sistem = 'periton'; // karın zarı katlantıları kendi sisteminde
       const ozel = EK_TERIM[e.enKucuk]; if (ozel) { const yan = /\((sol|sağ)\)$/.exec(e.tr)?.[0]; e.tr = ozel[0] + (yan ? ' ' + yan : ''); e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
       const i = g.ekParca(e.geometry, e.sistem, e.bounds);
