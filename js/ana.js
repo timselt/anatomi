@@ -412,6 +412,35 @@ function baglanmaKapat(suzgecKoru = true) {
   baglanma = null; g.guncelle();
 }
 
+// ---------- Gerçek kesit görüntüsü (Visible Human) ----------
+// Model (BodyParts3D, boy 1,73 m) ile ABD Ulusal Tıp Kütüphanesi'nin Visible Human erkek kadavrası (1 mm aralıklı kesitler: tepe 1001, taban 2878)
+// aynı kişi değildir; düzeyler boy oranıyla eşlenir. Eşleme kafa tabanı (kesit 1150), üst karın (1550) ve uyluk ortası (2100) ile doğrulandı (22.11.2026).
+// Görüntüler 15 mm arayla seçildi, radyoloji düzenine çevrildi (ön yukarıda, hastanın sağı izleyenin solunda) ve küçültüldü (data/vhp).
+const VHP = { ust: 1.73, adim: 1.73 / 1877, ilk: 1001, son: 2878 };
+let vhpListe = null, vhpTur = 'renk';
+async function radyolojiYaz(b) {
+  const el = $('#radyoloji'); if (!el) return;
+  if (!kesit.acik || !b) { el.innerHTML = ''; return; }
+  if (KADIN_MI) { el.innerHTML = '<p class="kucuk">Gerçek kesit görüntüleri şimdilik erkek modelde gösterilir.</p>'; return; }
+  if (kesit.eksen !== 'y') { el.innerHTML = '<p class="kucuk">Gerçek kesit görüntüsü yatay (aksiyel) kesitte gösterilir.</p>'; return; }
+  vhpListe ??= await fetch('data/vhp/liste.json').then(r => r.json()).catch(() => []);
+  const n = VHP.ilk + (VHP.ust - b.deger) / VHP.adim;
+  if (!vhpListe.length || n < VHP.ilk - 20 || n > VHP.son + 20) { el.innerHTML = ''; return; }
+  const k = vhpListe.reduce((a, x) => (Math.abs(x.n - n) < Math.abs(a.n - n) ? x : a));
+  const bt = vhpTur === 'bt' && k.ct;
+  el.innerHTML = `<div class="radyoloji-baslik"><b>Gerçek kesit</b><span class="cip-grup"><button data-vhp="renk" aria-pressed="${!bt}">Renkli kesit</button><button data-vhp="bt" aria-pressed="${bt}" ${k.ct ? '' : 'disabled title="Bu düzeyde tomografi görüntüsü yok"'}>Tomografi</button></span></div>
+    <img class="radyoloji-resim" src="data/vhp/${bt ? 'ct' : 'k'}${k.n}.jpg" alt="Bu düzeyde gerçek insan bedeninden ${bt ? 'tomografi' : 'renkli dondurulmuş'} kesit görüntüsü" title="Büyütmek için dokun">
+    <p class="kucuk">Ön yukarıda, hastanın sağı solunda (radyoloji düzeni). Görüntü başka bir bedenden alındığı için düzey yaklaşıktır. Courtesy of the U.S. National Library of Medicine, Visible Human Project (kesit ${k.n}).</p>`;
+  el.querySelectorAll('[data-vhp]').forEach(x => { x.onclick = () => { vhpTur = x.dataset.vhp; radyolojiYaz(b); }; });
+  // Büyük görünüm sayfanın en üstünde ayrı katmanda açılır (kenar panelinin bulanık arka planı sabit konumu panelin içine hapseder).
+  el.querySelector('img').onclick = e => {
+    const kat = document.createElement('div'); kat.className = 'radyoloji-buyuk'; kat.setAttribute('role', 'dialog'); kat.setAttribute('aria-label', 'Büyütülmüş kesit görüntüsü');
+    const kapat = () => { kat.remove(); removeEventListener('keydown', tus); e.target.focus(); }, tus = t => { if (t.key === 'Escape') kapat(); };
+    kat.innerHTML = `<img src="${e.target.getAttribute('src')}" alt="${esc(e.target.alt)}"><button type="button" class="ikincil">Kapat</button>`;
+    kat.onclick = kapat; addEventListener('keydown', tus); document.body.appendChild(kat); kat.querySelector('button').focus();
+  };
+}
+
 // Kesitin adı (anatomik düzlem) ve yeri santimetre olarak yazılır.
 function kesitBilgiYaz(b) {
   const e = $('#kesitBilgi'); if (!e) return;
@@ -529,6 +558,7 @@ function kesfetCiz() {
       <div class="satir"><input id="kesitOran" type="range" min="0" max="1" step="0.005" value="${kesit.oran}" aria-label="Kesitin yeri"></div>
       <label class="satir"><input id="kesitTers" type="checkbox" ${kesit.ters ? 'checked' : ''}> Öbür tarafı göster</label>
       <p id="kesitBilgi" class="kucuk"></p>
+      <div id="radyoloji" class="radyoloji"></div>
     </div>
     <div class="bolum" id="atlasBolum"><h3>Atlas sahneleri</h3>
       ${aktifSahne ? `<div class="sahne-notu"><b>${esc(aktifSahne.ad)}</b><p>${esc(aktifSahne.not)}</p><div class="dugme-satiri"><button id="sahneEtiket" class="ikincil">${sahneEtiketAcik ? 'Etiketleri gizle' : 'Etiketleri göster'}</button><button id="sahneKapat" class="ikincil">Sahneyi kapat</button></div></div>` : ''}
@@ -563,7 +593,7 @@ function kesfetCiz() {
   $('#hepsiAc').onclick = () => { baglanmaKapat(false); icKapat(); g.yalniz = null; aktifKonu = null; g.acikSistemler = new Set(SISTEMLER.map(s => s.id).filter(s => s !== 'deri')); g.guncelle(); kesfetCiz(); };
   $('#hepsiKapa').onclick = () => { baglanmaKapat(false); icKapat(); g.yalniz = null; aktifKonu = null; g.acikSistemler = new Set(); g.guncelle(); kesfetCiz(); };
   $('#gizlileriGoster').onclick = () => { g.gizli = new Set(); g.guncelle(); kesfetCiz(); };
-  const kesitUygula = () => { kesitBilgiYaz(g.kesitAyarla(kesit.acik, kesit.eksen, kesit.oran, kesit.ters)); };
+  const kesitUygula = () => { const b = g.kesitAyarla(kesit.acik, kesit.eksen, kesit.oran, kesit.ters); kesitBilgiYaz(b); radyolojiYaz(b); };
   if (kesit.acik) kesitUygula(); // panel yeniden çizilince düzlem bilgisi de yazılsın
   $('#kesitAcik').onchange = e => { kesit.acik = e.target.checked; kesitUygula(); };
   $('#kesitEksen').onchange = e => { kesit.eksen = e.target.value; kesit.acik = true; $('#kesitAcik').checked = true; kesitUygula(); };

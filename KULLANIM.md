@@ -38,6 +38,8 @@
 - **Soluklaştır:** seçtiğin yapıyı gizlemeden soluk yapar; arkasındakileri görürken yerini kaybetmezsin.
 - **Bağlanma yerleri (kaslarda):** bir kas seçip ayrıntı penceresinde "Bağlanma yerleri"ne bas. Kas ve bağlandığı kemikler kalır; kemik üstünde kırmızı benekler başlangıcı (origo), mavi benekler sonlanmayı (insertio) gösterir. Hangisinin başlangıç olduğu gövdeye yakınlığa göre tahmin edilir; ders kitabınla karşılaştır.
 - **Kesit bilgisi:** kesit açıkken panelde düzlemin adı (aksiyel, koronal, sagittal) ve yeri santimetre olarak yazar; modelde turuncu bir çerçeve kesit düzlemini gösterir.
+- **Atlas sahneleri:** Keşfet panelinde bölgelere göre (baş-boyun, göğüs, karın, üst ve alt ekstremite) hazır görünümler var; örneğin Willis halkası, kalbin arka yüzü, brakiyal pleksus, diz bağları. Sahne açılınca ilgili yapılar, yerini anlatan kemikler, etiketler ve kısa bir ders notu tek dokunuşla gelir. "Sahneyi kapat" her şeyi eski hâline getirir. Bir sahneyi arkadaşına göndermek için adresin sonuna örneğin `?sahne=willis` eklenebilir.
+- **Gerçek kesit (radyoloji):** "Kesit al" bölümünde yatay kesit açıkken, aynı düzeyin gerçek insan bedeninden alınmış görüntüsü çıkar: renkli dondurulmuş kesit ya da tomografi. Ön yukarıda, hastanın sağı solundadır (radyoloji düzeni). Görüntüye dokununca büyür. Görüntüler başka bir bedenden (ABD Ulusal Tıp Kütüphanesi, Visible Human) alındığı için düzey yaklaşıktır.
 - **Çiz:** ekranın üstüne turuncu kalemle çizersin (ok, daire, not işareti). Çizerken model dönmez. "Görüntüyü kaydet" modeli ve çizimi tek resim olarak indirir; "Bitti" çizimden çıkar.
 
 ## Canlandırmalar
