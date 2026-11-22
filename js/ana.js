@@ -12,6 +12,8 @@ import { AKISLAR, KALP, SOLUNUM, HAREKETLER, KEMIK_GRUBU } from './canli.js';
 import { kalpModel, solunumModel, egriCiz, Ses } from './gosterge.js';
 import * as T from 'three';
 import { MIKRO } from './mikro.js';
+import { arterUstAdi, arterBul } from './arterdal.js';
+import { DAMAR_KAS } from './damarkas.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -282,11 +284,23 @@ function katmanSoy() {
   for (let n = 0; n < KATMANLAR.length; n++) {
     if (soyulan.some(s => s.n === n)) continue;
     const is = katmanParcalari(n); if (!is.length) continue;
-    is.forEach(i => g.katmanGizli.add(i)); soyulan.push({ n, is }); secimiBirak(); g.guncelle(); return;
+    is.forEach(i => g.katmanGizli.add(i)); soyulan.push({ n, is }); gizlemeSirasi.push({ tur: 'katman', n, ad: KATMANLAR[n].ad + ' (katman)' }); secimiBirak(); g.guncelle(); return;
   }
 }
 function katmanKoy() { const s = soyulan.pop(); if (!s) return; s.is.forEach(i => g.katmanGizli.delete(i)); g.guncelle(); }
 function katmanSifirla() { soyulan.length = 0; g.katmanGizli.clear(); }
+// Gizlenen yapılar ve kaldırılan katmanlar gizlenme sırasıyla tutulur; şeritten her biri tek tek geri getirilebilir.
+const gizlemeSirasi = [];
+function yapiGizle(i) {
+  const is = yapiParcalari(i), p = parcalar[i];
+  is.forEach(j => g.gizli.add(j)); gizlemeSirasi.push({ tur: 'yapi', is, ad: (C.dil() === 'la' ? p.la : p.tr) || p.tr || p.en });
+}
+function tekGeriGetir(k) {
+  const e = gizlemeSirasi[k]; if (!e) return;
+  if (e.tur === 'yapi') e.is.forEach(j => g.gizli.delete(j));
+  else { const s = soyulan.findIndex(x => x.n === e.n); if (s >= 0) { soyulan[s].is.forEach(j => g.katmanGizli.delete(j)); soyulan.splice(s, 1); } }
+  gizlemeSirasi.splice(k, 1); g.guncelle(); if (sekme === 'kesfet') kesfetCiz();
+}
 
 // ---------- Ekran üstü çizim ----------
 const cizim = { acik: false, ciziyor: false };
@@ -590,6 +604,45 @@ function komsular(i) {
 }
 
 let oncekiOdak = null;
+// ---------- Arter dalları: her arterin çıktığı arter ve kendi dalları ----------
+let arterUstleri = null; // parça -> çıktığı arterin parçaları (bir kez hesaplanır; ek katman yüklenince yenilenir)
+function arterUstleriHesapla() {
+  if (arterUstleri && arterUstleri.boy === parcalar.length) return arterUstleri.harita;
+  const harita = new Map();
+  for (const p of parcalar) {
+    if (p.sistem !== 'atardamar') continue;
+    const ad = arterUstAdi(p.en); if (!ad) continue;
+    const yan = parcaYani(p.i) === 'L' ? 'sol' : parcaYani(p.i) === 'R' ? 'sag' : '';
+    harita.set(p.i, { ad, parcalar: arterBul(ad, parcalar, yan).filter(q => q.anahtar !== p.anahtar).map(q => q.i) });
+  }
+  arterUstleri = { boy: parcalar.length, harita };
+  return harita;
+}
+const arterAdi = j => (C.dil() === 'la' ? parcalar[j].la : parcalar[j].tr) || parcalar[j].tr || parcalar[j].en;
+const yalinAd = en => { const d = DAMAR_KAS[en.toLowerCase().replace(/\b(left|right) /g, '')]; return d ? (C.dil() === 'la' ? d.la : d.tr) : en.charAt(0).toUpperCase() + en.slice(1); };
+// Aortadan seçili artere kadar olan yol: [{ ad, i (modelde yoksa -1) }], en üstteki başta.
+function arterYolu(i) {
+  const harita = arterUstleriHesapla(), yol = [], gorulen = new Set([parcalar[i].anahtar]);
+  let su = i, ad = null;
+  for (let n = 0; n < 12; n++) {
+    let ust = su >= 0 ? harita.get(su) : null;
+    if (!ust && ad) { const sonraki = arterUstAdi(ad); if (!sonraki) break; const bul = arterBul(sonraki, parcalar, ''); ust = { ad: sonraki, parcalar: bul.map(q => q.i) }; }
+    if (!ust) break;
+    const j = ust.parcalar[0] ?? -1;
+    if (j >= 0 && gorulen.has(parcalar[j].anahtar + parcaYani(j))) break;
+    if (j >= 0) gorulen.add(parcalar[j].anahtar + parcaYani(j));
+    yol.unshift({ ad: j >= 0 ? arterAdi(j) : yalinAd(ust.ad), i: j });
+    su = j; ad = ust.ad;
+  }
+  return yol;
+}
+// Seçili arterden doğrudan çıkan dallar (aynı yapı tek düğme).
+function arterDallari(i) {
+  const harita = arterUstleriHesapla(), ben = new Set(yapiParcalari(i)), dallar = new Map();
+  for (const [j, ust] of harita) if (ust.parcalar.some(k => ben.has(k))) { const anahtar = parcalar[j].anahtar + parcaYani(j); if (!dallar.has(anahtar)) dallar.set(anahtar, j); }
+  const adla = new Map(); for (const j of dallar.values()) if (!adla.has(arterAdi(j))) adla.set(arterAdi(j), j); // aynı adı taşıyan iki parça tek düğme
+  return [...adla.values()].sort((a, b) => arterAdi(a).localeCompare(arterAdi(b), 'tr'));
+}
 function cekmeceAc(i) {
   const p = parcalar[i], y = p.anahtar ? yapilar[p.anahtar] : null, s = SISTEM[p.sistem];
   oncekiOdak = oncekiOdak || document.activeElement;
@@ -608,6 +661,17 @@ function cekmeceAc(i) {
     <p><span class="nokta" style="display:inline-block;vertical-align:middle;background:${s.renk}"></span> ${esc(s.ad)}</p>
     <h3>Bu sistem ne işe yarar?</h3><p>${esc(s.aciklama)}</p>
     <p class="kucuk">Bu yapı modeldeki İngilizce adıyla gösteriliyor. Türkçe karşılığı ve görevi sonraki aşamada eklenecek.</p>`;
+  if (p.sistem === 'atardamar') {
+    const yol = arterYolu(i), dallar = arterDallari(i), dugme = (j, ad) => j >= 0 ? `<button data-komsu="${j}">${esc(ad)}</button>` : `<span class="yok" title="Bu arter modelde ayrı bir parça olarak yok">${esc(ad)}</span>`;
+    $('#cekmeceIcerik').innerHTML += `
+    <h3>Dal ilişkisi</h3>
+    <p class="kucuk">Çıktığı yol (yukarıdan aşağı):</p>
+    <div class="arter-yolu">${yol.length ? yol.map(x => dugme(x.i, x.ad)).join('<span class="ok">›</span>') + `<span class="ok">›</span><b>${esc(arterAdi(i))}</b>` : '<span class="kucuk">Doğrudan kalpten çıkar.</span>'}</div>
+    <p class="kucuk">Bu arterden çıkan dallar (modelde olanlar):</p>
+    <div class="komsular">${dallar.length ? dallar.map(j => dugme(j, arterAdi(j))).join('') : '<span class="kucuk">Modelde bu arterden çıkan dal yok.</span>'}</div>
+    ${yol.some(x => x.i >= 0) || dallar.length ? '<div class="dugme-satiri"><button id="dalAgaci" class="ikincil">Dal ağacını göster</button></div>' : ''}
+    <p class="kucuk">Gri yazılanlar modelde ayrı parça olarak bulunmuyor.</p>`;
+  }
   $('#cekmeceIcerik').innerHTML += `
     <h3>Komşu yapılar</h3>
     <div class="komsular">${ks.length ? ks.map(q => `<button data-komsu="${q.i}">${esc(q.tr || q.en)}</button>`).join('') : '<span class="kucuk">Yakında başka yapı yok.</span>'}</div>
@@ -624,6 +688,12 @@ function cekmeceAc(i) {
     ${p.anahtar ? `<h3>Benim notum</h3><textarea id="notAlani" class="not" placeholder="Bu yapıyla ilgili kendi notunu yaz. Kendiliğinden kaydedilir.">${esc(C.notAl(p.anahtar))}</textarea><p id="notDurum" class="kucuk"></p>` : ''}`;
   $('#cekmeceIcerik').querySelectorAll('[data-komsu]').forEach(b => b.addEventListener('click', () => parcaSec(Number(b.dataset.komsu), true)));
   $('#yakinlas').onclick = () => g.odakla(yapiParcalari(i));
+  // Dal ağacı: seçili arter, aortaya kadar üstündeki arterler ve kendi dalları birlikte gösterilir.
+  if ($('#dalAgaci')) $('#dalAgaci').onclick = () => {
+    const ustler = arterYolu(i).filter(x => x.i >= 0).flatMap(x => yapiParcalari(x.i)), dallar = arterDallari(i).flatMap(j => yapiParcalari(j)), ben = yapiParcalari(i);
+    g.acikSistemler.add('atardamar'); g.yalniz = new Set([...ustler, ...ben, ...dallar]); aktifKonu = null; g.secili = new Set(ben); g.guncelle(); g.odakla([...ben, ...dallar]);
+    $('#secimAd').textContent = `${p.tr || p.en}: üstündeki arterler ve ${arterDallari(i).length} dalı gösteriliyor`; $('#secimEtiketi').hidden = false; $('#sahneGizle').hidden = true;
+  };
   $('#soluklastir').onclick = () => { const grup = yapiParcalari(i), hepsi = grup.every(j => g.solukParca.has(j)); grup.forEach(j => (hepsi ? g.solukParca.delete(j) : g.solukParca.add(j))); g.guncelle(); cekmeceAc(i); };
   if ($('#baglantiDugme')) $('#baglantiDugme').onclick = () => { if (baglanma?.kas === p.anahtar) baglanmaKapat(); else { cekmeceKapat(); baglanmaAc(i); return; } cekmeceAc(i); };
   if ($('#icAc')) $('#icAc').onclick = () => {
@@ -650,7 +720,7 @@ function cekmeceAc(i) {
     try { await navigator.clipboard.writeText(adres); $('#baglantiDurum').textContent = 'Bağlantı kopyalandı; arkadaşına gönderebilirsin.'; } catch { $('#baglantiDurum').textContent = adres; }
   };
   $('#yalnizBu').onclick = () => { baglanmaKapat(false); const grup = yapiParcalari(i); g.yalniz = g.yalniz?.size === grup.length && grup.every(j => g.yalniz.has(j)) ? null : new Set(grup); aktifKonu = null; g.guncelle(); g.odakla(grup); cekmeceAc(i); };
-  $('#gizle').onclick = () => { yapiParcalari(i).forEach(j => g.gizli.add(j)); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
+  $('#gizle').onclick = () => { yapiGizle(i); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
   const notAlani = $('#notAlani');
   if (notAlani) { let zaman; notAlani.addEventListener('input', () => { clearTimeout(zaman); zaman = setTimeout(() => { C.notYaz(p.anahtar, notAlani.value); $('#notDurum').textContent = 'Kaydedildi.'; if (sekme === 'notlar') notlarCiz(); }, 400); }); }
   $('#cekmece').hidden = false; document.body.classList.add('cekmece-acik');
@@ -1078,10 +1148,30 @@ const kutuIcinde = (b, a, oran = 0.7) => {
   for (let k = 0; k < 3; k++) { ortak *= Math.max(0, Math.min(b[1][k], a[1][k]) - Math.max(b[0][k], a[0][k])); kendi *= Math.max(b[1][k] - b[0][k], 1e-4); }
   return ortak / kendi >= oran;
 };
+// Yutak yolu: kaynak modelde yutak parçaları gırtlağın önüne kaymış durur; orta hattan geçen yol lokmayı gırtlağın içinden geçirir.
+// Bu yüzden lokmanın yolu her yükseklikte dilin ve gırtlağın arka yüzü ile boyun omurlarının ön yüzü arasının ortasından çizilir:
+// ağız yutağı (oropharynx), gırtlak yutağı (laryngopharynx, gırtlağın arkası), sonra yemek borusunun ağzı.
+const OZEL_YOL = { yutak: yutakYolu };
+function yutakYolu() {
+  const onde = parcalar.filter(p => /^(tongue|epiglottis|thyroid cartilage|cricoid cartilage|(left|right) arytenoid cartilage)$/i.test(p.en) && g.meshler[p.i]);
+  const arkada = parcalar.filter(p => /cervical vertebra|^axis$|intervertebral disk of (axis|.*cervical)/i.test(p.en) && g.meshler[p.i]);
+  const yb = parcalar.find(p => /^esophagus$/i.test(p.en) && g.meshler[p.i]); if (!onde.length || !arkada.length || !yb) return [];
+  const dilim = (ps, y, enArka) => { let z = enArka ? Infinity : -Infinity; for (const p of ps) { const a = g.meshler[p.i].geometry.attributes.position; for (let k = 0; k < a.count; k++) if (Math.abs(a.getX(k)) < 0.01 && Math.abs(a.getY(k) - y) < 0.004) z = enArka ? Math.min(z, a.getZ(k)) : Math.max(z, a.getZ(k)); } return z; };
+  const a = g.meshler[yb.i].geometry.attributes.position; let ust = -Infinity; for (let k = 0; k < a.count; k++) ust = Math.max(ust, a.getY(k));
+  const agiz = new T.Vector3(); let n = 0; for (let k = 0; k < a.count; k++) if (a.getY(k) > ust - 0.008) { agiz.add(new T.Vector3(a.getX(k), a.getY(k), a.getZ(k))); n++; } agiz.divideScalar(n || 1);
+  const yol = [];
+  for (let y = 1.535; y > agiz.y + 0.004; y -= 0.005) {
+    const on = dilim(onde, y, true), ark = dilim(arkada, y, false);
+    if (Number.isFinite(on) && Number.isFinite(ark) && on > ark) yol.push(new T.Vector3(agiz.x, y, (on + ark) / 2));
+  }
+  yol.push(agiz);
+  return yol;
+}
 function tupYol(adimlar, haric, tekYan) {
   const yol = [], adimBasi = [], borular = [], izlenen = [];
   adimlar.forEach((ad, n) => {
     adimBasi.push(yol.length);
+    if (ad.ozel && OZEL_YOL[ad.ozel]) { const nk = OZEL_YOL[ad.ozel](); if (nk.length) { yol.push(...nk); return; } } // elle kurulan yol (ör. yutak)
     // Boru sayılmayan parçalar (ör. ince bağırsağın onlarca parçası) tek bir durakta toplanır: hepsinin ortak merkezi.
     let tum = [...new Set(ad.yol)];
     if (tekYan && tum.some(i => /\bright\b/i.test(parcalar[i].en)) && tum.some(i => /\bleft\b/i.test(parcalar[i].en))) tum = tum.filter(i => !/\bleft\b/i.test(parcalar[i].en));
@@ -1110,7 +1200,7 @@ function tupYol(adimlar, haric, tekYan) {
 }
 function akisBaslat(a) {
   canliHazirla('akis', a.ad, a.sistemler);
-  canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y), yol: parcaListesi(ad.yol ?? ad.y) })).filter(ad => ad.p.length && ad.yol.length);
+  canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y), yol: parcaListesi(ad.yol ?? ad.y), ozel: ad.ozel })).filter(ad => ad.p.length && ad.yol.length);
   canli.sira = -1;
   const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi, borular = [] } = ayar.tup ? tupYol(canli.adimlar, ayar.tupHaric, ayar.tekYan) : yolCikar(canli.adimlar);
   let adimT = [[], []];
@@ -1466,7 +1556,7 @@ function suzgecYaz() {
 }
 $('#suzgec').onclick = () => { sahneSifirla(); g.gorunus('on'); yanCiz(); };
 // Seçili yapıyı tek dokunuşla gizle: üstteki yapı (ör. büyük omentum) kalkar, altındakiler görünür ve seçilebilir olur.
-$('#sahneGizle').onclick = () => { if (seciliParca < 0) return; yapiParcalari(seciliParca).forEach(j => g.gizli.add(j)); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
+$('#sahneGizle').onclick = () => { if (seciliParca < 0) return; yapiGizle(seciliParca); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
 // Gizlenen yapı varsa sahnenin üstünde sayısı ve geri getirme düğmesi durur (canlandırmanın geçici gizlemeleri sayılmaz).
 function gizliYaz() {
   const b = $('#gizliSerit'), acik = (g.gizli.size > 0 || soyulan.length > 0 || g.solukParca.size > 0) && !canli && !sinav && !tekrar && !ozel && !baglanma;
@@ -1475,9 +1565,18 @@ function gizliYaz() {
   if (soyulan.length) metin.push(`Kaldırılan katman: ${KATMANLAR[soyulan[soyulan.length - 1].n].ad}`);
   if (g.gizli.size) metin.push(`${say(g.gizli)} yapı gizli`);
   if (g.solukParca.size) metin.push(`${say(g.solukParca)} yapı soluk`);
-  b.innerHTML = `${metin.join(' · ')}<b>Geri getir</b>`;
+  // Başka yoldan geri gelmiş olanlar listeden düşer (ör. aramadan seçilen gizli yapı görünür olur).
+  for (let k = gizlemeSirasi.length - 1; k >= 0; k--) { const e = gizlemeSirasi[k]; if (e.tur === 'yapi' ? !e.is.some(j => g.gizli.has(j)) : !soyulan.some(s => s.n === e.n)) gizlemeSirasi.splice(k, 1); }
+  const liste = gizliListeAcik && gizlemeSirasi.length ? `<ol class="gizli-liste">${gizlemeSirasi.map((e, k) => `<li><span>${esc(e.ad)}</span><button type="button" data-geri="${k}">Geri getir</button></li>`).join('')}</ol>` : '';
+  b.innerHTML = `<span>${metin.join(' · ')}</span>${gizlemeSirasi.length ? `<button type="button" data-geri="liste" aria-expanded="${gizliListeAcik}">${gizliListeAcik ? 'Listeyi kapat' : 'Tek tek'}</button>` : ''}<button type="button" data-geri="hepsi">Hepsini geri getir</button>${liste}`;
 }
-$('#gizliSerit').onclick = () => { g.gizli = new Set(); katmanSifirla(); g.solukParca.clear(); g.guncelle(); if (sekme === 'kesfet') kesfetCiz(); };
+let gizliListeAcik = false;
+$('#gizliSerit').onclick = e => {
+  const d = e.target.closest('[data-geri]')?.dataset.geri; if (!d) return;
+  if (d === 'liste') { gizliListeAcik = !gizliListeAcik; gizliYaz(); return; }
+  if (d === 'hepsi') { g.gizli = new Set(); katmanSifirla(); gizlemeSirasi.length = 0; g.solukParca.clear(); gizliListeAcik = false; g.guncelle(); if (sekme === 'kesfet') kesfetCiz(); return; }
+  tekGeriGetir(Number(d));
+};
 { const asil = g.guncelle.bind(g); g.guncelle = () => { asil(); durumYaz(); suzgecYaz(); gizliYaz(); }; durumYaz(); suzgecYaz(); gizliYaz(); }
 { const genis = matchMedia('(min-width: 901px) and (orientation: landscape), (min-width: 1101px)');
   const ayarla = () => { g.yanBosluk = genis.matches ? document.querySelector('.yan').offsetWidth + 14 : 0; g._boyut(); };

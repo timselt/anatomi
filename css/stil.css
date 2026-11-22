@@ -374,6 +374,12 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 /* Sahne üstü bildirimleri (süzgeç, gizli yapılar) üst üste dizilir; seçim yazısındaki Gizle düğmesi */
 .ust-bildirim { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .ust-bildirim .suzgec { position: static; transform: none; }
+.gizli-serit { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; white-space: normal; max-width: min(92vw, 460px); }
+.gizli-serit button { background: transparent; border: 0; color: var(--vurgu); font-weight: 600; padding: 4px 2px; font-size: inherit; cursor: pointer; }
+.gizli-liste { flex-basis: 100%; margin: 4px 0 2px; padding: 0; list-style: none; counter-reset: sira; display: grid; gap: 2px; max-height: 40vh; overflow: auto; }
+.gizli-liste li { display: flex; align-items: center; gap: 8px; counter-increment: sira; }
+.gizli-liste li::before { content: counter(sira) "."; opacity: .7; min-width: 1.4em; }
+.gizli-liste li span { flex: 1; }
 .secim-etiketi { display: flex; align-items: center; gap: 10px; }
 .sahne-gizle { background: transparent; color: var(--vurgu); border: 1px solid rgba(255,255,255,.35); border-radius: 6px; padding: 3px 10px; font-family: var(--mono); font-size: .66rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
 .sahne-gizle:hover { border-color: var(--vurgu); }
@@ -384,3 +390,7 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 .cizim-katmani { position: absolute; inset: 0; z-index: 3; touch-action: none; cursor: crosshair; }
 .cizim-araclari { position: absolute; z-index: 4; top: 62px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; background: var(--kart); border: 1px solid var(--cizgi); border-radius: 10px; padding: 6px; }
 @media print { .cizim-katmani, .cizim-araclari { display: none; } }
+.arter-yolu { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 10px; }
+.arter-yolu button, .komsular .yok { font-size: .8rem; }
+.arter-yolu .ok { color: var(--soluk, #8a857c); }
+.arter-yolu .yok, .komsular .yok { color: #8a857c; padding: 4px 6px; border: 1px dashed var(--cizgi); border-radius: 6px; }

@@ -21,7 +21,7 @@ export const AKISLAR = [
   ] },
   { id: 'sindirim', ad: 'Lokmanın yolu: sindirim', sistemler: ['sindirim', 'solunum'], adimlar: [
     { y: ['dil', 'kesici', 'buyuk-azi'], yol: ['dil'], m: 'Ağızda dişler besini parçalar, dil karıştırır. Tükürükteki amilaz enzimi nişastanın sindirimini başlatır.' },
-    { y: ['z:oropharynx', 'z:laryngopharynx', 'girtlak-kapagi'], yol: ['z:oropharynx', 'z:laryngopharynx'], m: 'Yutma sırasında lokma yutağa (pharynx) geçer. Gırtlak kapağı (epiglottis) soluk yolunun girişini örterek lokmanın soluk borusuna kaçmasını önler.' },
+    { y: ['z:oropharynx', 'z:laryngopharynx', 'girtlak-kapagi'], yol: ['z:oropharynx', 'z:laryngopharynx'], ozel: 'yutak', m: 'Yutma sırasında lokma yutağın ağız bölümünden (oropharynx) gırtlak bölümüne (laryngopharynx) iner ve gırtlağın arkasından geçerek yemek borusunun ağzına ulaşır. Bu sırada gırtlak yukarı kalkar, gırtlak kapağı (epiglottis) gırtlak girişini örter; lokma soluk borusuna kaçmaz.' },
     { y: ['yemek-borusu'], m: 'Yemek borusu (oesophagus) dalga biçimindeki kasılmalarla (peristaltizm) lokmayı mideye iletir.' },
     { y: ['mide'], m: 'Mide (gaster) besini depolar, asit ve pepsin ile karıştırır. Proteinlerin sindirimi burada başlar.' },
     { y: ['onikiparmak', 'safra-kesesi', 'pankreas', /^dk:hepatovenous segment/], yol: ['onikiparmak'], m: 'Onikiparmak bağırsağına (duodenum) karaciğerin ürettiği safra ve pankreasın enzimleri dökülür. Safra yağları küçük damlacıklara ayırır; pankreas enzimleri karbonhidrat, protein ve yağları sindirir.' },
