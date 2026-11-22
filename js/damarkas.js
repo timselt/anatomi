@@ -4,6 +4,7 @@
 // Türkçe ad verilmeyen satırlarda Türkçe görünümde de Latince ad gösterilir.
 // Satır: [İngilizce ad (sol/sağ olmadan), Latince ad, Türkçe ad (isteğe bağlı)]
 
+import { DAMAR_ACIKLAMA } from './damaraciklama.js';
 const A = [ // arterler
 ['accessory subsuperior branch of posterior basal segmental artery','Ramus subsuperior accessorius arteriae segmentalis basalis posterioris'],
 ['acromial branch of thoraco-acromial artery','Ramus acromialis arteriae thoracoacromialis'],
@@ -535,5 +536,6 @@ function gorev(en, la) {
 
 export const DAMAR_KAS = {};
 for (const [en, la, tr] of [...A, ...V, ...M, ...B]) {
-  DAMAR_KAS[en] = { anahtar: 'dk:' + en, la, tr: tr || la, fn: gorev(en, la), turkceVar: !!tr };
+  const ek = DAMAR_ACIKLAMA[en]; // önemli damarlar için yazılmış Türkçe ad ve açıklama
+  DAMAR_KAS[en] = { anahtar: 'dk:' + en, la, tr: ek?.[0] || tr || la, fn: ek?.[1] || gorev(en, la), turkceVar: !!(ek?.[0] || tr) };
 }

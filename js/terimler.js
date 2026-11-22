@@ -230,7 +230,7 @@ t('brachial artery','kol-arter','Brakiyal arter','Arteria brachialis',2,'Üst ko
 t('radial artery','doner-arter','Radiyal arter','Arteria radialis',1,'Önkolun başparmak tarafında uzanır; el bileğinden nabız buradan sayılır.','');
 t('ulnar artery','dirsek-arter','Ulnar arter','Arteria ulnaris',2,'Önkolun serçe parmak tarafında uzanır.','');
 t('vertebral artery','omur-arter','Vertebral arter','Arteria vertebralis',3,'Boyun omurlarının deliklerinden geçerek beynin arka kısmına kan taşır.','');
-t('basilar artery','baziler','Baziler arter','Arteria basilaris',3,'İki vertebral arterin birleşmesiyle oluşur; beyin sapı ve beyinciği besler.','');
+t('basilar artery','baziler','Baziler arter','Arteria basilaris',3,'İki vertebral arterin pons alt kenarında birleşmesiyle oluşur; pons arterlerini, beyinciğe a. inferior anterior cerebelli ve a. superior cerebelli dallarını verir ve iki a. cerebri posterior\'a ayrılarak Willis halkasının (circulus arteriosus cerebri) arka bölümünü kurar. Tıkanması beyin sapını etkileyen ağır bir inmeye yol açar.','');
 t('celiac trunk|celiac artery','colyak','Çölyak gövde','Truncus coeliacus',3,'Karın aortasının ilk büyük dalıdır; mide, karaciğer ve dalağı besler.','');
 t('superior mesenteric artery|trunk of superior mesenteric artery','ust-mezenter-arter','Süperior mezenterik arter','Arteria mesenterica superior',3,'İnce bağırsağı ve kalın bağırsağın ilk yarısını besler.','');
 t('inferior mesenteric artery','alt-mezenter-arter','İnferior mezenterik arter','Arteria mesenterica inferior',3,'Kalın bağırsağın son kısmını besler.','');
