@@ -421,12 +421,19 @@ function kasKarti(a, kisa = false) {
 }
 
 // ---------- Seçim ve ayrıntı penceresi ----------
+// Bir yapının modelde birden çok parçaya bölünmüş olması anatomik değildir (ör. boş bağırsak 23 parça). Dokunulan parçayla aynı yapının,
+// aynı taraftaki bütün parçaları birlikte seçilir; sağ ve sol karşılığı olan yapılarda (ör. uyluk kemiği) yalnız dokunulan taraf seçilir.
+// Karaciğer bölümleri (segment) gibi gerçekten ayrı adı olan yapılar ayrı kalır, çünkü her birinin kendi adı (anahtarı) vardır.
+const parcaYani = i => (/\bright\b/i.test(parcalar[i].en) ? 'R' : /\bleft\b/i.test(parcalar[i].en) ? 'L' : '');
+function yapiParcalari(i) {
+  const a = parcalar[i]?.anahtar; if (!a || !yapilar[a]) return [i];
+  const t = parcaYani(i); return yapilar[a].parcalar.filter(j => g.meshler[j] && parcaYani(j) === t);
+}
 function parcaSec(i, odakla) {
   const p = parcalar[i];
   if (!g.acikSistemler.has(p.sistem) && !g.yalniz) { g.acikSistemler.add(p.sistem); if (sekme === 'kesfet') kesfetCiz(); }
-  g.gizli.delete(i);
-  seciliParca = i; g.secili = new Set([i]); if (odakModu) g.soluk = new Set(yapilar[p.anahtar]?.parcalar ?? [i]); g.guncelle(); etiketleriGuncelle();
-  if (odakla) g.odakla([i]);
+  seciliParca = i; const grup = yapiParcalari(i); grup.forEach(j => g.gizli.delete(j)); g.secili = new Set(grup); if (odakModu) g.soluk = new Set(yapilar[p.anahtar]?.parcalar ?? [i]); g.guncelle(); etiketleriGuncelle();
+  if (odakla) g.odakla(grup);
   const et = $('#secimEtiketi'); et.hidden = false; et.textContent = p.tr || p.en;
   cekmeceAc(i);
 }
@@ -509,13 +516,14 @@ function cekmeceAc(i) {
     ${p.anahtar ? `<div class="dugme-satiri"><button id="baglantiKopyala" class="ikincil">Bağlantıyı kopyala</button><a class="dugme ikincil" target="_blank" rel="noopener" href="https://claude.ai/new?q=${encodeURIComponent(`Tıp fakültesi öğrencisiyim. ${p.la || y.la} (${p.tr}) yapısını Türkçe anlat: yeri, komşulukları, damarı ve siniri, klinik önemi. Yapı adlarını Latince yaz. Sonunda beni sınamak için 3 kısa soru sor.`)}">Yapay zekâya sor</a></div><p id="baglantiDurum" class="kucuk"></p>` : ''}
     ${p.anahtar ? `<h3>Benim notum</h3><textarea id="notAlani" class="not" placeholder="Bu yapıyla ilgili kendi notunu yaz. Kendiliğinden kaydedilir.">${esc(C.notAl(p.anahtar))}</textarea><p id="notDurum" class="kucuk"></p>` : ''}`;
   $('#cekmeceIcerik').querySelectorAll('[data-komsu]').forEach(b => b.addEventListener('click', () => parcaSec(Number(b.dataset.komsu), true)));
-  $('#yakinlas').onclick = () => g.odakla([i]);
+  $('#yakinlas').onclick = () => g.odakla(yapiParcalari(i));
   if ($('#icAc')) $('#icAc').onclick = () => {
     if (icAcik) { icKapat(); return cekmeceAc(i); }
     // Organ bütün olarak açılır (ör. kalbin bütün odacıkları); önünü kapatmasın diye diğer yapılar gizlenir.
-    // Damarlarda yalnız seçilen damar açılır (bütün damar ağı değil).
-    const grup = g.patlamaGrubu(i), damar = p.sistem === 'atardamar' || p.sistem === 'toplardamar', yan = e => /\bright\b/i.exec(e)?.[0] ?? /\bleft\b/i.exec(e)?.[0] ?? '';
-    icAcik = parcalar.filter(q => g.meshler[q.i] && (damar ? q.anahtar === p.anahtar && yan(q.en) === yan(p.en) : g.patlamaGrubu(q.i) === grup)).map(q => q.i);
+    // Kalp, rahim ve bağırsaklar bütün organ olarak açılır; diğerlerinde (damar, safra kesesi...) yalnız seçilen yapı açılır.
+    const butunAcilir = new Set(['kalp', 'rahim', 'kalin-bagirsak', 'ince-bagirsak']);
+    const grup = g.patlamaGrubu(i), yan = e => /\bright\b/i.exec(e)?.[0] ?? /\bleft\b/i.exec(e)?.[0] ?? '';
+    icAcik = parcalar.filter(q => g.meshler[q.i] && (butunAcilir.has(grup) ? g.patlamaGrubu(q.i) === grup : q.anahtar === p.anahtar && yan(q.en) === yan(p.en))).map(q => q.i);
     g.secili = new Set(); g.yalniz = new Set(icAcik); g.icAc(icAcik, grup === 'kalp' || grup === 'rahim'); g.gorunus('on', false); g.sigdir(icAcik); cekmeceKapat();
     $('#secimEtiketi').textContent = `${$('#cekmeceBaslik').textContent}: ön yarısı kesildi. Kapatmak için yapıya dokun, "İçini kapat" de.`; $('#secimEtiketi').hidden = false;
   };
@@ -532,8 +540,8 @@ function cekmeceAc(i) {
     const adres = `${location.origin}${location.pathname}?model=${C.cinsiyet()}&yapi=${encodeURIComponent(p.anahtar)}`;
     try { await navigator.clipboard.writeText(adres); $('#baglantiDurum').textContent = 'Bağlantı kopyalandı; arkadaşına gönderebilirsin.'; } catch { $('#baglantiDurum').textContent = adres; }
   };
-  $('#yalnizBu').onclick = () => { g.yalniz = g.yalniz?.size === 1 && g.yalniz.has(i) ? null : new Set([i]); aktifKonu = null; g.guncelle(); g.odakla(g.yalniz ? [i] : [i]); cekmeceAc(i); };
-  $('#gizle').onclick = () => { g.gizli.add(i); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
+  $('#yalnizBu').onclick = () => { const grup = yapiParcalari(i); g.yalniz = g.yalniz?.size === grup.length && grup.every(j => g.yalniz.has(j)) ? null : new Set(grup); aktifKonu = null; g.guncelle(); g.odakla(grup); cekmeceAc(i); };
+  $('#gizle').onclick = () => { yapiParcalari(i).forEach(j => g.gizli.add(j)); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
   const notAlani = $('#notAlani');
   if (notAlani) { let zaman; notAlani.addEventListener('input', () => { clearTimeout(zaman); zaman = setTimeout(() => { C.notYaz(p.anahtar, notAlani.value); $('#notDurum').textContent = 'Kaydedildi.'; if (sekme === 'notlar') notlarCiz(); }, 400); }); }
   $('#cekmece').hidden = false; document.body.classList.add('cekmece-acik');
