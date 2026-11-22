@@ -84,7 +84,7 @@ export class Goruntuleyici {
     this._olaylar();
     new ResizeObserver(() => this._boyut()).observe(kap);
     this._boyut();
-    const dongu = () => { requestAnimationFrame(dongu); this._kare(); };
+    const dongu = t => { requestAnimationFrame(dongu); this._kare(t); };
     dongu();
   }
 
@@ -624,17 +624,26 @@ export class Goruntuleyici {
       this.birlestirici.addPass(cikis);
       this.birlestirici.setPixelRatio(o); this.birlestirici.setSize(w, h);
     }
-    this.yuksekKalite = acik; this.guncelle();
+    this.yuksekKalite = acik; this._sureler = []; this._sonKare = null; if (acik) this._yavasBildirildi = false; // Kalite yeniden açılınca denetim baştan başlar
+    this.guncelle();
   }
 
-  _kare() {
+  _kare(t = performance.now()) {
     this._anim?.();
     if (this.canli) { this.canli(performance.now()); this.kirli = true; }
     if (this.kontrol.update()) this.kirli = true;
-    if (!this.kirli) return;
+    if (!this.kirli) { this._sonKare = null; return; }
     this.kirli = false;
-    // Yüksek kalite: yüzeyler arası gölgelendirme ve seçim çerçevesi. Saydam akış canlandırmalarında kapalıdır.
-    if (this.yuksekKalite && !this.akis && !this.icAcik) this.birlestirici.render(); else this.renderer.render(this.sahne, this.kamera);
+    // Yüksek kalite: yüzeyler arası gölgelendirme. Saydam akış canlandırmalarında kapalıdır.
+    const kalite = this.yuksekKalite && !this.akis && !this.icAcik;
+    if (kalite) this.birlestirici.render(); else this.renderer.render(this.sahne, this.kamera);
+    // Akıcılık denetimi: Kalite açıkken art arda 60 kare ortalama 45 ms'den uzun sürerse (saniyede ~22 kareden az) bir kez haber verir.
+    // 120 ms'den uzun tek tük aralıklar (yükleme, gölgelendirici derleme, sekme arkada) sayılmaz; asıl yavaşlık sürekli 45 ms ve üzeridir.
+    if (kalite && this.yavasDenetim && this._sonKare != null && document.visibilityState === 'visible' && t - this._sonKare < 120) {
+      (this._sureler ??= []).push(t - this._sonKare); if (this._sureler.length > 60) this._sureler.shift();
+      if (this._sureler.length === 60 && !this._yavasBildirildi && this._sureler.reduce((a, b) => a + b, 0) / 60 > 45) { this._yavasBildirildi = true; this.yavas?.(); }
+    } else if (!kalite) this._sureler = [];
+    this._sonKare = t;
     if (this.etiketler.length || this.olcumEtiketi) this._etiketleriYerlestir();
   }
 }

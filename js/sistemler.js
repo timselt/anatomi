@@ -4,7 +4,7 @@
 
 export const SISTEMLER = [
   { id: 'iskelet', ad: 'İskelet', renk: '#e6dcbc', ayrinti: true, aciklama: 'Kemikler vücudu taşır, organları korur ve kaslara tutunma yeri sağlar. Kemik iliğinde kan hücreleri üretilir.' },
-  { id: 'kas', ad: 'Kaslar', renk: '#b0584c', aciklama: 'İskelet kasları kemiklere kirişlerle tutunur; kasılarak eklemleri hareket ettirir, duruşu korur ve ısı üretir.' },
+  { id: 'kas', ad: 'Kaslar', renk: '#9c3f35', aciklama: 'İskelet kasları kemiklere kirişlerle tutunur; kasılarak eklemleri hareket ettirir, duruşu korur ve ısı üretir.' },
   { id: 'sinir', ad: 'Sinir sistemi', ayrinti: true, renk: '#e2bf5a', aciklama: 'Beyin, omurilik ve sinirler bilgiyi taşır ve işler; duyma, hareket, düşünme ve vücudun kendiliğinden çalışan işleri buradan yönetilir.' },
   { id: 'kalp', ad: 'Kalp', ayrinti: true, renk: '#c2665e', aciklama: 'Kalp dört odacıklı kaslı bir pompadır. Kapakları kanın tek yönde akmasını sağlar.' },
   { id: 'atardamar', ad: 'Atardamarlar', renk: '#cc4a3c', aciklama: 'Atardamarlar kanı kalpten dokulara taşır. Akciğer atardamarı dışındakiler oksijenli kan taşır.' },

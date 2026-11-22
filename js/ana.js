@@ -51,7 +51,7 @@ const tumAnahtarlar = () => [...new Set(konular().flatMap(k => k.liste))];
 const g = new Goruntuleyici($('#sahne'), atlas, parcalar.map(p => p.sistem), Object.fromEntries(SISTEMLER.map(s => [s.id, s.renk])));
 g.acikSistemler = new Set(KADIN_MI ? [...VARSAYILAN_ACIK, 'ureme', 'sinir', 'deri'] : VARSAYILAN_ACIK);
 g.yukle(o => { $('#yukCubuk').style.width = `${Math.round(o * 100)}%`; })
-  .then(() => { $('#yukleniyor').hidden = true; baglantiAc(); if (!KADIN_MI) ekKatman(); })
+  .then(() => { $('#yukleniyor').hidden = true; baglantiAc(); if (!KADIN_MI) ekKatman(); else g.yavasDenetim = true; })
   .catch(e => { $('#yukleniyor').innerHTML = `<p>Model yüklenemedi: ${esc(e.message)}</p><p class="kucuk">Simülatörü "Simulatoru-Ac.command" dosyasıyla açtığından emin ol.</p>`; });
 
 // Erkek modelde eksik yapılar (sinirler, lenf, akciğer lobları, karaciğer...) ikinci açık modelden eklenir.
@@ -61,9 +61,9 @@ async function ekKatman() {
     if (not) not.textContent = 'Ek katman yükleniyor: sinirler, lenf düğümleri, akciğer ve karaciğer…';
     const ekler = await ekModelleriYukle(parcalar);
     for (const e of ekler) {
-      const ozel = EK_TERIM[e.enKucuk]; if (ozel) { e.tr = ozel[0]; e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
+      const ozel = EK_TERIM[e.enKucuk]; if (ozel) { const yan = /\((sol|sağ)\)$/.exec(e.tr)?.[0]; e.tr = ozel[0] + (yan ? ' ' + yan : ''); e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
       const i = g.ekParca(e.geometry, e.sistem, e.bounds);
-      TERIM[e.anahtar] ??= { tr: ozel ? e.tr : e.la, la: e.la, lv: 3, fn: e.fn, ip: '', ek: true };
+      TERIM[e.anahtar] ??= { tr: ozel ? ozel[0] : e.la, la: e.la, lv: 3, fn: e.fn, ip: '', ek: true };
       parcalar.push({ i, en: e.en, sistem: e.sistem, anahtar: e.anahtar, tr: e.tr, la: e.la, ek: '', bounds: e.bounds, kaynak: 'Z-Anatomy' });
       const y = (yapilar[e.anahtar] ??= { anahtar: e.anahtar, ...TERIM[e.anahtar], sistem: e.sistem, parcalar: [], enler: [] });
       y.parcalar.push(i); y.enler.push(e.enKucuk);
@@ -72,14 +72,31 @@ async function ekKatman() {
     // Büyük omentum ince bağırsağın ve kalın bağırsağın önündeki örtüdür: taşan kıvrımların önüne itilir.
     for (const om of parcalar.filter(p => /^greater omentum$/i.test(p.en))) g.ortuOneAl(om.i, parcalar.filter(p => p.kaynak !== 'Z-Anatomy' && /jejun|ileum|colon|caecum|cecum|appendix/i.test(p.en)).map(p => p.i));
     g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc();
-  } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; }
+    g.yavasDenetim = true; // akıcılık denetimi yükleme bittikten sonra başlar
+  } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; g.yavasDenetim = true; }
 }
 let ekYuklendi = 0;
-// Ek katmandan gelen ve modelde bağırsakların önünde ilk göze çarpan karın zarı yapıları (Türkçe ad, görev). Ders kitabı bilgisidir; kaynakla ayrıca karşılaştırılmadı.
+// Ek katmanın türüne göre açıklama alamayan yapıları (Türkçe ad, görev). Ders kitabı bilgisidir; kaynakla ayrıca karşılaştırılmadı.
 const EK_TERIM = {
   'greater omentum': ['Büyük omentum (büyük karın zarı örtüsü)', 'Midenin büyük eğriliğinden sarkıp enine kolonun önünden geçen, ince bağırsakların önünü önlük gibi örten periton katlantısıdır. İçinde yağ ve lenf düğümleri bulunur; iltihaplı bir organın çevresine yapışarak iltihabın yayılmasını sınırlayabilir.'],
   'lesser omentum': ['Küçük omentum', 'Karaciğer ile midenin küçük eğriliği ve onikiparmak bağırsağının ilk bölümü arasında uzanan periton katlantısıdır. Serbest kenarında kapı toplardamarı (vena portae), karaciğer atardamarı ve ana safra kanalı (ductus choledochus) bulunur.'],
   'mesocolon': ['Mezokolon (kalın bağırsak askısı)', 'Kalın bağırsağı karın arka duvarına bağlayan periton katlantısıdır; kalın bağırsağın damar, sinir ve lenf yollarını taşır.'],
+  'bile duct': ['Ana safra kanalı (ductus choledochus)', 'Ortak karaciğer kanalı ile safra kesesi kanalının birleşmesiyle oluşur. Safrayı pankreas başının arkasından geçirerek onikiparmak bağırsağının ikinci bölümüne, büyük duodenal papillaya taşır.'],
+  'gingiva': ['Diş eti (gingiva)', 'Dişlerin boynunu ve çene kemiklerindeki diş yuvalarının kenarını örten mukozadır.'],
+  'accessory parotid gland': ['Yardımcı parotis bezi', 'Parotis kanalı boyunca, çiğneme kası (m. masseter) üzerinde bulunabilen küçük ek tükürük bezi dokusudur; salgısını parotis kanalına verir.'],
+  'parotid duct': ['Parotis kanalı (Stensen kanalı)', 'Çiğneme kasının önünden geçip yanak kasını (m. buccinator) delerek üst ikinci büyük azı dişi hizasında ağız içine açılır; parotis bezinin tükürüğünü taşır.'],
+  'parotid gland': ['Parotis bezi (kulak altı tükürük bezi)', 'En büyük tükürük bezidir; sulu (seröz) tükürük salgılar. İçinden yüz siniri (n. facialis) dallarına ayrılarak geçer; kabakulakta şişer.'],
+  'submandibular duct': ['Çene altı bezi kanalı (Wharton kanalı)', 'Çene altı tükürük bezinin salgısını ağız tabanında, dilin altındaki çıkıntıya (caruncula sublingualis) taşır. Tükürük taşı en sık bu kanalda görülür.'],
+  'soft palate': ['Yumuşak damak', 'Sert damağın arkasındaki kaslı bölümdür. Yutma sırasında yükselerek burun boşluğu ile yutak arasındaki geçişi kapatır.'],
+  'uvula of palate': ['Küçük dil (uvula)', 'Yumuşak damağın ortasından aşağı sarkan kaslı çıkıntıdır.'],
+  'accessory pancreatic duct': ['Yardımcı pankreas kanalı (Santorini kanalı)', 'Pankreas başının üst bölümünü boşaltır; onikiparmak bağırsağına küçük duodenal papilladan açılır.'],
+  'nasopharynx': ['Yutağın burun bölümü (nazofarinks)', 'Burun boşluğunun arkasında, yumuşak damağın üstündedir; yalnız hava geçer. Östaki borusunun ağzı ve geniz eti (adenoid) burada bulunur.'],
+  'oropharynx': ['Yutağın ağız bölümü (orofarinks)', 'Yumuşak damak ile gırtlak kapağı (epiglottis) arasındadır; hava ve besinin ortak yoludur. Damak bademcikleri bu bölümün yan duvarındadır.'],
+  'laryngopharynx': ['Yutağın gırtlak bölümü (laringofarinks)', 'Gırtlak kapağının (epiglottis) altında, gırtlağın arkasındadır; aşağıda yemek borusuyla devam eder. Yutma sırasında besin buradan yemek borusuna geçer.'],
+  'ejaculatory duct': ['Boşaltma kanalı (ductus ejaculatorius)', 'Sperma kanalı (ductus deferens) ile tohum kesesinin kanalının birleşmesiyle oluşur; prostatın içinden geçerek üretranın prostat bölümüne açılır.'],
+  'mucosa of nasal cavity': ['Burun boşluğu mukozası', 'Solunan havayı ısıtır, nemlendirir ve tozları tutar. Üst bölümünde koku almayı sağlayan koku epiteli bulunur.'],
+  'pleura': ['Akciğer zarı (plevra)', 'Akciğeri saran iç yaprak (visseral plevra) ile göğüs duvarını örten dış yaprak (pariyetal plevra) arasında ince bir sıvı aralığı vardır. Bu sıvı, solunumda akciğerin göğüs duvarını izleyerek genişlemesini sağlar.'],
+  'renal pelvis': ['Böbrek leğeni (pelvis renalis)', 'Büyük böbrek kadehlerinin (calices majores) birleşmesiyle oluşan huni biçimli boşluktur; idrarı üretere iletir.'],
   'mesentery': ['Mezenter (ince bağırsak askısı)', 'Boş ve kıvrımlı bağırsağı (jejunum ve ileum) karın arka duvarına bağlayan yelpaze biçimli periton katlantısıdır; içinde üst bağırsak askısı damarlarının dalları, lenf düğümleri ve sinirler bulunur.'],
 };
 let baglantiAcildi = false;
@@ -242,6 +259,13 @@ function sahneSifirla() {
 // ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
 const mod = { parcali: false, etiket: false, cam: false, doner: false, tur: null, kalite: false };
 // Yüksek kalite varsayılan olarak açıktır; kapatılırsa tercih bu cihazda hatırlanır.
+// Cihaz Kalite kipinde akıcı çizemiyorsa Kalite kendiliğinden kapanır; tercih bu cihazda hatırlanır, düğmeyle yeniden açılabilir.
+g.yavas = () => {
+  kaliteAyarla(false);
+  const not = $('#turYazi'); if (mod.tur) turBitir();
+  not.textContent = 'Bu cihaz Kalite kipinde yavaş çizdiği için Kalite kapatıldı. İstersen üstteki "Kalite" düğmesiyle yeniden açabilirsin.'; not.hidden = false;
+  setTimeout(() => { if (!mod.tur) not.hidden = true; }, 6000);
+};
 function kaliteAyarla(acik) { mod.kalite = acik; g.kaliteAyarla(acik); try { localStorage.setItem('anatomi-kalite', acik ? '1' : '0'); } catch {} modIsaretle(); }
 const modDugme = ad => document.querySelector(`[data-mod=${ad}]`);
 const modIsaretle = () => { for (const ad of ['parcali', 'etiket', 'cam', 'doner', 'tur', 'kalite']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
