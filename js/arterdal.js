@@ -80,7 +80,9 @@ const UST = {
   'middle meningeal artery': 'maxillary artery', 'inferior alveolar artery': 'maxillary artery', 'buccal artery': 'maxillary artery',
   'anterior deep temporal artery': 'maxillary artery', 'posterior deep temporal artery': 'maxillary artery', 'infra-orbital artery': 'maxillary artery',
   'posterior superior alveolar artery': 'maxillary artery', 'descending palatine artery': 'maxillary artery', 'artery of pterygoid canal': 'maxillary artery',
-  'greater palatine artery': 'descending palatine artery',
+  'greater palatine artery': 'descending palatine artery', 'sphenopalatine artery': 'maxillary artery',
+  'proximal lateral striate branches': 'middle cerebral artery', 'distal lateral striate branches': 'middle cerebral artery',
+  'dorsal carpal anastomosis': 'radial artery', 'median sacral artery': 'abdominal aorta',
   'ophthalmic artery': 'internal carotid artery', 'anterior cerebral artery': 'internal carotid artery', 'middle cerebral artery': 'internal carotid artery',
   'posterior communicating artery': 'internal carotid artery', 'anterior choroidal artery': 'internal carotid artery',
   'central retinal artery': 'ophthalmic artery', 'lacrimal artery': 'ophthalmic artery', 'supra-orbital artery': 'ophthalmic artery', 'supratrochlear artery': 'ophthalmic artery',
@@ -137,7 +139,7 @@ const ES = {
   'thoracic aorta': 'descending thoracic aorta',
 };
 
-const sade = s => s.toLowerCase().replace(/\s*\((left|right)\)$/, '').trim();
+const sade = s => s.toLowerCase().replace(/\s*\((left|right)\)$/, '').replace(/\.$/, '').trim();
 const yanSil = s => s.replace(/\b(left|right) /g, '').replace(/\s+/g, ' ').trim();
 const yanBul = s => (/\bleft\b/.test(s) ? 'sol' : /\bright\b/.test(s) ? 'sag' : '');
 
@@ -159,9 +161,10 @@ export function arterBul(ad, parcalar, yan) {
   if (!bulunan.length) {
     const ys = yanSil(a), yadaylar = [ys, 'trunk of ' + ys];
     bulunan = parcalar.filter(p => p.sistem === 'atardamar' && yadaylar.includes(yanSil(sade(p.en))));
-    const ayniYan = bulunan.filter(p => !yanBul(sade(p.en)) || yanBul(sade(p.en)) === yan || /\b(left|right)\b/.test(a));
+    const yanOf = p => yanBul(p.en.toLowerCase()); // ek katmanda taraf adın sonunda "(left)" olarak yazılır
+    const ayniYan = bulunan.filter(p => !yanOf(p) || yanOf(p) === yan || /\b(left|right)\b/.test(a));
     if (ayniYan.length) bulunan = ayniYan;
-    if (yan) { const tam = bulunan.filter(p => yanBul(sade(p.en)) === yan); if (tam.length) bulunan = tam; }
+    if (yan) { const tam = bulunan.filter(p => yanOf(p) === yan); if (tam.length) bulunan = tam; }
   }
   return bulunan;
 }

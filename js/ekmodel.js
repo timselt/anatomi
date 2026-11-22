@@ -7,13 +7,30 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { EK_DOGRULAMA } from './ekdogrulama.js';
 
 const KLASOR = 'data/models/zanatomy/';
-const DOSYALAR = ['visceral', 'lymphatic', 'nervous'];
+const DOSYALAR = ['visceral', 'lymphatic', 'nervous', 'cardiovascular'];
 const OFSET = new T.Vector3(0, 0.007, 0);
-const ES_AD = { oesophagus: 'esophagus', 'vermiform appendix': 'appendix', 'suprarenal gland': 'adrenal gland', 'pineal gland': 'pineal body', 'ductus deferens': 'deferent duct', 'seminal gland': 'seminal vesicle', 'meso-appendix': 'mesoappendix' };
+// Kaynak sözlükte eksik yazılmış Latince adlar.
+const LA_DUZELT = { 'external carotid artery': 'Arteria carotis externa' };
+// Damar katmanında asıl modelde başka adla bulunan yapılar. Liste, her parçanın yüzeyinin asıl modeldeki damar ve kalp
+// yüzeyiyle çakışma oranı ölçülerek ve adlar karşılaştırılarak hazırlandı (22.11.2026): kalp odacıkları ve kapakları,
+// koroner arterler, akciğer segment damarları, orta ve arka serebral arter parçaları, el ve ayak arkları ile parmak damarları.
+const DAMAR_KOPYA = new RegExp(['atrium', 'ventricle$', 'leaflet', 'papillary', 'valve', 'bifurcation of pulmonary trunk', '^coronary artery$',
+  'circumflex artery of heart', 'septal branches of anterior interventricular', 'inferolateral branch of right coronary', '^marginal artery$',
+  'middle cerebral artery \\(m', 'insular branches of middle cerebral', 'temporal branches of middle cerebral', '^posterior cerebral artery$',
+  'anterior temporal branch$', 'temporo-occipital branch$', 'branch to angular gyrus', 'postcentral arterial branch',
+  'segmental artery of lung', 'lobar artery of lung', 'lingular artery of lung', 'vein of lung', 'basal vein of lung', 'lingular vein of lung',
+  'thoraco-acromial artery', '(anterior|posterior) branch of renal artery', 'supreme intercostal', 'superior (lateral|medial) genicular artery',
+  'middle collateral artery', 'radial collateral artery', 'common palmar digital arteries', 'palmar metacarpal arteries', 'dorsal metacarpal arteries',
+  'palmar carpal branch of radial', 'plantar metatarsal arteries', 'common plantar digital arteries', 'proper plantar digital arteries',
+  'dorsal digital arteries of foot', 'calcaneal branches of posterior tibial', 'perforating femoral arteries', 'superior anorectal artery',
+  '^ulnar recurrent artery$', 'superficial branch of transverse cervical', 'hepatic veins', 'internal thoracic veins', 'superior epigastric veins',
+  'venous palmar arch', '^radial veins$', '^ulnar veins$', '^brachial veins$', 'palmar digital veins', 'gastro-omental vein', '\\?'].join('|'));
+const ES_AD = { 'aortic arch': 'arch of aorta', 'brachiocephalic trunk': 'brachiocephalic artery', 'coeliac trunk': 'celiac trunk', 'thoracic aorta': 'descending thoracic aorta', 'proper hepatic artery': 'hepatic artery proper', 'superficial palmar arch': 'superficial palmar arterial arch', oesophagus: 'esophagus', 'vermiform appendix': 'appendix', 'suprarenal gland': 'adrenal gland', 'pineal gland': 'pineal body', 'ductus deferens': 'deferent duct', 'seminal gland': 'seminal vesicle', 'meso-appendix': 'mesoappendix' };
 
 function sistemSec(dosya, n) {
   if (dosya === 'nervous') return 'sinir';
   if (dosya === 'lymphatic') return 'lenf';
+  if (dosya === 'cardiovascular') return /vein|venous|vena|sinus|plexus/.test(n) && !/arter/.test(n) ? 'toplardamar' : 'atardamar';
   if (/lung|bronch|trachea|pleura|nasal|pharynx|epiglott/.test(n)) return 'solunum';
   if (/kidney|ureter|urethra|bladder|renal/.test(n)) return 'bosaltim';
   if (/thyroid|suprarenal|pineal|hypophysis/.test(n)) return 'hormon';
@@ -69,6 +86,7 @@ export async function ekModelleriYukle(mevcut, ilerleme) {
       const parantezsiz = taban.replace(/^\((.*)\)$/, '$1');
       const kucuk = parantezsiz.toLowerCase().replace(/\b(left|right)\b ?/g, '').trim();
       if (mevcutAdlar.has(ES_AD[kucuk] || kucuk)) return; // asıl modelde zaten var
+      if (dosya === 'cardiovascular' && DAMAR_KOPYA.test(kucuk)) return; // asıl modelde başka adla var (yüzey çakışması ölçülerek bulundu)
       if (/^liver$|segment of liver/.test(kucuk) && [...mevcutAdlar].some(a => a.startsWith('hepatovenous segment'))) return; // karaciğer segmentleri asıl modelde var
       const sistem = sistemSec(dosya, parantezsiz.toLowerCase());
       const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld); g.translate(OFSET.x, OFSET.y, OFSET.z);
@@ -78,7 +96,7 @@ export async function ekModelleriYukle(mevcut, ilerleme) {
       if (!g.attributes.normal) g.computeVertexNormals();
       // Kaynak sözlükte birkaç adda Fransızca aksan kalmış (ör. "latérales"); Latincede aksan olmaz.
       // Terminologia Anatomica ile karşılaştırmada düzeltilen adlar kaynak sözlüğün önüne geçer (ekdogrulama.js).
-      const la = EK_DOGRULAMA[parantezsiz.toLowerCase()]?.la ?? (sozluk[taban]?.la || sozluk[parantezsiz]?.la || parantezsiz).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const la = LA_DUZELT[parantezsiz.toLowerCase()] ?? EK_DOGRULAMA[parantezsiz.toLowerCase()]?.la ?? (sozluk[taban]?.la || sozluk[parantezsiz]?.la || parantezsiz).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       sonuc.push({ en: yan ? `${taban} (${yan === 'sol' ? 'left' : 'right'})` : taban, anahtar: 'z:' + parantezsiz.toLowerCase(), enKucuk: parantezsiz.toLowerCase(), la, tr: yan ? `${la} (${yan})` : la, sistem, fn: gorev(parantezsiz.toLowerCase(), sistem), geometry: g, bounds });
     });
     ilerleme?.((di + 1) / DOSYALAR.length);
