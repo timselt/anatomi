@@ -49,7 +49,7 @@ export const AKISLAR = [
     { y: ['uretra'], m: 'İdrar üretradan (urethra) vücut dışına atılır.' },
   ] },
   { id: 'gorme', ad: 'Görme yolu', sistemler: ['duyu', 'sinir'], adimlar: [
-    { y: ['kornea', 'mercek'], m: 'Işık saydam tabakada (cornea) ve göz merceğinde (lens) kırılarak ağ tabakaya odaklanır. Kırılmanın yaklaşık üçte ikisi saydam tabakada olur; mercek ince ayarı yapar.' },
+    { y: ['kornea', 'mercek'], yol: ['mercek'], m: 'Işık saydam tabakada (cornea) ve göz merceğinde (lens) kırılarak ağ tabakaya odaklanır. Kırılmanın yaklaşık üçte ikisi saydam tabakada olur; mercek ince ayarı yapar.' },
     { y: ['ag-tabaka'], m: 'Görüntü ağ tabakaya (retina) düşer. Çubuk ve koni hücreleri ışığı sinir sinyaline çevirir.' },
     { y: ['gorme-siniri', 'z:optic nerve (ii)'], m: 'Sinyal görme siniriyle (nervus opticus) gözden çıkar.' },
     { y: ['gorme-caprazi'], m: 'Görme sinirleri çaprazında (chiasma opticum) her retinanın burun tarafından gelen lifler karşı tarafa geçer.' },

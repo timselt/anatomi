@@ -206,7 +206,7 @@ export class Goruntuleyici {
   // yollar: bir ya da birkaç yol (her biri nokta dizisi; ör. sağ ve sol akciğere ayrılan iki kol). renk(t, k): k. yolun t yerindeki renk.
   // uzunluk: sürünün yol üzerindeki boyu (metre; verilirse yayilim yerine geçer). icten: kamera takipte yolun içinde, sürünün hemen arkasında durur.
   // onden: takipte kamera vücudun önünde, dışarıda durur ve yalnız lokmayı ortalar. soluk: diğer yapıların saydamlığı. dagilim: parçacıkların yoldan sapması.
-  akisKur(yollar, renk, { adet = 140, boyut = 0.0035, yayilim = 1, uzunluk = 0, icten = false, onden = false, soluk = 0.2, dagilim = 2.2 } = {}) {
+  akisKur(yollar, renk, { adet = 140, boyut = 0.0035, yayilim = 1, uzunluk = 0, icten = false, onden = false, soluk = 0.2, dagilim = 2.2, ofset = [0.04, 0.03, 0.36] } = {}) {
     this.akisSil();
     const egriler = yollar.map(n => { const e = new T.CatmullRomCurve3(n, false, 'centripetal', 0.5); e.arcLengthDivisions = Math.max(200, n.length * 12); return e; });
     if (uzunluk) yayilim = uzunluk / egriler[0].getLength();
@@ -218,7 +218,7 @@ export class Goruntuleyici {
       c.renderOrder = 29; this.sahne.add(c); return c;
     });
     for (const m of Object.values(this.solukMalzeme)) m.opacity = soluk;
-    this.akis = { egriler, ag, cizgiler, adet, renk, yayilim, sapma, icten, onden, faz: 0, sonFaz: 0, takip: false };
+    this.akis = { egriler, ag, cizgiler, adet, renk, yayilim, sapma, icten, onden, ofset: new T.Vector3(...ofset), faz: 0, sonFaz: 0, takip: false };
   }
   // k. yolun n. noktasının yol uzunluğuna göre yeri (0-1).
   akisOran(k, n) {
@@ -243,7 +243,7 @@ export class Goruntuleyici {
       this.kamera.position.lerp(e.getPointAt(Math.max(a.faz - 0.05 / boy, 0)), 0.15); this.kontrol.target.lerp(e.getPointAt(Math.min(a.faz + 0.04 / boy, 1)), 0.2);
     } else if (a.takip && a.onden) { // kamera vücudun önünde, dışarıda; yalnız lokmayı ekranın ortasında tutar
       const on = a.egriler[0].getPointAt(a.faz), atladi = Math.abs(a.faz - a.sonFaz) > 0.02; // "Sonraki" ile atlanınca kamera geride kalmaz
-      this.kamera.position.lerp(on.clone().add(new T.Vector3(0.04, 0.03, 0.36)), atladi ? 1 : 0.06); this.kontrol.target.lerp(on, atladi ? 1 : 0.1);
+      this.kamera.position.lerp(on.clone().add(a.ofset), atladi ? 1 : 0.06); this.kontrol.target.lerp(on, atladi ? 1 : 0.1);
     } else if (a.takip) { // kamera öndeki parçacığın peşinden gider
       const e = a.egriler[0], on = e.getPointAt(a.faz), ileri = e.getPointAt(Math.min(a.faz + 0.025, 1)), teget = e.getTangentAt(a.faz);
       // Kamera lokmanın önünden ve hafif yanından, ~18 cm uzaktan bakar: organ duvarları saydam olduğu için lokma görünür, kamera organın içine girmez.

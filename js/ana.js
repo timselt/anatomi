@@ -918,7 +918,9 @@ const AKIS_AYAR = {
   sindirim: { renk: () => 0xff8a1f, adet: 7, uzunluk: 0.012, boyut: 0.0065, dagilim: 0.7, soluk: 0.07, onden: true, ad: 'lokma', tup: true, sikma: /./, tupHaric: /jejun|ileum/i },
   hava: { renk: () => 0x40c4ff, adet: 120, yayilim: 0.5, boyut: 0.0028, dagilim: 1.4, soluk: 0.08, onden: true, ad: 'hava (oksijen)', tup: true, tekYan: true, tupHaric: /nasal|concha|septum|thyroid cartilage|cricoid|arytenoid|epiglott|segment|lobar|lingul|lobe|lung/i },
   idrar: { renk: n => (n < 3 ? 0xff3b30 : 0xffd600), adet: 120, yayilim: 0.6, boyut: 0.003, dagilim: 1.2, soluk: 0.08, onden: true, ad: 'süzüntü', tup: true, tekYan: true, sikma: /ureter/i, tupHaric: /kidney|renal pelvis|bladder/i },
-  gorme: { renk: () => 0xfff176, adet: 40, yayilim: 0.12, boyut: 0.0028, ad: 'sinir uyarısı' },
+  // Görme yolu önden arkaya ilerlediği için sağdan izlenir. Yol sağ gözün şakak tarafından gelen, çaprazlaşmayan lifleri izler.
+  gorme: { renk: () => 0xffd23a, adet: 40, uzunluk: 0.03, boyut: 0.0026, dagilim: 0.8, soluk: 0.08, onden: true, yon: 'sag', ofset: [-0.3, 0.05, 0.06], ad: 'sinir uyarısı', tup: true, tekYan: true,
+    tupHaric: /cornea|lens|retina|chiasm|geniculate|occipital|lobe/i, not: 'Yol sağ gözün şakak tarafındaki ağ tabakadan gelen lifleri izler; bunlar çaprazda karşıya geçmez, aynı taraftaki görme yolu ve art kafa lobuna gider.' },
 };
 // Adımların yapılarından geçen yolları çıkarır: biri sağ, biri sol taraftaki yapılardan geçen iki kol (ortak yapılar ikisinde de var).
 // Boru biçimli yapılarda yol, yapının orta hattını izler.
@@ -996,7 +998,7 @@ function akisBaslat(a) {
   const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi, borular = [] } = ayar.tup ? tupYol(canli.adimlar, ayar.tupHaric, ayar.tekYan) : yolCikar(canli.adimlar);
   let adimT = [[], []];
   const adimBul = (t, k = 0) => { let n = 0; for (let i = 0; i < adimT[k].length; i++) if (t >= adimT[k][i] - 1e-6) n = i; return n; };
-  g.yalniz = null; g.soluk = new Set(); g.soru = new Set(); g.secili = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla(hepsi);
+  g.yalniz = null; g.soluk = new Set(); g.soru = new Set(); g.secili = new Set(); g.guncelle(); g.gorunus(ayar.yon ?? 'on', false); g.odakla(hepsi);
   g.akisKur(yollar, (t, k) => ayar.renk(adimBul(t, k)), ayar);
   adimT = adimBasi.map((b, k) => b.map(n => g.akisOran(k, n)));
   for (const b of borular) { b.a0 = g.akisOran(0, b.n0); b.a1 = g.akisOran(0, b.n1); }
@@ -1008,7 +1010,7 @@ function akisBaslat(a) {
   const goster = n => {
     canli.sira = n; const ad = canli.adimlar[n];
     $('#canliDurum').textContent = `Adım ${n + 1} / ${canli.adimlar.length}`;
-    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Parlak noktalar: ${esc(ayar.ad)}. "Yolculuğa katıl" ile kamera ${ayar.icten ? 'organın içinden, lokmanın arkasından' : 'onların peşinden'} gider.</p>`;
+    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Parlak noktalar: ${esc(ayar.ad)}. "Yolculuğa katıl" ile kamera ${ayar.icten ? 'organın içinden, lokmanın arkasından' : 'onların peşinden'} gider.</p>${ayar.not ? `<p class="kucuk">${esc(ayar.not)}</p>` : ''}`;
     // Borulu yolculukta o adımın organı belirginleşir, diğerleri saydam kalır; kamera dışarıdan izliyorsa o organa yaklaşır.
     if (ayar.tup) { g.soluk = new Set(ad.p); g.guncelle(); if (!g.akis.takip) g.odakla(ad.p); }
     canliYanCiz();
