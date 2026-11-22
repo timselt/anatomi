@@ -315,6 +315,21 @@ function sahneSifirla() {
 }
 
 
+// Sıfırla düğmesi: sayfada yapılan her şeyi geri alır ve modeli başlangıç görünümüne döndürür.
+// Model, dil, sınıf, komite seçimi, notlar ve çalışma kayıtları korunur.
+function hepsiniSifirla() {
+  if (canli) canliBitir(false);
+  if (mod.doner) donerAyarla(false);
+  mod.etiket = false;
+  sahneSifirla();
+  g.gizli = new Set(); gizlemeSirasi.length = 0; gizliListeAcik = false;
+  kesit.acik = false; kesit.oran = 0.5; kesit.ters = false; kesitBilgiYaz(g.kesitAyarla(false));
+  odakModu = false; etiketAcik = false; olcumModu = false;
+  g.acikSistemler = new Set(KADIN_MI ? [...VARSAYILAN_ACIK, 'ureme', 'sinir', 'deri'] : VARSAYILAN_ACIK); // sayfanın ilk açılışındaki sistemler
+  g.guncelle(); g.gorunus('on'); etiketleriGuncelle(); modIsaretle();
+  if (sekme === 'kesfet') kesfetCiz();
+}
+
 // ---------- Katman soyma: en yüzeydeki katman önce kalkar ----------
 // Kaslar deriye uzaklıklarına göre üç katmana ayrılır (1,2 cm ve 2,5 cm sınırları; yaklaşık). Deri modelde bulunduğu için ölçü her bölgede aynı kuraldır.
 const KATMANLAR = [
@@ -501,7 +516,8 @@ function turBaslat() {
 }
 document.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => {
   const ad = b.dataset.mod;
-  if (ad === 'soy') katmanSoy();
+  if (ad === 'sifirla') hepsiniSifirla();
+  else if (ad === 'soy') katmanSoy();
   else if (ad === 'koy') katmanKoy();
   else if (ad === 'ciz') cizimAyarla(!mod.ciz);
   else if (ad === 'etiket') { mod.etiket = !mod.etiket; modIsaretle(); if (mod.parcali) parcaliEtiketle(); else etiketleriGuncelle(); }
