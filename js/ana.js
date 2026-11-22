@@ -169,6 +169,7 @@ const GRUP_ADI = { akciger: ['Pulmo', 'Akciğer'], karaciger: ['Hepar', 'Karaci�
   bobrek: ['Ren', 'Böbrek'], kalp: ['Cor', 'Kalp'], rahim: ['Uterus', 'Rahim'], mide: ['Gaster', 'Mide'], el: ['Ossa manus', 'El kemikleri'], ayak: ['Ossa pedis', 'Ayak kemikleri'], 'gogus-kafesi': ['Cavea thoracis', 'Göğüs kafesi'],
   omurga: ['Columna vertebralis', 'Omurga'], kafatasi: ['Cranium', 'Kafatası'], atardamar: ['Arteriae', 'Atardamarlar'], toplardamar: ['Venae', 'Toplardamarlar'], sinir: ['Nervi', 'Sinirler'], bag: ['Ligamenta', 'Bağlar'] };
 function parcaliEtiketle() {
+  if (!mod.etiket) return g.etiketle([]); // etiketler "Etiket" düğmesiyle açılır; varsayılan kapalıdır
   const hacim = p => (p.bounds[1][0] - p.bounds[0][0]) * (p.bounds[1][1] - p.bounds[0][1]) * (p.bounds[1][2] - p.bounds[0][2]), gruplar = {};
   for (const p of parcalar) {
     if (!g.meshler[p.i]?.visible) continue;
@@ -195,11 +196,11 @@ function sahneSifirla() {
 }
 
 // ---------- Görünüm kipleri: parçalanmış, cam, döner tabla, tur ----------
-const mod = { parcali: false, cam: false, doner: false, tur: null, kalite: false };
+const mod = { parcali: false, etiket: false, cam: false, doner: false, tur: null, kalite: false };
 // Yüksek kalite varsayılan olarak açıktır; kapatılırsa tercih bu cihazda hatırlanır.
 function kaliteAyarla(acik) { mod.kalite = acik; g.kaliteAyarla(acik); try { localStorage.setItem('anatomi-kalite', acik ? '1' : '0'); } catch {} modIsaretle(); }
 const modDugme = ad => document.querySelector(`[data-mod=${ad}]`);
-const modIsaretle = () => { for (const ad of ['parcali', 'cam', 'doner', 'tur', 'kalite']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
+const modIsaretle = () => { for (const ad of ['parcali', 'etiket', 'cam', 'doner', 'tur', 'kalite']) modDugme(ad).setAttribute('aria-pressed', String(!!mod[ad])); };
 function parcaliAyarla(acik) {
   // Ayrıntı penceresinden açılmış yerel ayırma varsa önce o toplanır; ikisi aynı parçaları ayrı ayrı oynatmasın.
   if (acik && parcali) { g.parcala(parcali, 0); parcali = null; g.yalniz = null; g.guncelle(); }
@@ -236,7 +237,8 @@ function turBaslat() {
 }
 document.querySelectorAll('[data-mod]').forEach(b => b.addEventListener('click', () => {
   const ad = b.dataset.mod;
-  if (ad === 'kalite') kaliteAyarla(!mod.kalite); else if (ad === 'parcali') parcaliAyarla(!mod.parcali); else if (ad === 'cam') camAyarla(!mod.cam); else if (ad === 'doner') donerAyarla(!mod.doner);
+  if (ad === 'etiket') { mod.etiket = !mod.etiket; modIsaretle(); if (mod.parcali) parcaliEtiketle(); else etiketleriGuncelle(); }
+  else if (ad === 'kalite') kaliteAyarla(!mod.kalite); else if (ad === 'parcali') parcaliAyarla(!mod.parcali); else if (ad === 'cam') camAyarla(!mod.cam); else if (ad === 'doner') donerAyarla(!mod.doner);
   else { mod.tur ? turBitir() : turBaslat(); modIsaretle(); }
 }));
 { let kayit = null; try { kayit = localStorage.getItem('anatomi-kalite'); } catch {} kaliteAyarla(kayit !== '0'); }
@@ -791,7 +793,7 @@ function canliCiz() {
     <button class="liste-dugme" data-canli="kalp" ${parcaListesi(KALP.karincik).length ? '' : 'disabled'}>${esc(KALP.ad)}<small>Kulakçık ve karıncıkların sırayla kasılması, kapaklar ve kalp sesleri</small></button>
     <button class="liste-dugme" data-canli="solunum" ${KADIN_MI ? 'disabled' : ''}>${esc(SOLUNUM.ad)}<small>Diyafram ve kaburgaların nefes alıp verirken hareketi${KADIN_MI ? ' (Erkek modelde)' : ''}</small></button>
     <h3>Adım adım yollar</h3>
-    ${AKISLAR.map(a => `<button class="liste-dugme" data-akis="${a.id}" ${akisVar(a) ? '' : 'disabled'}>${esc(a.ad)}<small>${akisVar(a) ? `${a.adimlar.length} adım` : 'Bu modelde bazı yapılar yok. Erkek modelde izle.'}</small></button>`).join('')}
+    ${AKISLAR.map(a => `<button class="liste-dugme" data-akis="${a.id}" ${akisVar(a) ? '' : 'disabled'}>${esc(a.ad)}<small>${akisVar(a) ? `${a.adimlar.length} adım` : !KADIN_MI && !ekYuklendi ? 'Ek katman yükleniyor…' : 'Bu modelde bazı yapılar yok. Erkek modelde izle.'}</small></button>`).join('')}
     <h3>Mikroskobik sahneler</h3>
     <p class="kucuk">Organların içinde, gözle görülmeyen düzeyde ne olduğunu gösteren şematik çizimler.</p>
     ${MIKRO.map(m => `<button class="liste-dugme" data-mikro="${m.id}">${esc(m.ad)}</button>`).join('')}
@@ -842,7 +844,7 @@ const gostergeKutu = (id, ad) => `<div><small>${ad}</small><b id="${id}">–</b>
 
 const AKIS_AYAR = {
   dolasim: { renk: n => (n < 7 ? 0x3d7bfd : 0xff3b30), adet: 220, yayilim: 1, ad: 'kan hücreleri' },
-  sindirim: { renk: () => 0xffa000, adet: 18, yayilim: 0.035, boyut: 0.006, ad: 'lokma' },
+  sindirim: { renk: () => 0xff8a1f, adet: 7, uzunluk: 0.012, boyut: 0.0065, dagilim: 0.7, soluk: 0.07, onden: true, ad: 'lokma', tup: true, tupHaric: /jejun|ileum/i },
   hava: { renk: () => 0x40c4ff, adet: 120, yayilim: 0.5, ad: 'hava (oksijen)' },
   idrar: { renk: n => (n < 3 ? 0xff3b30 : 0xffd600), adet: 120, yayilim: 0.6, ad: 'süzüntü' },
   gorme: { renk: () => 0xfff176, adet: 40, yayilim: 0.12, boyut: 0.0028, ad: 'sinir uyarısı' },
@@ -874,23 +876,52 @@ function yolCikar(adimlar) {
   });
   return { yollar, adimBasi };
 }
+// Boru biçimli organlarda yol, organın gerçek orta hattından geçer (lokma borunun içinde ilerler); boru sayılmayan yapılarda merkezden.
+// borular: yolun hangi noktalarının hangi organa ait olduğu ve organın hangi yönde geçildiği (kasılma dalgası için).
+// haric: boru sayılmayacak yapılar (ör. ince bağırsak; modelde boru değil, kıvrım yığını). Bunlarda lokma organın ortasında durur.
+// Organlar canli.js'deki anatomik sırayla izlenir; yalnız her organın hangi ucundan girileceği seçilir.
+function tupYol(adimlar, haric) {
+  const yol = [], adimBasi = [], borular = [];
+  adimlar.forEach((ad, n) => {
+    adimBasi.push(yol.length);
+    // Boru sayılmayan parçalar (ör. ince bağırsağın onlarca parçası) tek bir durakta toplanır: hepsinin ortak merkezi.
+    const tum = [...new Set(ad.yol)], dis = tum.filter(i => haric?.test(parcalar[i].en)), kalan = [];
+    for (const i of tum) { if (!dis.includes(i)) kalan.push({ i, hat: g.tupHat(i) }); else if (i === dis[0]) kalan.push({ i, hat: null, merkez: kutuMerkezi(dis) }); }
+    while (kalan.length) {
+      const once = yol[yol.length - 1], s = kalan.shift();
+      const sonraki = kalan.length ? g.merkezHam(kalan[0].i) : adimlar[n + 1]?.yol.length ? g.merkezHam(adimlar[n + 1].yol[0]) : null;
+      const noktalar = s.hat ? s.hat.noktalar.map(v => v.clone()) : [s.merkez ?? g.merkezHam(s.i)];
+      if (!noktalar.length) continue;
+      const bas = noktalar[0], son = noktalar[noktalar.length - 1];
+      const ters = noktalar.length > 1 && (once ? once.distanceTo(son) < once.distanceTo(bas) : !!sonraki && sonraki.distanceTo(bas) < sonraki.distanceTo(son));
+      if (ters) noktalar.reverse();
+      if (s.hat) borular.push({ i: s.i, n0: yol.length, n1: yol.length + noktalar.length - 1, ters });
+      yol.push(...noktalar);
+    }
+  });
+  return { yollar: [yol], adimBasi: [adimBasi], borular };
+}
 function akisBaslat(a) {
   canliHazirla('akis', a.ad, a.sistemler);
   canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y), yol: parcaListesi(ad.yol ?? ad.y) })).filter(ad => ad.p.length && ad.yol.length);
   canli.sira = -1;
-  const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi } = yolCikar(canli.adimlar);
+  const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi, borular = [] } = ayar.tup ? tupYol(canli.adimlar, ayar.tupHaric) : yolCikar(canli.adimlar);
   let adimT = [[], []];
   const adimBul = (t, k = 0) => { let n = 0; for (let i = 0; i < adimT[k].length; i++) if (t >= adimT[k][i] - 1e-6) n = i; return n; };
   g.yalniz = null; g.soluk = new Set(); g.soru = new Set(); g.secili = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla(hepsi);
   g.akisKur(yollar, (t, k) => ayar.renk(adimBul(t, k)), ayar);
   adimT = adimBasi.map((b, k) => b.map(n => g.akisOran(k, n)));
+  for (const b of borular) { b.a0 = g.akisOran(0, b.n0); b.a1 = g.akisOran(0, b.n1); }
+  canli.geri = () => borular.forEach(b => g.tupSik(b.i, null));
   canliKart(''); canliYanCiz();
   $('#canliKapat').insertAdjacentHTML('beforebegin', '<button id="canliTakip" class="ikincil">Yolculuğa katıl</button>');
   $('#canliTakip').onclick = () => { g.akis.takip = !g.akis.takip; $('#canliTakip').textContent = g.akis.takip ? 'Dışarıdan izle' : 'Yolculuğa katıl'; if (!g.akis.takip) g.odakla(hepsi); };
   const goster = n => {
     canli.sira = n; const ad = canli.adimlar[n];
     $('#canliDurum').textContent = `Adım ${n + 1} / ${canli.adimlar.length}`;
-    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Parlak noktalar: ${esc(ayar.ad)}. "Yolculuğa katıl" ile kamera onların peşinden gider.</p>`;
+    $('#canliIcerik').innerHTML = `<p>${esc(ad.m)}</p><p class="kucuk">Parlak noktalar: ${esc(ayar.ad)}. "Yolculuğa katıl" ile kamera ${ayar.icten ? 'organın içinden, lokmanın arkasından' : 'onların peşinden'} gider.</p>`;
+    // Borulu yolculukta o adımın organı belirginleşir, diğerleri saydam kalır; kamera dışarıdan izliyorsa o organa yaklaşır.
+    if (ayar.tup) { g.soluk = new Set(ad.p); g.guncelle(); if (!g.akis.takip) g.odakla(ad.p); }
     canliYanCiz();
   };
   const git = d => { const n = (canli.sira + d + canli.adimlar.length) % canli.adimlar.length; g.akis.faz = adimT[0][n] + 0.002; goster(n); };
@@ -900,8 +931,11 @@ function akisBaslat(a) {
   let son = performance.now();
   g.canli = t => {
     const dt = Math.min(t - son, 100); son = t;
-    const faz = g.akisAdim(canli.oynuyor ? dt / (canli.adimlar.length * 4200) : 0), n = adimBul(faz);
+    // Borulu yolculukta her adım yaklaşık aynı süre sürer (uzun bağırsak adımı kısa yutak adımını ezmesin).
+    const T0 = adimT[0], simdi = Math.max(canli.sira, 0), pay = ayar.tup ? ((T0[simdi + 1] ?? 1) - T0[simdi]) / 6500 : 1 / (canli.adimlar.length * 4200);
+    const faz = g.akisAdim(canli.oynuyor ? dt * pay : 0), n = adimBul(faz);
     if (n !== canli.sira) goster(n);
+    for (const b of borular) { const u = (faz - b.a0) / (b.a1 - b.a0); if (u > -0.2 && u < 1.2) g.tupSik(b.i, b.ters ? 1 - u : u, b.ters ? -1 : 1); else g.tupSik(b.i, null); }
     zamanGoster(faz);
   };
 }
@@ -1222,3 +1256,6 @@ new MutationObserver(() => {
   kutu.hidden = !acik; if (!acik) return;
   kutu.firstElementChild.textContent = canli.ad; kutu.lastElementChild.textContent = d.textContent;
 }).observe($('#soruKarti'), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
+
+// Geliştirme ölçümü: yalnız adres ?debug=1 ile açıldığında, denetim betikleri için görüntüleyiciye erişim verir.
+if (BAGLANTI.get('debug') === '1') window.__anatomi = { g, parcalar, yapilar, get canli() { return canli; } };

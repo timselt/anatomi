@@ -153,23 +153,26 @@ export class Goruntuleyici {
   // ---- 3 boyutlu akış: bir yol boyunca akan parçacıklar (kan, lokma, hava...) ----
   // noktalar: yolun geçtiği noktalar; renk(t): yolun t (0-1) yerindeki renk; yayilim: sürünün yolda kapladığı oran (1 = kesintisiz akış).
   // yollar: bir ya da birkaç yol (her biri nokta dizisi; ör. sağ ve sol akciğere ayrılan iki kol). renk(t, k): k. yolun t yerindeki renk.
-  akisKur(yollar, renk, { adet = 140, boyut = 0.0035, yayilim = 1 } = {}) {
+  // uzunluk: sürünün yol üzerindeki boyu (metre; verilirse yayilim yerine geçer). icten: kamera takipte yolun içinde, sürünün hemen arkasında durur.
+  // onden: takipte kamera vücudun önünde, dışarıda durur ve yalnız lokmayı ortalar. soluk: diğer yapıların saydamlığı. dagilim: parçacıkların yoldan sapması.
+  akisKur(yollar, renk, { adet = 140, boyut = 0.0035, yayilim = 1, uzunluk = 0, icten = false, onden = false, soluk = 0.2, dagilim = 2.2 } = {}) {
     this.akisSil();
-    const egriler = yollar.map(n => new T.CatmullRomCurve3(n, false, 'centripetal', 0.5));
+    const egriler = yollar.map(n => { const e = new T.CatmullRomCurve3(n, false, 'centripetal', 0.5); e.arcLengthDivisions = Math.max(200, n.length * 12); return e; });
+    if (uzunluk) yayilim = uzunluk / egriler[0].getLength();
     const ag = new T.InstancedMesh(new T.SphereGeometry(boyut, 12, 12), new T.MeshBasicMaterial({ toneMapped: false, depthTest: false, transparent: true, opacity: 0.95 }), adet);
     ag.renderOrder = 30; ag.frustumCulled = false; this.sahne.add(ag);
-    const sapma = Array.from({ length: adet }, () => new T.Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)).multiplyScalar(boyut * 2.2));
+    const sapma = Array.from({ length: adet }, () => new T.Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)).multiplyScalar(boyut * dagilim));
     const cizgiler = egriler.map(e => { // yolun kendisi: ince çizgi
-      const c = new T.Line(new T.BufferGeometry().setFromPoints(e.getSpacedPoints(400)), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false }));
+      const c = new T.Line(new T.BufferGeometry().setFromPoints(e.getSpacedPoints(Math.max(400, e.points.length * 6))), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false }));
       c.renderOrder = 29; this.sahne.add(c); return c;
     });
-    for (const m of Object.values(this.solukMalzeme)) m.opacity = 0.2;
-    this.akis = { egriler, ag, cizgiler, adet, renk, yayilim, sapma, faz: 0, takip: false };
+    for (const m of Object.values(this.solukMalzeme)) m.opacity = soluk;
+    this.akis = { egriler, ag, cizgiler, adet, renk, yayilim, sapma, icten, onden, faz: 0, sonFaz: 0, takip: false };
   }
   // k. yolun n. noktasının yol uzunluğuna göre yeri (0-1).
   akisOran(k, n) {
-    const e = this.akis.egriler[k], u = e.getLengths(600), son = e.points.length - 1;
-    return u[Math.round((n / son) * 600)] / u[600];
+    const e = this.akis.egriler[k], u = e.getLengths(), b = u.length - 1, son = e.points.length - 1;
+    return u[Math.round((n / son) * b)] / u[b];
   }
   // Akışı ilerletir; öndeki parçacığın yoldaki yerini (0-1) döndürür.
   akisAdim(ilerleme) {
@@ -184,12 +187,115 @@ export class Goruntuleyici {
       m.makeScale(olcek, olcek, olcek).setPosition(p); a.ag.setMatrixAt(i, m); a.ag.setColorAt(i, c.set(a.renk(t, i % K)));
     }
     a.ag.instanceMatrix.needsUpdate = true; if (a.ag.instanceColor) a.ag.instanceColor.needsUpdate = true;
-    if (a.takip) { // kamera öndeki parçacığın peşinden gider
+    if (a.takip && a.icten) { // kamera borunun içinde, lokmanın hemen arkasında ilerler
+      const e = a.egriler[0], boy = e.getLength();
+      this.kamera.position.lerp(e.getPointAt(Math.max(a.faz - 0.05 / boy, 0)), 0.15); this.kontrol.target.lerp(e.getPointAt(Math.min(a.faz + 0.04 / boy, 1)), 0.2);
+    } else if (a.takip && a.onden) { // kamera vücudun önünde, dışarıda; yalnız lokmayı ekranın ortasında tutar
+      const on = a.egriler[0].getPointAt(a.faz), atladi = Math.abs(a.faz - a.sonFaz) > 0.02; // "Sonraki" ile atlanınca kamera geride kalmaz
+      this.kamera.position.lerp(on.clone().add(new T.Vector3(0.04, 0.03, 0.36)), atladi ? 1 : 0.06); this.kontrol.target.lerp(on, atladi ? 1 : 0.1);
+    } else if (a.takip) { // kamera öndeki parçacığın peşinden gider
       const e = a.egriler[0], on = e.getPointAt(a.faz), ileri = e.getPointAt(Math.min(a.faz + 0.025, 1)), teget = e.getTangentAt(a.faz);
-      const yer = on.clone().addScaledVector(teget, -0.11).add(new T.Vector3(0, 0.03, 0));
+      // Kamera lokmanın önünden ve hafif yanından, ~18 cm uzaktan bakar: organ duvarları saydam olduğu için lokma görünür, kamera organın içine girmez.
+      const yer = on.clone().add(new T.Vector3(0.07, 0.04, 0.16));
       this.kamera.position.lerp(yer, 0.08); this.kontrol.target.lerp(ileri, 0.12);
     }
-    this.kirli = true; return a.faz;
+    a.sonFaz = a.faz; this.kirli = true; return a.faz;
+  }
+  // Boru biçimli bir organın gerçek orta hattı. Yüzey üzerinde bir uçtan ölçülen uzaklığa göre dilimlenir; bu yüzden kıvrımlı borularda da
+  // (onikiparmak bağırsağı, kalın bağırsak) çizgi borunun içinden geçer. Sonuç: { noktalar, par (her köşenin boru boyunca yeri 0-1), boyu } ya da null.
+  tupHat(i) {
+    this._tup ??= new Map();
+    if (!this._tup.has(i)) {
+      const geo = this.meshler[i]?.geometry;
+      if (!geo) return null; // parça henüz yüklenmediyse sonuç önbelleğe yazılmaz
+      this._tup.set(i, geo?.index && geo.attributes.position.count >= 60 ? this._tupHesapla(geo.attributes.position.array, geo.index.array) : null);
+    }
+    return this._tup.get(i);
+  }
+  _tupHesapla(P, I) {
+    // 1) Aynı yerdeki köşeleri birleştir (model köşeleri yüzey dikişlerinde bölünmüş olabilir).
+    const n = P.length / 3, es = new Int32Array(n), harita = new Map(); let m = 0;
+    for (let v = 0; v < n; v++) {
+      const k = Math.round(P[v * 3] * 2e4) + '_' + Math.round(P[v * 3 + 1] * 2e4) + '_' + Math.round(P[v * 3 + 2] * 2e4);
+      let w = harita.get(k); if (w === undefined) { w = m++; harita.set(k, w); } es[v] = w;
+    }
+    const X = new Float32Array(m * 3);
+    for (let v = 0; v < n; v++) { X[es[v] * 3] = P[v * 3]; X[es[v] * 3 + 1] = P[v * 3 + 1]; X[es[v] * 3 + 2] = P[v * 3 + 2]; }
+    // 2) Komşuluk listesi (üçgen kenarları)
+    const bas = new Int32Array(m + 1);
+    const kenar = f => { for (let t = 0; t + 2 < I.length; t += 3) for (let e = 0; e < 3; e++) { const a = es[I[t + e]], b = es[I[t + (e + 1) % 3]]; if (a !== b) { f(a, b); f(b, a); } } };
+    kenar(a => { bas[a + 1]++; });
+    for (let v = 0; v < m; v++) bas[v + 1] += bas[v];
+    const komsu = new Int32Array(bas[m]), yer = bas.slice(0, m);
+    kenar((a, b) => { komsu[yer[a]++] = b; });
+    // 3) En büyük bağlı parça
+    const parca = new Int32Array(m).fill(-1), yigin = new Int32Array(m); let enIyi = 0, enBoy = 0, sayi = 0;
+    for (let s = 0; s < m; s++) {
+      if (parca[s] >= 0) continue;
+      let u = 0, boy = 0; yigin[u++] = s; parca[s] = sayi;
+      while (u) { const v = yigin[--u]; boy++; for (let e = bas[v]; e < bas[v + 1]; e++) { const w = komsu[e]; if (parca[w] < 0) { parca[w] = sayi; yigin[u++] = w; } } }
+      if (boy > enBoy) { enBoy = boy; enIyi = sayi; }
+      sayi++;
+    }
+    // 4) Yüzey üzerinde en kısa yol uzaklıkları (Dijkstra, ikili yığınla)
+    const uzaklik = kaynak => {
+      // Uzaklıklar tam hassasiyetle tutulur (düşük hassasiyet yuvarlama farkıyla aynı köşeyi tekrar tekrar kuyruğa sokuyordu).
+      const kap = bas[m] * 2 + 2, d = new Float64Array(m).fill(Infinity), hd = new Float64Array(kap), hn = new Int32Array(kap); let hb = 0, tur = 0;
+      const it = (x, v) => { if (hb >= kap) return; let c = hb++; while (c > 0) { const p = (c - 1) >> 1; if (hd[p] <= x) break; hd[c] = hd[p]; hn[c] = hn[p]; c = p; } hd[c] = x; hn[c] = v; };
+      const cek = () => {
+        const v = hn[0], x = hd[--hb], w = hn[hb]; let c = 0;
+        for (;;) { let k = c * 2 + 1; if (k >= hb) break; if (k + 1 < hb && hd[k + 1] < hd[k]) k++; if (hd[k] >= x) break; hd[c] = hd[k]; hn[c] = hn[k]; c = k; }
+        hd[c] = x; hn[c] = w; return v;
+      };
+      d[kaynak] = 0; it(0, kaynak);
+      while (hb) {
+        if (++tur > kap * 2) return null; // güvenlik sınırı: hesap bitmezse bu organ boru sayılmaz
+        const dv = hd[0], v = cek(); if (dv > d[v]) continue;
+        for (let e = bas[v]; e < bas[v + 1]; e++) {
+          const w = komsu[e], x = dv + Math.hypot(X[v * 3] - X[w * 3], X[v * 3 + 1] - X[w * 3 + 1], X[v * 3 + 2] - X[w * 3 + 2]);
+          if (x < d[w]) { d[w] = x; it(x, w); }
+        }
+      }
+      return d;
+    };
+    const enUzak = d => { let b = -1, x = -1; for (let v = 0; v < m; v++) if (parca[v] === enIyi && d[v] > x && d[v] < Infinity) { x = d[v]; b = v; } return b; };
+    let ilk = 0; while (ilk < m && parca[ilk] !== enIyi) ilk++;
+    const d0 = uzaklik(ilk); if (!d0) return null;
+    const A = enUzak(d0), dA = A >= 0 ? uzaklik(A) : null; if (!dA) return null;
+    const boyu = dA[enUzak(dA)];
+    if (!(boyu > 0.04)) return null; // boru denecek kadar uzun değil
+    // 5) Uzaklığa göre dilimle; her dilimin ağırlık merkezi orta hattın bir noktasıdır.
+    const dilim = Math.min(90, Math.max(6, Math.round(boyu / 0.012))), top = new Float64Array(dilim * 4);
+    for (let v = 0; v < m; v++) {
+      if (parca[v] !== enIyi) continue;
+      const b = Math.min(dilim - 1, Math.floor((dA[v] / boyu) * dilim)) * 4;
+      top[b] += X[v * 3]; top[b + 1] += X[v * 3 + 1]; top[b + 2] += X[v * 3 + 2]; top[b + 3]++;
+    }
+    let noktalar = [];
+    for (let b = 0; b < dilim; b++) if (top[b * 4 + 3]) noktalar.push(new T.Vector3(top[b * 4] / top[b * 4 + 3], top[b * 4 + 1] / top[b * 4 + 3], top[b * 4 + 2] / top[b * 4 + 3]));
+    if (noktalar.length < 4) return null;
+    for (let tur = 0; tur < 2; tur++) noktalar = noktalar.map((p, k) => (k && k < noktalar.length - 1 ? p.clone().multiplyScalar(2).add(noktalar[k - 1]).add(noktalar[k + 1]).multiplyScalar(0.25) : p));
+    const par = new Float32Array(n);
+    for (let v = 0; v < n; v++) par[v] = parca[es[v]] === enIyi ? dA[es[v]] / boyu : -1;
+    return { noktalar, par, boyu };
+  }
+  // Kasılma dalgası (peristaltizm): borunun t (0-1) yerindeki lokmanın arkasını daraltır, bulunduğu yeri hafif genişletir.
+  // yon: yolun boruyu hangi yönde geçtiği (+1 ya da -1). t null verilirse boru eski hâline döner.
+  tupSik(i, t, yon = 1) {
+    const d = this._tup?.get(i), p = this.meshler[i]?.geometry.attributes.position; if (!d || !p) return;
+    d.ilk ??= p.array.slice();
+    if (t === null) { if (d.bozuk) { p.array.set(d.ilk); p.needsUpdate = true; d.bozuk = false; d.sonT = null; this.meshler[i].frustumCulled = true; this.kirli = true; } return; }
+    if (d.bozuk && d.sonT === t) return; // lokma durduysa (duraklatma) aynı hesap tekrarlanmaz
+    d.sonT = t; this.meshler[i].frustumCulled = false; // şişen bölüm ekran kenarında kesilmesin
+    const A = p.array, I = d.ilk, N = d.noktalar, son = N.length - 1;
+    for (let v = 0, j = 0; v < d.par.length; v++, j += 3) {
+      const u = d.par[v], f = (u - t) * yon;
+      const k = u < 0 ? 1 : 1 - 0.38 * Math.exp(-(((f + 0.075) / 0.045) ** 2)) + 0.14 * Math.exp(-((f / 0.05) ** 2));
+      if (Math.abs(k - 1) < 0.004) { A[j] = I[j]; A[j + 1] = I[j + 1]; A[j + 2] = I[j + 2]; continue; }
+      const b = N[Math.round(u * son)];
+      A[j] = b.x + (I[j] - b.x) * k; A[j + 1] = b.y + (I[j + 1] - b.y) * k; A[j + 2] = b.z + (I[j + 2] - b.z) * k;
+    }
+    p.needsUpdate = true; d.bozuk = true; this.kirli = true;
   }
   // Bir grup yapının orta hattı: boru biçimli yapılarda (damar, yemek borusu...) uzun eksen boyunca dilimlerin ağırlık merkezleri; değilse tek merkez.
   ortaHat(indeksler) {
