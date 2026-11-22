@@ -4,6 +4,7 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { EK_DOGRULAMA } from './ekdogrulama.js';
 
 const KLASOR = 'data/models/zanatomy/';
 const DOSYALAR = ['visceral', 'lymphatic', 'nervous'];
@@ -76,7 +77,8 @@ export async function ekModelleriYukle(mevcut, ilerleme) {
       if ((sisteme[sistem] || []).some(b => iou(b, bounds) > 0.45)) { g.dispose(); return; } // aynı yapı başka adla var
       if (!g.attributes.normal) g.computeVertexNormals();
       // Kaynak sözlükte birkaç adda Fransızca aksan kalmış (ör. "latérales"); Latincede aksan olmaz.
-      const la = (sozluk[taban]?.la || sozluk[parantezsiz]?.la || parantezsiz).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      // Terminologia Anatomica ile karşılaştırmada düzeltilen adlar kaynak sözlüğün önüne geçer (ekdogrulama.js).
+      const la = EK_DOGRULAMA[parantezsiz.toLowerCase()]?.la ?? (sozluk[taban]?.la || sozluk[parantezsiz]?.la || parantezsiz).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       sonuc.push({ en: yan ? `${taban} (${yan === 'sol' ? 'left' : 'right'})` : taban, anahtar: 'z:' + parantezsiz.toLowerCase(), enKucuk: parantezsiz.toLowerCase(), la, tr: yan ? `${la} (${yan})` : la, sistem, fn: gorev(parantezsiz.toLowerCase(), sistem), geometry: g, bounds });
     });
     ilerleme?.((di + 1) / DOSYALAR.length);

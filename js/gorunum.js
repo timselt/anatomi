@@ -75,7 +75,9 @@ export class Goruntuleyici {
       const islak = ['kalp', 'sindirim', 'solunum', 'bosaltim', 'ureme', 'hormon', 'duyu', 'gebelik', 'lenf'].includes(id);
       // Islak dokularda kadifemsi kenar parlaklığı (sheen) ve ince yüzey pürüzü de vardır.
       this.malzeme[id] = new T.MeshPhysicalMaterial({ color: renk, roughness: id === 'iskelet' ? 0.75 : islak ? 0.45 : 0.6, metalness: 0.03, clearcoat: islak ? 0.35 : 0, clearcoatRoughness: 0.35, sheen: islak ? 0.18 : 0, sheenRoughness: 0.6, sheenColor: 0xffd2c4, envMapIntensity: 0.75, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
-      this.solukMalzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.6, side: T.DoubleSide, transparent: true, opacity: 0.12, depthWrite: false });
+      // Soluk yapılar tek geçişte çizilir: three.js iki yüzlü saydam malzemeyi her karede iki kez çizip her parça için malzemeyi yeniden hazırlıyordu;
+      // yolculuklarda yüzlerce soluk parça varken bu kareyi 3 kat yavaşlatıyordu. Saydamlık çok düşük olduğu için görünüşte fark yoktur.
+      this.solukMalzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.6, side: T.DoubleSide, transparent: true, opacity: 0.12, depthWrite: false, forceSinglePass: true });
     }
     for (const [id, m] of Object.entries(this.malzeme)) if (m.sheen) dokuEkle(m);
     this.soruMalzeme = new T.MeshStandardMaterial({ color: SORU, emissive: SORU, emissiveIntensity: 0.45, roughness: 0.4, side: T.DoubleSide });
@@ -218,6 +220,9 @@ export class Goruntuleyici {
       c.renderOrder = 29; this.sahne.add(c); return c;
     });
     for (const m of Object.values(this.solukMalzeme)) m.opacity = soluk;
+    // Yolculukta yüzlerce saydam yüzey üst üste çizilir; yüksek yoğunluklu ekranda (iPad, Retina) kareler yavaşlar.
+    // Bu yüzden yolculuk boyunca çizim yoğunluğu en çok 1,5 olur; yolculuk bitince eski değere döner.
+    if (this.renderer.getPixelRatio() > 1.5) { this._oncekiYogunluk = this.renderer.getPixelRatio(); this.renderer.setPixelRatio(1.5); this._boyut(); }
     this.akis = { egriler, ag, cizgiler, adet, renk, yayilim, sapma, icten, onden, ofset: new T.Vector3(...ofset), faz: 0, sonFaz: 0, takip: false };
   }
   // k. yolun n. noktasının yol uzunluğuna göre yeri (0-1).
@@ -390,6 +395,7 @@ export class Goruntuleyici {
     const a = this.akis; if (!a) return;
     for (const n of [a.ag, ...a.cizgiler]) { this.sahne.remove(n); n.geometry.dispose(); n.material.dispose(); }
     for (const m of Object.values(this.solukMalzeme)) m.opacity = 0.12;
+    if (this._oncekiYogunluk) { this.renderer.setPixelRatio(this._oncekiYogunluk); this._oncekiYogunluk = null; this._boyut(); }
     this.akis = null; this.kirli = true;
   }
   // ---- Parçalama: bir grup yapıyı ortak merkezden dışa doğru yumuşakça ayırır (oran 0 = topla) ----

@@ -5,6 +5,7 @@ import { SISTEMLER, sistemBul, VARSAYILAN_ACIK } from './sistemler.js';
 import { DOGRULAMA } from './dogrulama.js';
 import * as C from './calisma.js';
 import { ekModelleriYukle } from './ekmodel.js';
+import { EK_DOGRULAMA } from './ekdogrulama.js';
 import { KAS_BILGI } from './kasbilgi.js';
 import { VAKALAR } from './vakalar.js';
 import { AKISLAR, KALP, SOLUNUM, HAREKETLER, KEMIK_GRUBU } from './canli.js';
@@ -61,8 +62,10 @@ async function ekKatman() {
     if (not) not.textContent = 'Ek katman yükleniyor: sinirler, lenf düğümleri, akciğer ve karaciğer…';
     const ekler = await ekModelleriYukle(parcalar);
     for (const e of ekler) {
+      if (/^(greater|lesser) omentum$|mesocolon|^mesentery/i.test(e.en)) e.sistem = 'periton'; // karın zarı katlantıları kendi sisteminde
       const ozel = EK_TERIM[e.enKucuk]; if (ozel) { const yan = /\((sol|sağ)\)$/.exec(e.tr)?.[0]; e.tr = ozel[0] + (yan ? ' ' + yan : ''); e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
       const i = g.ekParca(e.geometry, e.sistem, e.bounds);
+      if (EK_DOGRULAMA[e.enKucuk]) DOGRULAMA[e.anahtar] ??= EK_DOGRULAMA[e.enKucuk]; // ad kaynakla karşılaştırıldıysa kartta rozeti çıkar
       TERIM[e.anahtar] ??= { tr: ozel ? ozel[0] : e.la, la: e.la, lv: 3, fn: e.fn, ip: '', ek: true };
       parcalar.push({ i, en: e.en, sistem: e.sistem, anahtar: e.anahtar, tr: e.tr, la: e.la, ek: '', bounds: e.bounds, kaynak: 'Z-Anatomy' });
       const y = (yapilar[e.anahtar] ??= { anahtar: e.anahtar, ...TERIM[e.anahtar], sistem: e.sistem, parcalar: [], enler: [] });
@@ -80,11 +83,11 @@ let ekYuklendi = 0;
 const EK_TERIM = {
   'greater omentum': ['Büyük omentum (büyük karın zarı örtüsü)', 'Midenin büyük eğriliğinden sarkıp enine kolonun önünden geçen, ince bağırsakların önünü önlük gibi örten periton katlantısıdır. İçinde yağ ve lenf düğümleri bulunur; iltihaplı bir organın çevresine yapışarak iltihabın yayılmasını sınırlayabilir.'],
   'lesser omentum': ['Küçük omentum', 'Karaciğer ile midenin küçük eğriliği ve onikiparmak bağırsağının ilk bölümü arasında uzanan periton katlantısıdır. Serbest kenarında kapı toplardamarı (vena portae), karaciğer atardamarı ve ana safra kanalı (ductus choledochus) bulunur.'],
-  'mesocolon': ['Mezokolon (kalın bağırsak askısı)', 'Kalın bağırsağı karın arka duvarına bağlayan periton katlantısıdır; kalın bağırsağın damar, sinir ve lenf yollarını taşır.'],
+  'mesocolon': ['Mezokolon (kalın bağırsak askısı)', 'Kalın bağırsağın enine (colon transversum) ve sigmoid bölümlerini karın arka duvarına bağlayan periton katlantısıdır; bu bölümlerin damar, sinir ve lenf yollarını taşır. Çıkan ve inen kolonun askısı gelişim sırasında arka duvara yapışır; bu bölümler çoğunlukla periton arkasında kalır.'],
   'bile duct': ['Ana safra kanalı (ductus choledochus)', 'Ortak karaciğer kanalı ile safra kesesi kanalının birleşmesiyle oluşur. Safrayı pankreas başının arkasından geçirerek onikiparmak bağırsağının ikinci bölümüne, büyük duodenal papillaya taşır.'],
   'gingiva': ['Diş eti (gingiva)', 'Dişlerin boynunu ve çene kemiklerindeki diş yuvalarının kenarını örten mukozadır.'],
   'accessory parotid gland': ['Yardımcı parotis bezi', 'Parotis kanalı boyunca, çiğneme kası (m. masseter) üzerinde bulunabilen küçük ek tükürük bezi dokusudur; salgısını parotis kanalına verir.'],
-  'parotid duct': ['Parotis kanalı (Stensen kanalı)', 'Çiğneme kasının önünden geçip yanak kasını (m. buccinator) delerek üst ikinci büyük azı dişi hizasında ağız içine açılır; parotis bezinin tükürüğünü taşır.'],
+  'parotid duct': ['Parotis kanalı (Stensen kanalı)', 'Çiğneme kasının (m. masseter) dış yüzünden öne doğru geçer, kasın ön kenarında içe dönerek yanak kasını (m. buccinator) deler ve üst ikinci büyük azı dişi hizasında ağız içine açılır; parotis bezinin tükürüğünü taşır.'],
   'parotid gland': ['Parotis bezi (kulak altı tükürük bezi)', 'En büyük tükürük bezidir; sulu (seröz) tükürük salgılar. İçinden yüz siniri (n. facialis) dallarına ayrılarak geçer; kabakulakta şişer.'],
   'submandibular duct': ['Çene altı bezi kanalı (Wharton kanalı)', 'Çene altı tükürük bezinin salgısını ağız tabanında, dilin altındaki çıkıntıya (caruncula sublingualis) taşır. Tükürük taşı en sık bu kanalda görülür.'],
   'soft palate': ['Yumuşak damak', 'Sert damağın arkasındaki kaslı bölümdür. Yutma sırasında yükselerek burun boşluğu ile yutak arasındaki geçişi kapatır.'],
@@ -92,7 +95,7 @@ const EK_TERIM = {
   'accessory pancreatic duct': ['Yardımcı pankreas kanalı (Santorini kanalı)', 'Pankreas başının üst bölümünü boşaltır; onikiparmak bağırsağına küçük duodenal papilladan açılır.'],
   'nasopharynx': ['Yutağın burun bölümü (nazofarinks)', 'Burun boşluğunun arkasında, yumuşak damağın üstündedir; yalnız hava geçer. Östaki borusunun ağzı ve geniz eti (adenoid) burada bulunur.'],
   'oropharynx': ['Yutağın ağız bölümü (orofarinks)', 'Yumuşak damak ile gırtlak kapağı (epiglottis) arasındadır; hava ve besinin ortak yoludur. Damak bademcikleri bu bölümün yan duvarındadır.'],
-  'laryngopharynx': ['Yutağın gırtlak bölümü (laringofarinks)', 'Gırtlak kapağının (epiglottis) altında, gırtlağın arkasındadır; aşağıda yemek borusuyla devam eder. Yutma sırasında besin buradan yemek borusuna geçer.'],
+  'laryngopharynx': ['Yutağın gırtlak bölümü (laringofarinks)', 'Gırtlak kapağının (epiglottis) üst kenarından yüzük kıkırdağın (cartilago cricoidea) alt kenarına kadar, gırtlağın arkasında uzanır; aşağıda yemek borusuyla devam eder. Yutma sırasında besin buradan yemek borusuna geçer.'],
   'ejaculatory duct': ['Boşaltma kanalı (ductus ejaculatorius)', 'Sperma kanalı (ductus deferens) ile tohum kesesinin kanalının birleşmesiyle oluşur; prostatın içinden geçerek üretranın prostat bölümüne açılır.'],
   'mucosa of nasal cavity': ['Burun boşluğu mukozası', 'Solunan havayı ısıtır, nemlendirir ve tozları tutar. Üst bölümünde koku almayı sağlayan koku epiteli bulunur.'],
   'pleura': ['Akciğer zarı (plevra)', 'Akciğeri saran iç yaprak (visseral plevra) ile göğüs duvarını örten dış yaprak (pariyetal plevra) arasında ince bir sıvı aralığı vardır. Bu sıvı, solunumda akciğerin göğüs duvarını izleyerek genişlemesini sağlar.'],
@@ -133,7 +136,7 @@ g.tikla = (i, nokta, h) => {
   if (i < 0) { secimiBirak(); return; }
   parcaSec(i, false);
   // Aynı noktada üst üste birden çok yapı varsa (ör. omentum ve arkasındaki bağırsak) bunu söyle.
-  if (h?.toplam > 1) $('#secimEtiketi').textContent += ` · aynı yere tekrar dokun: sıradaki yapı (${h.sira}/${h.toplam})`;
+  if (h?.toplam > 1) $('#secimAd').textContent += ` · aynı yere tekrar dokun: sıradaki yapı (${h.sira}/${h.toplam})`;
 };
 
 // ---------- Sekmeler ----------
@@ -192,11 +195,10 @@ const ORGAN_RENK = [
   [/vitreous|anterior chamber|posterior chamber|(anterior|posterior) segment of eyeball/i, '#e3f0f4|0.04'], [/optic (nerve|chiasm|tract)/i, '#efe3c9'], [/tarsal plate|eyelid/i, '#e7d2c3'],
   // Kalp: kas duvarı koyu kırmızı-kahve, kapakçıklar beyazımsı lifli doku. Boşluk modelleri duvarın iç yüzüyle aynı yerde durduğu için duvarla aynı renktedir (farklı renk lekeli titreşme yapıyordu).
   [/cusp|leaflet|chordae|(?<!ileocecal )valve/i, '#efe4d8'], [/wall of (left |right )?(ventricle|atrium)|myocard|papillary|ventricle|atrium/i, '#b04d45'],
-  // Karın zarı katlantıları (omentum, mezenter, mezokolon) organların önünde perde olmasın diye ince bir tül gibi çizilir; "mesocolon" adı kalın bağırsaktan önce tanınır.
-  // Bağırsakların önünde birden çok zar üst üste biner; yalnız büyük omentum biraz belirgin, arkadakiler neredeyse saydamdır.
+  // Karın zarı katlantıları (omentum, mezenter, mezokolon) kendi sistemindedir ("Karın zarı"); belirgin çizilir, sistem listesinden kapatılabilir.
   // Bağlar lifli beyazımsı dokudur; organın adını taşısalar da organ renginde değil. Geniş bağ ve periton cepleri organı örten ince tüllerdir.
   [/broad ligament|mesometrium|mesosalpinx|mesovarium|pouch/i, '#e8d6cc|0.3'], [/ligament/i, '#e8ddd0'],
-  [/greater omentum/i, '#e2bd62|0.12'], [/omentum|mesenter|mesocolon/i, '#e2bd62|0.04'], [/colon|caecum|cecum|appendix|rectum|taenia|anal canal/i, '#c4916a'], [/gallbladder|cystic duct|bile duct|hepatic duct/i, '#6f8a3c'],
+  [/colon|caecum|cecum|appendix|rectum|taenia|anal canal/i, '#c4916a'], [/gallbladder|cystic duct|bile duct|hepatic duct/i, '#6f8a3c'],
   [/hepat|liver/i, '#8e4434'], [/pancrea/i, '#dcb36c'], [/stomach|gastric|pylor/i, '#d98a7c'], [/duoden|jejun|ileum|ileocecal|small intestine/i, '#e3a08a'],
   [/oesophag|esophag/i, '#cf8f80'], [/tongue/i, '#c46a6a'], [/tooth|teeth|incisor|canine|premolar|molar/i, '#efe8d8'], [/gingiva/i, '#d98f90'],
   [/spleen/i, '#7b3346'], [/kidney|renal (cortex|medulla|pyramid|column|papilla)/i, '#8f4a3e'],
@@ -233,7 +235,7 @@ const GRUP_ADI = { akciger: ['Pulmo', 'Akciğer'], karaciger: ['Hepar', 'Karaci�
   bobrek: ['Ren', 'Böbrek'], kalp: ['Cor', 'Kalp'], rahim: ['Uterus', 'Rahim'], mide: ['Gaster', 'Mide'], el: ['Ossa manus', 'El kemikleri'], ayak: ['Ossa pedis', 'Ayak kemikleri'], 'gogus-kafesi': ['Cavea thoracis', 'Göğüs kafesi'],
   omurga: ['Columna vertebralis', 'Omurga'], kafatasi: ['Cranium', 'Kafatası'], atardamar: ['Arteriae', 'Atardamarlar'], toplardamar: ['Venae', 'Toplardamarlar'], sinir: ['Nervi', 'Sinirler'], bag: ['Ligamenta', 'Bağlar'] };
 function parcaliEtiketle() {
-  if (!mod.etiket) return g.etiketle([]); // etiketler "Etiket" düğmesiyle açılır; varsayılan kapalıdır
+  if (!mod.etiket || sinav || tekrar || ozel) return g.etiketle([]); // etiketler "Etiket" düğmesiyle açılır; sınav ve kartlarda cevabı göstermesin diye kapalı kalır
   const hacim = p => (p.bounds[1][0] - p.bounds[0][0]) * (p.bounds[1][1] - p.bounds[0][1]) * (p.bounds[1][2] - p.bounds[0][2]), gruplar = {};
   for (const p of parcalar) {
     if (!g.meshler[p.i]?.visible) continue;
@@ -332,6 +334,7 @@ function komiteUygula() {
   // Komitede yalnız birkaç yapısı olan sistemler (ör. göz kasları yüzünden bütün kaslar) açılmaz.
   const say = {}; for (const a of anahtarlar) say[yapilar[a].sistem] = (say[yapilar[a].sistem] || 0) + 1;
   const ana = Object.keys(say).filter(x => say[x] >= anahtarlar.length * 0.08);
+  if (ana.includes('sindirim')) ana.push('periton'); // sindirim çalışılırken karın zarı da görünür
   g.acikSistemler = new Set(ana); g.guncelle();
   g.odakla(anahtarlar.filter(a => ana.includes(yapilar[a].sistem)).flatMap(a => yapilar[a].parcalar));
 }
@@ -434,7 +437,7 @@ function parcaSec(i, odakla) {
   if (!g.acikSistemler.has(p.sistem) && !g.yalniz) { g.acikSistemler.add(p.sistem); if (sekme === 'kesfet') kesfetCiz(); }
   seciliParca = i; const grup = yapiParcalari(i); grup.forEach(j => g.gizli.delete(j)); g.secili = new Set(grup); if (odakModu) g.soluk = new Set(yapilar[p.anahtar]?.parcalar ?? [i]); g.guncelle(); etiketleriGuncelle();
   if (odakla) g.odakla(grup);
-  const et = $('#secimEtiketi'); et.hidden = false; et.textContent = p.tr || p.en;
+  const et = $('#secimEtiketi'); et.hidden = false; $('#secimAd').textContent = p.tr || p.en; $('#sahneGizle').hidden = false;
   cekmeceAc(i);
 }
 // İçi boş organlar ve büyük damarlar: yalnız bunlarda "İçini aç" düğmesi çıkar.
@@ -448,7 +451,7 @@ function secimiBirak() { seciliParca = -1; g.secili = new Set(); if (odakModu) g
 function dogrulamaRozeti(a) {
   const d = a && DOGRULAMA[a];
   if (d?.durum === 'dogrulandi') return `<span class="durum dogrulandi">Kaynakla kontrol edildi</span>${d.kaynak ? ` <a class="kucuk" href="${esc(d.kaynak)}" target="_blank" rel="noopener">kaynak</a>` : ''}`;
-  if (a?.startsWith('z:')) return '<span class="durum dogrulanmadi" title="Bu ad Z-Anatomy projesinin terim tablosundan geliyor; burada ayrıca karşılaştırılmadı">Ad: Z-Anatomy terim tablosu (ayrıca kontrol edilmedi)</span>';
+  if (a?.startsWith('z:') && !d) return '<span class="durum dogrulanmadi" title="Bu ad Z-Anatomy projesinin terim tablosundan geliyor; burada ayrıca karşılaştırılmadı">Ad: Z-Anatomy terim tablosu (ayrıca kontrol edilmedi)</span>';
   if (d?.durum === 'ta_disi') return `<span class="durum dogrulandi" title="Uluslararası terim listesinde (Terminologia Anatomica) ayrı bir adı yok; ad, yapıyı tanımlayan Latince bir ifadedir">Tanımlayıcı ad (resmî listede yok)</span>`;
   if (d?.durum === 'belirsiz') return '<span class="durum dogrulanmadi" title="Kaynaklar yetersiz ya da çelişkili">Belirsiz: hocana sor</span>';
   return '<span class="durum dogrulanmadi" title="Bu bilgi henüz bir kaynakla karşılaştırılmadı">Doğrulanmadı</span>';
@@ -525,7 +528,7 @@ function cekmeceAc(i) {
     const grup = g.patlamaGrubu(i), yan = e => /\bright\b/i.exec(e)?.[0] ?? /\bleft\b/i.exec(e)?.[0] ?? '';
     icAcik = parcalar.filter(q => g.meshler[q.i] && (butunAcilir.has(grup) ? g.patlamaGrubu(q.i) === grup : q.anahtar === p.anahtar && yan(q.en) === yan(p.en))).map(q => q.i);
     g.secili = new Set(); g.yalniz = new Set(icAcik); g.icAc(icAcik, grup === 'kalp' || grup === 'rahim'); g.gorunus('on', false); g.sigdir(icAcik); cekmeceKapat();
-    $('#secimEtiketi').textContent = `${$('#cekmeceBaslik').textContent}: ön yarısı kesildi. Kapatmak için yapıya dokun, "İçini kapat" de.`; $('#secimEtiketi').hidden = false;
+    $('#secimAd').textContent = `${$('#cekmeceBaslik').textContent}: ön yarısı kesildi. Kapatmak için yapıya dokun, "İçini kapat" de.`; $('#sahneGizle').hidden = true; $('#secimEtiketi').hidden = false;
   };
   $('#parcalaDugme').onclick = () => {
     if (parcali) { g.parcala(parcali, 0); parcali = null; g.yalniz = null; g.guncelle(); etiketleriGuncelle(); g.odakla([i]); return cekmeceAc(i); }
@@ -691,7 +694,7 @@ function sinavSonuc() {
 
 function sinavBitir(cizilsin = true) {
   sinav = null; $('#soruKarti').hidden = true;
-  g.soru = new Set(); g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle();
+  g.soru = new Set(); g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle(); if (mod.parcali) parcaliEtiketle();
   if (cizilsin) yanCiz();
 }
 
@@ -851,7 +854,7 @@ function ozelYanCiz() {
 function ozelBitir(cizilsin = true) {
   if (ozel?.zaman) clearInterval(ozel.zaman);
   ozel = null; $('#soruKarti').hidden = true;
-  g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle();
+  g.soru = new Set(); g.soluk = null; g.secili = new Set(); g.yalniz = null; aktifKonu = null; g.guncelle(); if (mod.parcali) parcaliEtiketle();
   if (cizilsin) yanCiz();
 }
 
@@ -1273,7 +1276,7 @@ function kartCevap() {
     tekrar.sira++; tekrarYanCiz(); kartGoster();
   }));
 }
-function tekrarBitir() { tekrar = null; $('#soruKarti').hidden = true; g.soru = new Set(); g.soluk = null; g.yalniz = null; g.guncelle(); }
+function tekrarBitir() { tekrar = null; $('#soruKarti').hidden = true; g.soru = new Set(); g.soluk = null; g.yalniz = null; g.guncelle(); if (mod.parcali) parcaliEtiketle(); }
 
 // ---------- Çalışma planı ----------
 function planCiz() {
@@ -1345,7 +1348,17 @@ function suzgecYaz() {
   b.hidden = !acik; if (acik) b.innerHTML = `Yalnız ${g.yalniz.size} yapı gösteriliyor<b>Tümünü göster</b>`;
 }
 $('#suzgec').onclick = () => { sahneSifirla(); g.gorunus('on'); yanCiz(); };
-{ const asil = g.guncelle.bind(g); g.guncelle = () => { asil(); durumYaz(); suzgecYaz(); }; durumYaz(); suzgecYaz(); }
+// Seçili yapıyı tek dokunuşla gizle: üstteki yapı (ör. büyük omentum) kalkar, altındakiler görünür ve seçilebilir olur.
+$('#sahneGizle').onclick = () => { if (seciliParca < 0) return; yapiParcalari(seciliParca).forEach(j => g.gizli.add(j)); secimiBirak(); if (sekme === 'kesfet') kesfetCiz(); };
+// Gizlenen yapı varsa sahnenin üstünde sayısı ve geri getirme düğmesi durur (canlandırmanın geçici gizlemeleri sayılmaz).
+function gizliYaz() {
+  const b = $('#gizliSerit'), acik = g.gizli.size > 0 && !canli && !sinav && !tekrar && !ozel;
+  b.hidden = !acik; if (!acik) return;
+  const n = new Set([...g.gizli].map(i => (parcalar[i]?.anahtar ?? 'p' + i) + parcaYani(i))).size;
+  b.innerHTML = `${n} yapı gizli<b>Geri getir</b>`;
+}
+$('#gizliSerit').onclick = () => { g.gizli = new Set(); g.guncelle(); if (sekme === 'kesfet') kesfetCiz(); };
+{ const asil = g.guncelle.bind(g); g.guncelle = () => { asil(); durumYaz(); suzgecYaz(); gizliYaz(); }; durumYaz(); suzgecYaz(); gizliYaz(); }
 { const genis = matchMedia('(min-width: 901px) and (orientation: landscape), (min-width: 1101px)');
   const ayarla = () => { g.yanBosluk = genis.matches ? document.querySelector('.yan').offsetWidth + 14 : 0; g._boyut(); };
   genis.addEventListener('change', ayarla); addEventListener('resize', ayarla); ayarla(); }

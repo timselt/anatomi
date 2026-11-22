@@ -92,4 +92,6 @@ Bir yapıya tıkla, sağdaki **Benim notum** alanına yaz. Kendiliğinden kayded
 
 **Renkler:** Organlar kendi doğal renkleriyle görünür: karaciğer kızıl kahve, safra kesesi yeşil, mide ve ince bağırsak pembe, kalın bağırsak açık kahve; beyin pembemsi gri, içi (ak cevher) beyazımsı; gözde göz akı beyaz, iris kahve, kornea ve mercek saydam; kalpte kas duvarı koyu kırmızı, kapakçıklar beyazımsı; bağlar lifli beyaz; kaslar koyu kırmızı. Karaciğerdeki ince çizgiler karaciğerin cerrahi segmentlerinin (Couinaud) sınırlarıdır. Büyük omentum bağırsakların önünü örten ince bir tüldür; diğer karın zarları neredeyse saydamdır. Seçtiğin yapı kendi gölgesini ve dokusunu koruyarak yeşil-mavi tona döner.
 
+**Karın zarı (periton):** Karın açıldığında ilk görülen yapı, bağırsakların önüne önlük gibi sarkan büyük omentumdur; model de öyle açılır. Ona dokunup alttaki "Gizle"ye basınca bağırsaklar görünür, sahnenin üstündeki "Geri getir" ile geri gelir. Sistem listesindeki "Karın zarı (periton)" satırını kapatırsan omentum, mezenter ve mezokolon hep gizli kalır.
+
 **Üst üste duran yapılar:** Bir noktada birden çok yapı varsa (ör. bağırsakların önündeki büyük omentum) dokunduğunda öndeki ince zar değil arkasındaki organ seçilir. Aynı yere tekrar dokunursan o noktadaki yapılar sırayla seçilir; seçim yazısında kaçıncı yapıda olduğun yazar.

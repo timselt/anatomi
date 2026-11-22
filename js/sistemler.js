@@ -11,6 +11,7 @@ export const SISTEMLER = [
   { id: 'toplardamar', ad: 'Toplardamarlar', renk: '#4f7ba3', aciklama: 'Toplardamarlar kanı dokulardan kalbe geri getirir. Akciğer toplardamarları dışındakiler oksijeni az kan taşır.' },
   { id: 'solunum', ad: 'Solunum', renk: '#c8919a', ayrinti: true, aciklama: 'Hava yolları havayı akciğerlere iletir; akciğerlerde oksijen kana geçer, karbondioksit dışarı atılır. (Bu modelde akciğer dokusu yok; bronş ağacı görünür.)' },
   { id: 'sindirim', ad: 'Sindirim', renk: '#c49668', ayrinti: true, aciklama: 'Sindirim kanalı besinleri parçalar, besin ve suyu emer, artıkları dışarı atar. Yardımcı organlar safra ve enzim salgılar.' },
+  { id: 'periton', ad: 'Karın zarı (periton)', ayrinti: true, renk: '#e3c06a', aciklama: 'Periton karın boşluğunu döşeyen ve organları saran ince zardır. Büyük omentum ince bağırsakların önüne önlük gibi sarkar; mezenter ve mezokolon bağırsakları karın arka duvarına asar.' },
   { id: 'bosaltim', ad: 'Boşaltım', ayrinti: true, renk: '#b77a5f', aciklama: 'Böbrekler kanı süzerek idrar oluşturur; idrar üreterlerle keseye gelir ve üretrayla dışarı atılır.' },
   { id: 'hormon', ad: 'Hormon bezleri', ayrinti: true, renk: '#c99ec6', aciklama: 'Hormon bezleri salgılarını doğrudan kana verir; büyüme, enerji kullanımı, stres ve üreme gibi işleri düzenler.' },
   { id: 'lenf', ad: 'Lenf ve bağışıklık', ayrinti: true, renk: '#86a37a', aciklama: 'Lenf organları vücudu mikroplara karşı korur ve dokular arasındaki fazla sıvıyı kana geri taşır.' },
@@ -26,6 +27,7 @@ const KAYNAK = { skeletal: 'iskelet', muscular: 'kas', nervous: 'sinir', cardiac
 export function sistemBul(parca) {
   const n = parca.name.toLowerCase();
   const s = KAYNAK[parca.system] ?? 'bag';
+  if (/^(greater|lesser) omentum$|mesocolon|^mesentery/.test(n)) return 'periton'; // karın zarı katlantıları ayrı sistemde: açılıp kapanabilsin
   if (/^hepatovenous segment/.test(n)) return 'sindirim'; // karaciğer segmentleri (kaynak modelde toplardamar sanılmış)
   if (s === 'deri' && /areola|nipple|lactiferous|mammary|breast/.test(n)) return 'ureme';
   if (s === 'iskelet') {
@@ -43,4 +45,4 @@ export function sistemBul(parca) {
   return s;
 }
 
-export const VARSAYILAN_ACIK = ['iskelet', 'sindirim', 'solunum', 'kalp', 'bosaltim'];
+export const VARSAYILAN_ACIK = ['iskelet', 'sindirim', 'periton', 'solunum', 'kalp', 'bosaltim'];

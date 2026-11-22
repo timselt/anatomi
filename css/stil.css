@@ -370,3 +370,12 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 /* Başlığın altındaki ithaf satırı */
 .baslik-metin { display: flex; flex-direction: column; line-height: 1.15; }
 .ithaf { font-family: var(--sans); font-size: .7rem; font-weight: 400; color: var(--soluk); letter-spacing: 0; margin-top: 2px; }
+
+/* Sahne üstü bildirimleri (süzgeç, gizli yapılar) üst üste dizilir; seçim yazısındaki Gizle düğmesi */
+.ust-bildirim { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ust-bildirim .suzgec { position: static; transform: none; }
+.secim-etiketi { display: flex; align-items: center; gap: 10px; }
+.sahne-gizle { background: transparent; color: var(--vurgu); border: 1px solid rgba(255,255,255,.35); border-radius: 6px; padding: 3px 10px; font-family: var(--mono); font-size: .66rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+.sahne-gizle:hover { border-color: var(--vurgu); }
+@media (pointer: coarse) { .sahne-gizle { min-height: 34px; padding: 4px 12px; } }
+@media print { .ust-bildirim, .sahne-gizle { display: none; } }
