@@ -201,8 +201,8 @@ t('popliteus','diz-arkasi-kasi','Diz arkası kası','Musculus popliteus',3,'Kili
 t('tensor fasciae latae','fasya-geren','Geniş fasyayı geren kas','Musculus tensor fasciae latae',3,'Uyluğu büker ve yana açar; iliotibial bandı gerer.','');
 
 // ---------------- KALP ----------------
-t('wall of left atrium','sol-kulakcik','Sol atriyum duvarı','Atrium sinistrum',1,'Akciğerlerden gelen temiz (oksijenli) kanı alır ve sol ventriküle geçirir.','Sol taraf temiz kan, sağ taraf kirli kan.');
-t('wall of right atrium','sag-kulakcik','Sağ atriyum duvarı','Atrium dextrum',1,'Vücuttan gelen kirli (oksijeni az) kanı alır ve sağ ventriküle geçirir.','');
+t('wall of left atrium','sol-kulakcik','Sol atriyum duvarı','Atrium sinistrum',1,'Akciğerlerden gelen oksijenli kanı alır ve sol ventriküle geçirir.','Kalbin sol tarafı oksijenli, sağ tarafı oksijeni azalmış kan taşır.');
+t('wall of right atrium','sag-kulakcik','Sağ atriyum duvarı','Atrium dextrum',1,'Vücuttan gelen oksijeni azalmış kanı alır ve sağ ventriküle geçirir.','');
 t('cavity of left atrium','sol-kulakcik-boslugu','Sol atriyum boşluğu','Atrium sinistrum',2,'Pulmoner venlerden gelen oksijenli kanın dolduğu boşluktur.','');
 t('cavity of right atrium','sag-kulakcik-boslugu','Sağ atriyum boşluğu','Atrium dextrum',2,'Ana venlerden gelen kanın dolduğu boşluktur.','');
 t('cavity of left ventricle','sol-karincik','Sol ventrikül boşluğu','Ventriculus sinister',1,'Kanı aort yoluyla bütün vücuda pompalar. Duvarı kalbin en kalın bölümüdür.','');
@@ -219,7 +219,7 @@ t('ascending aorta','cikan-aorta','Çıkan aorta','Aorta ascendens',2,'Sol ventr
 t('arch of aorta','aort-yayi','Aort yayı','Arcus aortae',1,'Aortun kalpten çıktıktan sonra yaptığı kıvrımdır; baş ve kollara giden arterler buradan çıkar.','');
 t('descending aorta|descending thoracic aorta','gogus-aortasi','Göğüs aortası (inen aortun göğüs bölümü)','Aorta thoracica',2,'Aortun göğüs boşluğunda aşağı inen bölümüdür.','');
 t('abdominal aorta','karin-aortasi','Karın aortası','Aorta abdominalis',2,'Aortun karın boşluğundaki bölümüdür; karın organlarına dallar verir.','');
-t('pulmonary trunk','pulmoner-govde','Pulmoner gövde','Truncus pulmonalis',2,'Sağ ventrikülden çıkan ve kirli kanı akciğerlere taşıyan ana gövdedir.','Kirli kan taşıyan tek arter pulmoner arterdir.');
+t('pulmonary trunk','pulmoner-govde','Pulmoner gövde','Truncus pulmonalis',2,'Sağ ventrikülden çıkan ve oksijeni azalmış kanı akciğerlere taşıyan ana gövdedir.','Doğumdan sonra oksijeni azalmış kan taşıyan tek arterler pulmoner arterlerdir.');
 t('pulmonary artery','pulmoner-arter','Pulmoner arter','Arteria pulmonalis',1,'Oksijeni az kanı kalpten akciğere taşır.','');
 t('common carotid artery','ortak-sah','Ana karotis arter','Arteria carotis communis',1,'Boyundan başa kan taşıyan ana arterdir; nabız boyunda buradan alınır.','');
 t('internal carotid artery','ic-sah','İç karotis arter','Arteria carotis interna',2,'Beyne ve göze kan taşır.','');
@@ -233,12 +233,12 @@ t('vertebral artery','omur-arter','Vertebral arter','Arteria vertebralis',3,'Boy
 t('basilar artery','baziler','Baziler arter','Arteria basilaris',3,'İki vertebral arterin birleşmesiyle oluşur; beyin sapı ve beyinciği besler.','');
 t('celiac trunk|celiac artery','colyak','Çölyak gövde','Truncus coeliacus',3,'Karın aortasının ilk büyük dalıdır; mide, karaciğer ve dalağı besler.','');
 t('superior mesenteric artery|trunk of superior mesenteric artery','ust-mezenter-arter','Süperior mezenterik arter','Arteria mesenterica superior',3,'İnce bağırsağı ve kalın bağırsağın ilk yarısını besler.','');
-t('inferior mesenteric artery','alt-mezenter-arter','İnferior mezenterik arteri','Arteria mesenterica inferior',3,'Kalın bağırsağın son kısmını besler.','');
+t('inferior mesenteric artery','alt-mezenter-arter','İnferior mezenterik arter','Arteria mesenterica inferior',3,'Kalın bağırsağın son kısmını besler.','');
 t('renal artery|trunk of renal artery','bobrek-arter','Renal arter','Arteria renalis',1,'Süzülecek kanı böbreğe taşır.','');
 t('splenic artery','dalak-arter','Splenik arter','Arteria splenica',3,'Dalağı ve pankreasın bir kısmını besler.','');
 t('common iliac artery','ortak-iliak-arter','Ana iliak arter','Arteria iliaca communis',2,'Karın aortasının ikiye ayrılmasıyla oluşur; leğen ve bacağa kan taşır.','');
 t('external iliac artery','dis-iliak-arter','Eksternal iliak arter','Arteria iliaca externa',3,'Bacağa giden kanı taşır; kasıkta femoral arter adını alır.','');
-t('internal iliac artery','ic-iliak-arter','İnternal iliak arteri','Arteria iliaca interna',3,'Leğen organlarını ve kalça kaslarını besler.','');
+t('internal iliac artery','ic-iliak-arter','İnternal iliak arter','Arteria iliaca interna',3,'Leğen organlarını ve kalça kaslarını besler.','');
 t('femoral artery','uyluk-arter','Femoral arter','Arteria femoralis',1,'Uyluğun ana arteridir; kasıkta nabzı hissedilir.','');
 t('popliteal artery','diz-arkasi-arter','Popliteal arter','Arteria poplitea',2,'Diz arkasından bacağa geçen arterdir.','');
 t('anterior tibial artery','on-kaval-arter','Ön tibial arter','Arteria tibialis anterior',3,'Bacağın ön kaslarını besler.','');
@@ -252,7 +252,7 @@ t('superior vena cava','ust-ana-toplardamar','Vena cava superior','Vena cava sup
 t('inferior vena cava','alt-ana-toplardamar','Vena cava inferior','Vena cava inferior',1,'Vücudun alt yarısından gelen kanı sağ atriyuma döker; vücudun en büyük venidir.','');
 t('internal jugular vein','ic-sah-toplardamari','İç juguler ven','Vena jugularis interna',2,'Beyinden ve boyundan gelen kanı toplar.','');
 t('subclavian vein','kopucuk-alti-ven','Subklavyen ven','Vena subclavia',2,'Koldan gelen kanı toplar.','');
-t('brachiocephalic vein','kol-bas-ven','Brakiyosefalik ven','Vena brachiocephalica',2,'İç şah ve subklavyen venlerin birleşmesiyle oluşur.','');
+t('brachiocephalic vein','kol-bas-ven','Brakiyosefalik ven','Vena brachiocephalica',2,'İnternal juguler ven ile subklavyen venin birleşmesiyle oluşur.','');
 t('axillary vein','koltukalti-ven','Aksiller ven','Vena axillaris',3,'Kolun kanını toplar.','');
 t('cephalic vein','sefalik','Sefalik ven','Vena cephalica',3,'Kolun dış tarafında deri altında uzanan vendir.','');
 t('basilic vein','bazilik','Bazilik ven','Vena basilica',3,'Kolun iç tarafında deri altında uzanan vendir.','');
@@ -263,11 +263,11 @@ t('femoral vein|deep femoral vein','uyluk-ven','Femoral ven','Vena femoralis',2,
 t('popliteal vein','diz-arkasi-ven','Popliteal ven','Vena poplitea',3,'Bacağın alt kısmından gelen kanı toplar.','');
 t('portal vein|hepatic portal vein|trunk of portal vein|pre-hepatic portal vein','kapi-ven','Portal ven','Vena portae hepatis',2,'Bağırsaklardan emilen besinleri taşıyan kanı karaciğere götürür.','Sindirim kanı önce karaciğerden geçer: "gümrük kapısı".');
 t('hepatic vein|middle hepatic vein','karaciger-ven','Hepatik ven','Vena hepatica',3,'Karaciğerden çıkan kanı vena cava inferior\'a döker.','');
-t('renal vein','bobrek-ven','Renal ven','Vena renalis',2,'Böbrekte süzülmüş temiz kanı vena cava inferior\'a taşır.','');
+t('renal vein','bobrek-ven','Renal ven','Vena renalis',2,'Böbrekte süzülmüş, oksijeni azalmış kanı vena cava inferior\'a taşır.','');
 t('splenic vein','dalak-ven','Splenik ven','Vena splenica',3,'Dalaktan gelen kanı portal vene taşır.','');
 t('superior pulmonary vein|inferior pulmonary vein','pulmoner-ven','Pulmoner ven','Vena pulmonalis',1,'Akciğerden gelen oksijenli kanı sol atriyuma taşır.','Temiz kan taşıyan tek ven grubu.');
 t('azygos vein','azigos','Azigos ven','Vena azygos',3,'Göğüs duvarının kanını toplayıp vena cava superior\'a döker.','');
-t('coronary sinus','koroner-sinus','Koroner sinüs','Sinus coronarius',3,'Kalp kasının kirli kanını toplayıp sağ atriyuma döker.','');
+t('coronary sinus','koroner-sinus','Koroner sinüs','Sinus coronarius',3,'Kalp kasının oksijeni azalmış kanını toplayıp sağ atriyuma döker.','');
 t('great cardiac vein','buyuk-kalp-ven','Büyük kardiyak ven','Vena cardiaca magna',3,'Kalbin ön yüzünün kanını toplar.','');
 t('common iliac vein','ortak-iliak-ven','Ana iliak ven','Vena iliaca communis',3,'Bacak ve leğenden gelen kanı toplar.','');
 
@@ -326,7 +326,7 @@ t('lateral geniculate body','yan-dizcik','Yan dizcik cismi','Corpus geniculatum 
 t('medial geniculate body','ic-dizcik','İç dizcik cismi','Corpus geniculatum mediale',3,'Talamusun işitme aktarım çekirdeğidir; işitme bilgisini şakak lobundaki işitme kabuğuna iletir.','');
 t('habenula','habenula','Habenula','Habenula',3,'Epitalamusun parçasıdır; limbik sistemi beyin sapına bağlar, ödül ve motivasyonla ilgilidir.','');
 t('stria medullaris of thalamus','stria-medullaris','Talamusun ilik çizgisi','Stria medullaris thalami',3,'Talamusun üst-iç kenarı boyunca habenulaya giden lif demetidir.','');
-t('mammillary body','memecik-cisim','Memecik cisim','Corpus mamillare',3,'Hipotalamusun arka tabanındaki iki küçük çıkıntıdır; bellek devresinin (Papez devresi) parçasıdır.','');
+t('mammillary body','memecik-cisim','Memecik cisim','Corpus mammillare',3,'Hipotalamusun arka tabanındaki iki küçük çıkıntıdır; bellek devresinin (Papez devresi) parçasıdır.','');
 t('tuber cinereum','tuber-cinereum','Kül rengi tümsek','Tuber cinereum',3,'Hipotalamusun tabanıdır; hipofiz sapı (infundibulum) buradan çıkar.','');
 t('peduncle of midbrain','beyin-sapi-ayagi','Beyin ayağı','Pedunculus cerebri',3,'Orta beynin ön kısmıdır; beyin kabuğundan inen hareket yolları buradan geçer.','');
 t('interpeduncular fossa','ayaklar-arasi-cukur','Ayaklar arası çukur','Fossa interpeduncularis',3,'İki beyin ayağı arasındaki çukurdur; göz hareket siniri (3. kafa siniri) buradan çıkar.','');
@@ -367,7 +367,7 @@ t('suspensory ligament of lens','zonul','Mercek askı bağı (zonül lifleri)','
 t('lacrimal canaliculus','gozyasi-kanalcigi','Gözyaşı kanalcığı','Canaliculus lacrimalis',3,'İç göz köşesindeki küçük delikten gözyaşını toplayıp gözyaşı kesesine taşır.','');
 t('lacrimal lake','gozyasi-golu','Gözyaşı gölü','Lacus lacrimalis',3,'İç göz köşesinde gözyaşının toplandığı küçük alandır.','');
 t('tarsal plate of upper eyelid|tarsal plate of lower eyelid','tarsal-plak','Tarsal plak (göz kapağı iskeleti)','Tarsus superior / Tarsus inferior',3,'Göz kapağına biçim veren sıkı bağ dokusu plağıdır; içinde yağ salgılayan Meibom bezleri bulunur.','');
-t('external ear','kulak-kepcesi','Dış kulak (kulak kepçesi)','Auricula',1,'Ses dalgalarını toplayıp kulak yoluna yönlendirir.','');
+t('external ear','kulak-kepcesi','Kulak kepçesi','Auricula',1,'Ses dalgalarını toplayıp kulak yoluna yönlendirir.','');
 
 // ---------------- BOŞALTIM, HORMON, LENF, ÜREME, DERİ ----------------
 t('kidney','bobrek','Böbrek','Ren',1,'Kanı süzerek idrar oluşturur; vücudun su ve tuz dengesini korur.','Fasulye biçimli, belin iki yanında.');
@@ -426,6 +426,9 @@ export function coz(adIng) {
     const tr = k === 'timus' ? `Timüs – ${n.startsWith('left') ? 'sol' : 'sağ'} lob` : TERIM[k].tr;
     return { anahtar: k, tr, la: TERIM[k].la, ek: '' };
   }
+  // Adında "left/right" geçen ama taraf değil yapının adı olan damarlar (ör. "left colic artery" = a. colica sinistra).
+  const dTam = /\b(left|right)\b/.test(n) && DAMAR_KAS[n];
+  if (dTam) return { anahtar: dTam.anahtar, tr: dTam.tr, la: dTam.la, ek: '' };
   let taraf = '';
   const tm = n.match(/\b(left|right)\b/);
   if (tm) { taraf = tm[1] === 'left' ? 'Sol' : 'Sağ'; n = n.replace(/\b(left|right)\b ?/g, '').replace(/\s+/g, ' ').trim(); }

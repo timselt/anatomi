@@ -27,7 +27,7 @@ const UST = {
   'common iliac artery': 'abdominal aorta', 'median sacral artery': 'abdominal aorta',
   'inferior suprarenal artery': 'renal artery',
   // Truncus coeliacus
-  'gastric artery': 'celiac trunk', 'common hepatic artery': 'celiac trunk', 'splenic artery': 'celiac trunk',
+  'gastric artery': 'celiac trunk', 'left gastric artery': 'celiac trunk', 'right gastric artery': 'hepatic artery proper', 'right colic artery': 'superior mesenteric artery', 'common hepatic artery': 'celiac trunk', 'splenic artery': 'celiac trunk',
   'hepatic artery proper': 'common hepatic artery', 'proper hepatic artery': 'common hepatic artery',
   'gastroduodenal artery': 'common hepatic artery',
   'anterior superior pancreaticoduodenal artery': 'gastroduodenal artery', 'posterior superior pancreaticoduodenal artery': 'gastroduodenal artery',
@@ -148,7 +148,7 @@ export function arterUstAdi(en) {
   if (/proper palmar digital arter/.test(ad)) return 'common palmar digital arteries';
   const kural = /\b(?:branch|branches|part|division|segment) of (.+?)(?: to .+)?$/.exec(ad);
   if (kural) return ES[kural[1]] ?? kural[1];
-  const u = UST[yanSil(tam)] ?? UST[yanSil(ad)] ?? UST[ad];
+  const u = UST[tam] ?? UST[ad] ?? UST[yanSil(tam)] ?? UST[yanSil(ad)];
   if (!u) return null;
   return typeof u === 'string' ? u : (u[yan] ?? u.sag);
 }
