@@ -125,12 +125,15 @@ g.uzerinde = (i, x, y) => {
 let sekme = 'kesfet', aktifKonu = null, sinav = null, tekrar = null, ozel = null, canli = null, seciliParca = -1;
 const kesit = { acik: false, eksen: 'y', oran: 0.5, ters: false };
 
-g.tikla = (i, nokta) => {
+g.yapiAnahtari = i => parcalar[i]?.anahtar ?? 'p' + i;
+g.tikla = (i, nokta, h) => {
   if (olcumModu && !sinav && !tekrar && !ozel) { if (nokta) { const cm = g.olcumNoktasi(nokta); const d = $('#olcumDurum'); if (d) d.textContent = cm === null ? 'İkinci noktayı tıkla.' : `Mesafe: ${cm.toFixed(1).replace('.', ',')} cm. Yeni ölçüm için yeniden tıkla.`; } return; }
   if (sinav && !sinav.cevaplandi && sinav.sorular[sinav.sira].tip === 'bul') return sinavBulCevap(i);
   if (sinav || tekrar || ozel || canli) return;
   if (i < 0) { secimiBirak(); return; }
   parcaSec(i, false);
+  // Aynı noktada üst üste birden çok yapı varsa (ör. omentum ve arkasındaki bağırsak) bunu söyle.
+  if (h?.toplam > 1) $('#secimEtiketi').textContent += ` · aynı yere tekrar dokun: sıradaki yapı (${h.sira}/${h.toplam})`;
 };
 
 // ---------- Sekmeler ----------
