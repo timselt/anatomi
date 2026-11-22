@@ -94,4 +94,4 @@ Bir yapıya tıkla, sağdaki **Benim notum** alanına yaz. Kendiliğinden kayded
 
 **Karın zarı (periton):** Karın açıldığında ilk görülen yapı, bağırsakların önüne önlük gibi sarkan büyük omentumdur; model de öyle açılır. Ona dokunup alttaki "Gizle"ye basınca bağırsaklar görünür, sahnenin üstündeki "Geri getir" ile geri gelir. Sistem listesindeki "Karın zarı (periton)" satırını kapatırsan omentum, mezenter ve mezokolon hep gizli kalır.
 
-**Üst üste duran yapılar:** Bir noktada birden çok yapı varsa (ör. bağırsakların önündeki büyük omentum) dokunduğunda öndeki ince zar değil arkasındaki organ seçilir. Aynı yere tekrar dokunursan o noktadaki yapılar sırayla seçilir; seçim yazısında kaçıncı yapıda olduğun yazar.
+**Üst üste duran yapılar:** Dokunuş her zaman en öndeki yapıyı seçer. Arkasındakine ulaşmak için öndekini seç ve alttaki "Gizle"ye bas; öndeki kalkar, arkadakiler görünür ve seçilebilir olur. Sahnenin üstündeki "Geri getir" gizlenenlerin hepsini geri getirir.

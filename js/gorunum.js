@@ -571,27 +571,17 @@ export class Goruntuleyici {
   }
 
   // Ekran noktasındaki en öndeki parçayı bulur: { i, nokta } ya da null.
-  // İnce zarlar (ör. büyük omentum) önde dursa da tıklama arkasındaki organa gider; zarın kendisi, arkasında organ olmayan yerden ya da
-  // aynı noktaya yeniden tıklanarak seçilir. dongu: aynı noktaya art arda tıklanınca o noktadaki yapılar önden arkaya sırayla seçilir.
-  isabet(x, y, dongu = false) {
+  // Yarı saydam yapılar (ör. kornea, mercek) önde dursa da tıklama arkasındaki opak yapıya gider. Arkadaki bir yapıya ulaşmak için
+  // öndeki seçilip "Gizle" ile kaldırılır.
+  isabet(x, y) {
     const r = this.renderer.domElement.getBoundingClientRect();
     const fare = new T.Vector2(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
     const isin = new T.Raycaster(); isin.setFromCamera(fare, this.kamera);
     const adaylar = this.meshler.filter(m => m && m.visible && !(m.material.transparent && m.material.opacity < 0.3 && !m.material.userData.secilebilir));
     const sonuc = isin.intersectObjects(adaylar, false).filter(s => !this.kesitAcik || this.kesit.distanceToPoint(s.point) >= 0);
     const tul = s => (this.parcaRenk?.(s.object.userData.i) ?? '').includes('|');
-    // Aynı yapının birden çok parçası (ör. boş bağırsağın bölümleri) sırada tek yapı sayılır.
-    const yapi = s => this.yapiAnahtari?.(s.object.userData.i) ?? s.object.userData.i;
-    const tekil = [...new Map(sonuc.map(s => [yapi(s), s])).values()];
-    const liste = [...tekil.filter(s => !tul(s)), ...tekil.filter(tul)];
-    if (!liste.length) { this._sonTik = null; return null; }
-    let n = 0;
-    if (dongu) {
-      const o = this._sonTik, ayni = o && Math.hypot(o.x - x, o.y - y) < 8 && o.anahtar === liste.map(s => s.object.userData.i).join(',');
-      n = ayni ? (o.n + 1) % liste.length : 0;
-      this._sonTik = { x, y, n, anahtar: liste.map(s => s.object.userData.i).join(',') };
-    }
-    return { i: liste[n].object.userData.i, nokta: liste[n].point, sira: n + 1, toplam: liste.length };
+    const s = sonuc.find(x => !tul(x)) ?? sonuc[0];
+    return s ? { i: s.object.userData.i, nokta: s.point } : null;
   }
   sec(x, y) { return this.isabet(x, y)?.i ?? -1; }
 
@@ -600,7 +590,7 @@ export class Goruntuleyici {
     el.addEventListener('pointerdown', e => { bas = [e.clientX, e.clientY]; this.uzerinde(-1); });
     el.addEventListener('pointerup', e => {
       if (!bas) return; const d = Math.hypot(e.clientX - bas[0], e.clientY - bas[1]); bas = null;
-      if (d < 6) { const h = this.isabet(e.clientX, e.clientY, true); this.tikla(h ? h.i : -1, h ? h.nokta : null, h); }
+      if (d < 6) { const h = this.isabet(e.clientX, e.clientY); this.tikla(h ? h.i : -1, h ? h.nokta : null); }
     });
     // Fare bir yapının üstünde durunca adını göstermek için (yalnız fare; sürüklerken çalışmaz).
     el.addEventListener('pointermove', e => {
