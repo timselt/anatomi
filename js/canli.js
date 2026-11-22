@@ -5,17 +5,17 @@
 // ---- Adım adım akışlar ----
 export const AKISLAR = [
   { id: 'dolasim', ad: 'Kanın yolu: küçük ve büyük dolaşım', sistemler: ['kalp', 'atardamar', 'toplardamar', 'solunum'], adimlar: [
-    { y: ['ust-ana-toplardamar', 'alt-ana-toplardamar'], m: 'Vücuttan dönen oksijeni azalmış kan, üst ve alt ana toplardamarla (vena cava superior ve inferior) kalbe gelir.' },
-    { y: ['sag-kulakcik', 'sag-kulakcik-boslugu'], m: 'Kan sağ kulakçığa (atrium dextrum) dolar.' },
+    { y: ['ust-ana-toplardamar', 'alt-ana-toplardamar'], yol: ['ust-ana-toplardamar'], m: 'Vücuttan dönen oksijeni azalmış kan, üst ve alt ana toplardamarla (vena cava superior ve inferior) kalbe gelir.' },
+    { y: ['sag-kulakcik', 'sag-kulakcik-boslugu'], yol: ['sag-kulakcik-boslugu'], m: 'Kan sağ kulakçığa (atrium dextrum) dolar.' },
     { y: ['trikuspit'], m: 'Kan triküspit kapaktan (valva tricuspidalis) geçerek sağ karıncığa akar. Dolumun çoğu kendiliğinden olur; sağ kulakçığın kasılması kalan kanı karıncığa iter.' },
     { y: ['sag-karincik'], m: 'Kan sağ karıncığa (ventriculus dexter) dolar. Karıncık kasılınca triküspit kapak kapanır.' },
     { y: ['pulmoner-kapak', 'pulmoner-govde'], m: 'Kan akciğer atardamarı kapağından geçerek akciğer atardamarı gövdesine (truncus pulmonalis) atılır.' },
     { y: ['pulmoner-arter'], m: 'Sağ ve sol akciğer atardamarları oksijeni az kanı akciğerlere taşır. Doğumdan sonra oksijeni az kan taşıyan tek atardamarlar bunlardır.' },
     { y: [/^z:.*lobe of .*lung/], m: 'Akciğerlerde, hava keseciklerini saran kılcal damarlarda kan karbondioksiti verir ve oksijen alır.' },
     { y: ['pulmoner-ven'], m: 'Oksijenlenmiş kan dört akciğer toplardamarıyla (venae pulmonales) kalbe döner. Buraya kadar olan yol küçük dolaşımdır.' },
-    { y: ['sol-kulakcik', 'sol-kulakcik-boslugu'], m: 'Kan sol kulakçığa (atrium sinistrum) dolar.' },
+    { y: ['sol-kulakcik', 'sol-kulakcik-boslugu'], yol: ['sol-kulakcik-boslugu'], m: 'Kan sol kulakçığa (atrium sinistrum) dolar.' },
     { y: ['mitral'], m: 'Kan mitral kapaktan (valva mitralis) geçerek sol karıncığa akar. Dolumun çoğu kendiliğinden olur; sol kulakçığın kasılması kalan kanı karıncığa iter.' },
-    { y: ['sol-karincik', 'karincik-duvari'], m: 'Kan sol karıncığa (ventriculus sinister) dolar. Sol karıncığın duvarı kalbin en kalın yeridir, çünkü kanı bütün vücuda pompalar.' },
+    { y: ['sol-karincik', 'karincik-duvari'], yol: ['sol-karincik'], m: 'Kan sol karıncığa (ventriculus sinister) dolar. Sol karıncığın duvarı kalbin en kalın yeridir, çünkü kanı bütün vücuda pompalar.' },
     { y: ['aort-kapagi', 'cikan-aorta'], m: 'Sol karıncık kasılır; kan aort kapağından çıkan aortaya (aorta ascendens) atılır. Kalbi besleyen koroner atardamarlar buradan çıkar.' },
     { y: ['aort-yayi', 'gogus-aortasi', 'karin-aortasi'], m: 'Aort yayı baş ve kollara dallar verir; göğüs ve karın aortası gövde ve bacakları besler. Kan dokulara oksijen bırakır ve toplardamarlarla kalbe döner: büyük dolaşım tamamlanır.' },
   ] },

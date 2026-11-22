@@ -150,6 +150,22 @@ const ORGAN_GRUBU = [[/lung|bronch/, 'akciger'], [/hepat|liver|gallbladder/, 'ka
   [/kidney|renal|ureter/, 'bobrek'], [/ventric|atrium|atrial|valve|papillary|heart|coronary/, 'kalp'], [/stomach|gastric/, 'mide'], [/^(?!.*ligament).*((body|fundus|wall|cavity|cervix) of uterus|uterus$)/, 'rahim']];
 const KEMIK_BOLGESI = [[/carpal|metacarpal|scaphoid|lunate|triquetr|pisiform|trapez|capitate|hamate|finger|thumb/, 'el'], [/tarsal|metatarsal|talus|calcaneus|cuboid|cuneiform|navicular|toe|foot/, 'ayak'],
   [/\brib\b|costal|sternum|manubrium|xiphoid/, 'gogus-kafesi'], [/vertebra|sacrum|coccyx|atlas|axis|intervertebral/, 'omurga']];
+// Organların kendi doğal renkleri (ders atlası tonları). Sıra önemlidir: "hepatic flexure of colon" önce kalın bağırsak sayılır.
+const ORGAN_RENK = [
+  // Karın zarı katlantıları (omentum, mezenter, mezokolon) organların önünde perde olmasın diye ince bir tül gibi çizilir; "mesocolon" adı kalın bağırsaktan önce tanınır.
+  [/omentum|mesenter|mesocolon/i, '#e2bd62|0.16'], [/colon|caecum|cecum|appendix|rectum|taenia|anal canal/i, '#c4916a'], [/gallbladder|cystic duct|bile duct|hepatic duct/i, '#6f8a3c'],
+  [/hepat|liver/i, '#8e4434'], [/pancrea/i, '#dcb36c'], [/stomach|gastric|pylor/i, '#d98a7c'], [/duoden|jejun|ileum|ileocecal|small intestine/i, '#e3a08a'],
+  [/oesophag|esophag/i, '#cf8f80'], [/tongue/i, '#c46a6a'], [/tooth|teeth|incisor|canine|premolar|molar/i, '#efe8d8'], [/gingiva/i, '#d98f90'],
+  [/spleen/i, '#7b3346'], [/kidney|renal (cortex|medulla|pyramid|column|papilla)/i, '#8f4a3e'],
+  [/ureter|urinary bladder|urethra|renal pelvis|calyx/i, '#d7ab95'], [/thyroid gland|parathyroid/i, '#a9505c'], [/adrenal|suprarenal/i, '#d0a052'],
+  [/parotid|submandibular gland|sublingual gland|salivary/i, '#d7b08a'], [/pharyn|larynx|epiglott/i, '#d79a92'],
+];
+const ORGAN_SISTEM = new Set(['sindirim', 'bosaltim', 'hormon', 'lenf', 'solunum', 'ureme']);
+const organRengi = [];
+g.parcaRenk = i => {
+  if (organRengi[i] === undefined) { const p = parcalar[i]; organRengi[i] = (ORGAN_SISTEM.has(p.sistem) && ORGAN_RENK.find(([d]) => d.test(p.en))?.[1]) || null; }
+  return organRengi[i];
+};
 g.patlamaBlok = new Set(['atardamar', 'toplardamar', 'sinir', 'lenf', 'deri']); // tek blok kalan ağ sistemleri
 g.patlamaGrubu = i => {
   const p = parcalar[i], en = p.en.toLowerCase(), yan = /\bright\b/.test(en) ? 'R' : /\bleft\b/.test(en) ? 'L' : '';
@@ -843,10 +859,10 @@ const zamanGoster = p => { const c = $('#canliCizgi'); if (c && performance.now(
 const gostergeKutu = (id, ad) => `<div><small>${ad}</small><b id="${id}">–</b></div>`;
 
 const AKIS_AYAR = {
-  dolasim: { renk: n => (n < 7 ? 0x3d7bfd : 0xff3b30), adet: 220, yayilim: 1, ad: 'kan hücreleri' },
-  sindirim: { renk: () => 0xff8a1f, adet: 7, uzunluk: 0.012, boyut: 0.0065, dagilim: 0.7, soluk: 0.07, onden: true, ad: 'lokma', tup: true, tupHaric: /jejun|ileum/i },
-  hava: { renk: () => 0x40c4ff, adet: 120, yayilim: 0.5, ad: 'hava (oksijen)' },
-  idrar: { renk: n => (n < 3 ? 0xff3b30 : 0xffd600), adet: 120, yayilim: 0.6, ad: 'süzüntü' },
+  dolasim: { renk: n => (n < 7 ? 0x3d7bfd : 0xff3b30), adet: 220, yayilim: 1, boyut: 0.003, dagilim: 1.6, soluk: 0.08, onden: true, ad: 'kan hücreleri', tup: true, tekYan: true, tupHaric: /lobe|lung|cusp|leaflet/i },
+  sindirim: { renk: () => 0xff8a1f, adet: 7, uzunluk: 0.012, boyut: 0.0065, dagilim: 0.7, soluk: 0.07, onden: true, ad: 'lokma', tup: true, sikma: /./, tupHaric: /jejun|ileum/i },
+  hava: { renk: () => 0x40c4ff, adet: 120, yayilim: 0.5, boyut: 0.0028, dagilim: 1.4, soluk: 0.08, onden: true, ad: 'hava (oksijen)', tup: true, tekYan: true, tupHaric: /nasal|concha|septum|thyroid cartilage|cricoid|arytenoid|epiglott|segment|lobar|lingul|lobe|lung/i },
+  idrar: { renk: n => (n < 3 ? 0xff3b30 : 0xffd600), adet: 120, yayilim: 0.6, boyut: 0.003, dagilim: 1.2, soluk: 0.08, onden: true, ad: 'süzüntü', tup: true, tekYan: true, sikma: /ureter/i, tupHaric: /kidney|renal pelvis|bladder/i },
   gorme: { renk: () => 0xfff176, adet: 40, yayilim: 0.12, boyut: 0.0028, ad: 'sinir uyarısı' },
 };
 // Adımların yapılarından geçen yolları çıkarır: biri sağ, biri sol taraftaki yapılardan geçen iki kol (ortak yapılar ikisinde de var).
@@ -880,12 +896,29 @@ function yolCikar(adimlar) {
 // borular: yolun hangi noktalarının hangi organa ait olduğu ve organın hangi yönde geçildiği (kasılma dalgası için).
 // haric: boru sayılmayacak yapılar (ör. ince bağırsak; modelde boru değil, kıvrım yığını). Bunlarda lokma organın ortasında durur.
 // Organlar canli.js'deki anatomik sırayla izlenir; yalnız her organın hangi ucundan girileceği seçilir.
-function tupYol(adimlar, haric) {
-  const yol = [], adimBasi = [], borular = [];
+// tekYan: sağ ve sol karşılığı olan yapılarda yalnız sağ taraf izlenir (yol ikiye bölünmesin).
+// Başka bir yapının içinde kalan alt parçalar (ör. "inen aorta" içindeki "göğüs aortası", bir atardamarın "gövdesi") ikinci kez izlenmez; yoksa yol ileri geri gider.
+// b kutusunun en az %70'i a kutusunun içinde kalıyorsa b, a'nın bir parçası sayılır (kenarlar birkaç milimetre taşabilir).
+const kutuIcinde = (b, a, oran = 0.7) => {
+  let ortak = 1, kendi = 1;
+  for (let k = 0; k < 3; k++) { ortak *= Math.max(0, Math.min(b[1][k], a[1][k]) - Math.max(b[0][k], a[0][k])); kendi *= Math.max(b[1][k] - b[0][k], 1e-4); }
+  return ortak / kendi >= oran;
+};
+function tupYol(adimlar, haric, tekYan) {
+  const yol = [], adimBasi = [], borular = [], izlenen = [];
   adimlar.forEach((ad, n) => {
     adimBasi.push(yol.length);
     // Boru sayılmayan parçalar (ör. ince bağırsağın onlarca parçası) tek bir durakta toplanır: hepsinin ortak merkezi.
-    const tum = [...new Set(ad.yol)], dis = tum.filter(i => haric?.test(parcalar[i].en)), kalan = [];
+    let tum = [...new Set(ad.yol)];
+    if (tekYan && tum.some(i => /\bright\b/i.test(parcalar[i].en)) && tum.some(i => /\bleft\b/i.test(parcalar[i].en))) tum = tum.filter(i => !/\bleft\b/i.test(parcalar[i].en));
+    const dis = tum.filter(i => haric?.test(parcalar[i].en)), kalan = [];
+    // Boru parçalarını büyükten küçüğe sırayla denetle: önce izlenen bir yapının (bu ya da önceki adımda) içinde kalanı çıkar. Sıra yine anatomik sıradır.
+    const hacim = i => parcalar[i].bounds[1].reduce((t, v, k) => t * (v - parcalar[i].bounds[0][k]), 1);
+    const boru = tum.filter(i => !dis.includes(i)), tutulan = new Set();
+    for (const i of [...boru].sort((x, y) => hacim(y) - hacim(x))) if (![...izlenen, ...[...tutulan].map(j => parcalar[j].bounds)].some(a => kutuIcinde(parcalar[i].bounds, a))) tutulan.add(i);
+    if (!tutulan.size && !dis.length && boru.length) tutulan.add(boru.reduce((x, y) => (hacim(y) > hacim(x) ? y : x))); // hiçbir adım boş kalmasın
+    tum = tum.filter(i => dis.includes(i) || tutulan.has(i));
+    for (const i of tutulan) izlenen.push(parcalar[i].bounds);
     for (const i of tum) { if (!dis.includes(i)) kalan.push({ i, hat: g.tupHat(i) }); else if (i === dis[0]) kalan.push({ i, hat: null, merkez: kutuMerkezi(dis) }); }
     while (kalan.length) {
       const once = yol[yol.length - 1], s = kalan.shift();
@@ -905,7 +938,7 @@ function akisBaslat(a) {
   canliHazirla('akis', a.ad, a.sistemler);
   canli.adimlar = a.adimlar.map(ad => ({ m: ad.m, p: parcaListesi(ad.y), yol: parcaListesi(ad.yol ?? ad.y) })).filter(ad => ad.p.length && ad.yol.length);
   canli.sira = -1;
-  const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi, borular = [] } = ayar.tup ? tupYol(canli.adimlar, ayar.tupHaric) : yolCikar(canli.adimlar);
+  const hepsi = canli.adimlar.flatMap(ad => ad.p), ayar = AKIS_AYAR[a.id], { yollar, adimBasi, borular = [] } = ayar.tup ? tupYol(canli.adimlar, ayar.tupHaric, ayar.tekYan) : yolCikar(canli.adimlar);
   let adimT = [[], []];
   const adimBul = (t, k = 0) => { let n = 0; for (let i = 0; i < adimT[k].length; i++) if (t >= adimT[k][i] - 1e-6) n = i; return n; };
   g.yalniz = null; g.soluk = new Set(); g.soru = new Set(); g.secili = new Set(); g.guncelle(); g.gorunus('on', false); g.odakla(hepsi);
@@ -913,6 +946,7 @@ function akisBaslat(a) {
   adimT = adimBasi.map((b, k) => b.map(n => g.akisOran(k, n)));
   for (const b of borular) { b.a0 = g.akisOran(0, b.n0); b.a1 = g.akisOran(0, b.n1); }
   canli.geri = () => borular.forEach(b => g.tupSik(b.i, null));
+  canli.borular = borular; // ölçüm için (?debug=1)
   canliKart(''); canliYanCiz();
   $('#canliKapat').insertAdjacentHTML('beforebegin', '<button id="canliTakip" class="ikincil">Yolculuğa katıl</button>');
   $('#canliTakip').onclick = () => { g.akis.takip = !g.akis.takip; $('#canliTakip').textContent = g.akis.takip ? 'Dışarıdan izle' : 'Yolculuğa katıl'; if (!g.akis.takip) g.odakla(hepsi); };
@@ -935,7 +969,8 @@ function akisBaslat(a) {
     const T0 = adimT[0], simdi = Math.max(canli.sira, 0), pay = ayar.tup ? ((T0[simdi + 1] ?? 1) - T0[simdi]) / 6500 : 1 / (canli.adimlar.length * 4200);
     const faz = g.akisAdim(canli.oynuyor ? dt * pay : 0), n = adimBul(faz);
     if (n !== canli.sira) goster(n);
-    for (const b of borular) { const u = (faz - b.a0) / (b.a1 - b.a0); if (u > -0.2 && u < 1.2) g.tupSik(b.i, b.ters ? 1 - u : u, b.ters ? -1 : 1); else g.tupSik(b.i, null); }
+    // Kasılma dalgası yalnız kendiliğinden kasılan borularda (yemek borusu, bağırsak, üreter) gösterilir; damar ve hava yolunda yoktur.
+    for (const b of borular) { if (!ayar.sikma?.test(parcalar[b.i].en)) continue; const u = (faz - b.a0) / (b.a1 - b.a0); if (u > -0.2 && u < 1.2) g.tupSik(b.i, b.ters ? 1 - u : u, b.ters ? -1 : 1); else g.tupSik(b.i, null); }
     zamanGoster(faz);
   };
 }

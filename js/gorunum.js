@@ -4,11 +4,29 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const VURGU = new T.Color('#16b8a6');   // seçili yapı
+// Yumuşak doku yüzeyi: dünya konumuna bağlı çok ince bir pürüz (yaklaşık 1-2 mm) normali hafifçe bozar; yüzey plastik değil doku gibi görünür.
+// Modellerde doku kaplaması (UV) olmadığı için desen koordinatı yerine konum kullanılır. Islak parlaklık (clearcoat) pürüzsüz kalır.
+function dokuEkle(m) {
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vDoku;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvDoku = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vDoku;
+float dokuH(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float dokuG(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(dokuH(i), dokuH(i + vec3(1,0,0)), f.x), mix(dokuH(i + vec3(0,1,0)), dokuH(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(dokuH(i + vec3(0,0,1)), dokuH(i + vec3(1,0,1)), f.x), mix(dokuH(i + vec3(0,1,1)), dokuH(i + vec3(1,1,1)), f.x), f.y), f.z); }`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{ vec3 q = vDoku * 650.0; vec3 b = vec3(dokuG(q), dokuG(q + 19.1), dokuG(q + 37.7)) - 0.5;
+  normal = normalize(normal + 0.22 * b); }`);
+  };
+  m.customProgramCacheKey = () => 'doku1';
+}
+
 const SORU = new T.Color('#ff8a00');    // sınavda sorulan yapı
 
 export class Goruntuleyici {
@@ -55,10 +73,13 @@ export class Goruntuleyici {
       const saydam = id === 'deri';
       // Yumuşak dokular hafif ıslak ve parlak, kemik mat görünür.
       const islak = ['kalp', 'sindirim', 'solunum', 'bosaltim', 'ureme', 'hormon', 'duyu', 'gebelik', 'lenf'].includes(id);
-      this.malzeme[id] = new T.MeshPhysicalMaterial({ color: renk, roughness: id === 'iskelet' ? 0.75 : islak ? 0.45 : 0.6, metalness: 0.03, clearcoat: islak ? 0.35 : 0, clearcoatRoughness: 0.35, envMapIntensity: 0.75, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
+      // Islak dokularda kadifemsi kenar parlaklığı (sheen) ve ince yüzey pürüzü de vardır.
+      this.malzeme[id] = new T.MeshPhysicalMaterial({ color: renk, roughness: id === 'iskelet' ? 0.75 : islak ? 0.45 : 0.6, metalness: 0.03, clearcoat: islak ? 0.35 : 0, clearcoatRoughness: 0.35, sheen: islak ? 0.35 : 0, sheenRoughness: 0.55, sheenColor: 0xfff0ea, envMapIntensity: 0.75, side: T.DoubleSide, transparent: saydam, opacity: saydam ? 0.25 : 1, depthWrite: !saydam });
       this.solukMalzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.6, side: T.DoubleSide, transparent: true, opacity: 0.12, depthWrite: false });
     }
-    this.vurguMalzeme = new T.MeshStandardMaterial({ color: VURGU, emissive: VURGU, emissiveIntensity: 0.35, roughness: 0.4, side: T.DoubleSide });
+    for (const [id, m] of Object.entries(this.malzeme)) if (m.sheen) dokuEkle(m);
+    // Seçili yapı kenar çizgisiyle değil, bütünüyle renklendirilir.
+    this.vurguMalzeme = new T.MeshPhysicalMaterial({ color: VURGU, emissive: VURGU, emissiveIntensity: 0.22, roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.35, side: T.DoubleSide });
     this.soruMalzeme = new T.MeshStandardMaterial({ color: SORU, emissive: SORU, emissiveIntensity: 0.45, roughness: 0.4, side: T.DoubleSide });
     this.tumMalzemeler = [...Object.values(this.malzeme), ...Object.values(this.solukMalzeme), this.vurguMalzeme, this.soruMalzeme];
     this.gorunus('on', false);
@@ -109,6 +130,18 @@ export class Goruntuleyici {
     return i;
   }
 
+  // Organın kendi rengini taşıyan malzeme kopyası (ör. karaciğer kızıl kahve, safra kesesi yeşil). Kopyalar saydamlık ve kesit ayarlarına da katılır.
+  _renkli(soluk, s, renk) {
+    const depo = soluk ? this.solukMalzeme : this.malzeme, k = s + '|' + renk;
+    if (!depo[k]) {
+      // Renk "#rrggbb|0.55" biçimindeyse ikinci kısım saydamlıktır (ör. arkasındaki bağırsakları gösteren yağlı omentum).
+      const [hex, alfa] = renk.split('|'), m = depo[s].clone(); m.color.set(hex);
+      if (alfa && !soluk) { m.transparent = true; m.opacity = Number(alfa); m.depthWrite = false; m.userData.secilebilir = true; } // tül gibi çizilse de tıklanabilir
+      if (depo[s].onBeforeCompile) { m.onBeforeCompile = depo[s].onBeforeCompile; m.customProgramCacheKey = depo[s].customProgramCacheKey; }
+      depo[k] = m; this.tumMalzemeler.push(m);
+    }
+    return depo[k];
+  }
   // Görünürlük ve renkleri durum bilgisine göre yeniden kurar.
   guncelle() {
     this.meshler.forEach((m, i) => {
@@ -119,16 +152,16 @@ export class Goruntuleyici {
       if (this.yalniz) gorunur = this.yalniz.has(i);
       if (soru) gorunur = true;
       m.visible = gorunur;
-      m.material = soru ? this.soruMalzeme : secili ? this.vurguMalzeme : ((this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s)) ? this.solukMalzeme[s] : this.malzeme[s];
+      const r = this.parcaRenk?.(i), soluk = (this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s);
+      m.material = soru ? this.soruMalzeme : secili ? this.vurguMalzeme : r ? this._renkli(soluk, s, r) : soluk ? this.solukMalzeme[s] : this.malzeme[s];
       const kes = this.icAcik?.duzlem.get(i);
       if (kes) { // kesilen yapı kendi malzemesinin kesitli kopyasıyla çizilir
         const mz = this.icAcik.malzeme, anahtar = m.material.uuid + kes.constant;
-        if (!mz.has(anahtar)) { const k = m.material.clone(); k.clippingPlanes = [...(m.material.clippingPlanes ?? []), kes]; mz.set(anahtar, k); }
+        if (!mz.has(anahtar)) { const k = m.material.clone(); if (m.material.onBeforeCompile) { k.onBeforeCompile = m.material.onBeforeCompile; k.customProgramCacheKey = m.material.customProgramCacheKey; } k.clippingPlanes = [...(m.material.clippingPlanes ?? []), kes]; mz.set(anahtar, k); }
         m.material = mz.get(anahtar);
       }
       m.renderOrder = m.material.transparent ? 1 : 0;
     });
-    if (this.cerceve) this.cerceve.selectedObjects = [...this.secili].map(i => this.meshler[i]).filter(m => m?.visible);
     this.kirli = true;
   }
 
@@ -172,7 +205,7 @@ export class Goruntuleyici {
   // k. yolun n. noktasının yol uzunluğuna göre yeri (0-1).
   akisOran(k, n) {
     const e = this.akis.egriler[k], u = e.getLengths(), b = u.length - 1, son = e.points.length - 1;
-    return u[Math.round((n / son) * b)] / u[b];
+    return u[Math.round((Math.min(n, son) / son) * b)] / u[b];
   }
   // Akışı ilerletir; öndeki parçacığın yoldaki yerini (0-1) döndürür.
   akisAdim(ilerleme) {
@@ -498,7 +531,7 @@ export class Goruntuleyici {
     const r = this.renderer.domElement.getBoundingClientRect();
     const fare = new T.Vector2(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
     const isin = new T.Raycaster(); isin.setFromCamera(fare, this.kamera);
-    const adaylar = this.meshler.filter(m => m && m.visible && !(m.material.transparent && m.material.opacity < 0.3));
+    const adaylar = this.meshler.filter(m => m && m.visible && !(m.material.transparent && m.material.opacity < 0.3 && !m.material.userData.secilebilir));
     const sonuc = isin.intersectObjects(adaylar, false).filter(s => !this.kesitAcik || this.kesit.distanceToPoint(s.point) >= 0);
     return sonuc.length ? { i: sonuc[0].object.userData.i, nokta: sonuc[0].point } : null;
   }
@@ -545,9 +578,6 @@ export class Goruntuleyici {
       ao.restoreVisibility = () => { for (const n of saklanan) n.visible = true; goster(); };
       if (this.kesitAcik) ao.normalMaterial.clippingPlanes = [this.kesit];
       this.birlestirici.addPass(ao);
-      this.cerceve = new OutlinePass(new T.Vector2(w, h), this.sahne, this.kamera);
-      this.cerceve.visibleEdgeColor.set(0x14b8a6); this.cerceve.hiddenEdgeColor.set(0x0b5d57); this.cerceve.edgeStrength = 4; this.cerceve.edgeThickness = 1.4;
-      this.birlestirici.addPass(this.cerceve);
       // Tuval saydam olduğu için renkler saydamlıkla çarpılmış gelir; ton eşlemeden önce ayrılıp sonra yeniden çarpılır (yoksa yarı saydam yüzeyler parlar).
       const cikis = new OutputPass();
       cikis.material.fragmentShader = cikis.material.fragmentShader
