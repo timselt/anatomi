@@ -394,3 +394,10 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 .arter-yolu button, .komsular .yok { font-size: .8rem; }
 .arter-yolu .ok { color: var(--soluk, #8a857c); }
 .arter-yolu .yok, .komsular .yok { color: #8a857c; padding: 4px 6px; border: 1px dashed var(--cizgi); border-radius: 6px; }
+.sahne-notu { border-left: 3px solid var(--vurgu); background: var(--kart); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; }
+.sahne-notu p { margin: 4px 0 6px; font-size: .86rem; line-height: 1.45; }
+#atlasBolum details { margin: 4px 0; }
+#atlasBolum summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.atlas-liste { display: grid; gap: 4px; margin: 4px 0 6px; }
+.atlas-liste button { text-align: left; }
+.atlas-liste button.acik { border-color: var(--vurgu); }

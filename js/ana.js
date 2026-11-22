@@ -17,6 +17,7 @@ import { kalpModel, solunumModel, egriCiz, Ses } from './gosterge.js';
 import * as T from 'three';
 import { MIKRO } from './mikro.js';
 import { arterUstAdi, arterBul } from './arterdal.js';
+import { ATLAS } from './atlas.js';
 import { DAMAR_KAS } from './damarkas.js';
 import { anaModelDuzelt } from './organduzelt.js';
 import { ORGAN_TERIM } from './organterim.js';
@@ -85,7 +86,7 @@ async function ekKatman() {
     }
     // Büyük omentum ince bağırsağın ve kalın bağırsağın önündeki örtüdür: taşan kıvrımların önüne itilir.
     for (const om of parcalar.filter(p => /^greater omentum$/i.test(p.en))) g.ortuOneAl(om.i, parcalar.filter(p => p.kaynak !== 'Z-Anatomy' && /jejun|ileum|colon|caecum|cecum|appendix/i.test(p.en)).map(p => p.i));
-    kalpEkiKur(); g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc();
+    kalpEkiKur(); g.guncelle(); if (g.patlama) g.patlat(g.patlama); ekYuklendi = ekler.length; yanCiz(); baglantiAc(); sahneBaglantisiAc();
     g.yavasDenetim = true; // akıcılık denetimi yükleme bittikten sonra başlar
   } catch (h) { if (not) not.textContent = 'Ek katman yüklenemedi: ' + h.message; g.yavasDenetim = true; kalpEkiKur(); g.guncelle(); }
 }
@@ -159,11 +160,14 @@ function baglantiAc() {
   if (baglantiAcildi || !a || !yapilar[a]) return;
   baglantiAcildi = true; parcaSec(yapilar[a].parcalar[0], true);
 }
+// Doğrudan sahne bağlantısı (ör. ?sahne=willis): ek katman yüklendikten sonra açılır.
+function sahneBaglantisiAc() { const s = BAGLANTI.get('sahne'); if (s && ATLAS.some(x => x.id === s)) { sahneAc(s); if (sekme === 'kesfet') kesfetCiz(); } }
 // Görünüm araçlarının durumu
 let odakModu = false, etiketAcik = false, olcumModu = false, parcali = null;
 function etiketleriGuncelle() {
-  if (!etiketAcik || sinav || tekrar || ozel || canli) return g.etiketle([]);
   const yazi = i => (C.dil() === 'la' ? parcalar[i].la : parcalar[i].tr) || parcalar[i].tr || parcalar[i].en;
+  if (aktifSahne && !sinav && !tekrar && !ozel && !canli) return g.etiketle(sahneEtiketAcik ? aktifSahne.etiketListe.map(i => ({ i, metin: yazi(i) })) : []); // atlas sahnesi kendi etiketlerini gösterir
+  if (!etiketAcik || sinav || tekrar || ozel || canli) return g.etiketle([]);
   let liste = [];
   if (aktifKonu) liste = konular().find(k => k.id === aktifKonu)?.liste.slice(0, 30).map(a => yapilar[a].parcalar[0]) ?? [];
   else if (seciliParca >= 0) liste = [seciliParca, ...komsular(seciliParca).map(q => q.i)];
@@ -301,6 +305,7 @@ function parcaliEtiketle() {
 // Kipler arası geçişte sahneyi temiz hâle getirir: süzgeç, soluklaştırma, seçim, kesit açma, ayırma, cam görünüm, tur ve etiketler kapanır.
 // Açık sistemler ile kullanıcının gizlediği yapılar korunur.
 function sahneSifirla() {
+  aktifSahne = null;
   turBitir(); icKapat(); katmanSifirla(); g.solukParca.clear(); baglanmaKapat(); if (cizim.acik) $('#cizimBitti').click();
   if (parcali) { g.parcala(parcali, 0); parcali = null; }
   if (g.patlama) g.patlat(0);
@@ -525,6 +530,11 @@ function kesfetCiz() {
       <label class="satir"><input id="kesitTers" type="checkbox" ${kesit.ters ? 'checked' : ''}> Öbür tarafı göster</label>
       <p id="kesitBilgi" class="kucuk"></p>
     </div>
+    <div class="bolum" id="atlasBolum"><h3>Atlas sahneleri</h3>
+      ${aktifSahne ? `<div class="sahne-notu"><b>${esc(aktifSahne.ad)}</b><p>${esc(aktifSahne.not)}</p><div class="dugme-satiri"><button id="sahneEtiket" class="ikincil">${sahneEtiketAcik ? 'Etiketleri gizle' : 'Etiketleri göster'}</button><button id="sahneKapat" class="ikincil">Sahneyi kapat</button></div></div>` : ''}
+      <p class="kucuk">Atlas sayfası gibi hazır görünümler: ilgili yapılar, soluk arka plan, bakış yönü, etiketler ve kısa bir ders notu tek dokunuşla açılır.</p>
+      ${[...new Set(ATLAS.map(s => s.bolge))].map(b => `<details ${aktifSahne?.bolge === b ? 'open' : ''}><summary>${esc(b)}</summary><div class="atlas-liste">${ATLAS.filter(s => s.bolge === b).map(s => `<button data-sahne="${s.id}" class="ikincil${aktifSahne?.id === s.id ? ' acik' : ''}">${esc(s.ad)}</button>`).join('')}</div></details>`).join('')}
+    </div>
     <div class="bolum"><h3>Görünüm araçları</h3>
       <label>Parçaları ayır<input id="patlat" type="range" min="0" max="1.2" step="0.02" value="${g.patlama}" aria-label="Parçaları birbirinden ayır" style="width:100%"></label>
       <label class="satir"><input id="odakModu" type="checkbox" ${odakModu ? 'checked' : ''}> Odak: seçtiğim yapı dışındakileri soluklaştır</label>
@@ -559,6 +569,37 @@ function kesfetCiz() {
   $('#kesitEksen').onchange = e => { kesit.eksen = e.target.value; kesit.acik = true; $('#kesitAcik').checked = true; kesitUygula(); };
   $('#kesitOran').oninput = e => { kesit.oran = Number(e.target.value); kesit.acik = true; $('#kesitAcik').checked = true; kesitUygula(); };
   $('#kesitTers').onchange = e => { kesit.ters = e.target.checked; kesitUygula(); };
+  $('#yan').querySelectorAll('[data-sahne]').forEach(b => { b.onclick = () => { sahneAc(b.dataset.sahne); kesfetCiz(); }; });
+  if ($('#sahneKapat')) $('#sahneKapat').onclick = () => { sahneSifirla(); g.gorunus('on'); kesfetCiz(); };
+  if ($('#sahneEtiket')) $('#sahneEtiket').onclick = () => { sahneEtiketAcik = !sahneEtiketAcik; etiketleriGuncelle(); kesfetCiz(); };
+}
+
+// ---------- Atlas sahneleri ----------
+let aktifSahne = null, sahneEtiketAcik = true;
+const sahneAdi = p => p.en.toLowerCase().replace(/\s*\((left|right)\)$/, '').replace(/\b(left|right) /g, '').trim();
+const sahneYani = p => (/\bright\b/i.test(p.en) ? 'sag' : /\bleft\b/i.test(p.en) ? 'sol' : '');
+function sahneParcalari(desenler, yan) {
+  return parcalar.filter(p => g.meshler[p.i] && !(yan && sahneYani(p) && sahneYani(p) !== yan) && desenler.some(d => (typeof d === 'string' ? d === 'sistem:' + p.sistem : d.test(sahneAdi(p))))).map(p => p.i);
+}
+function sahneAc(id) {
+  const s = ATLAS.find(x => x.id === id); if (!s) return;
+  sahneSifirla();
+  const goster = sahneParcalari(s.goster, s.yan); if (!goster.length) return;
+  // Arka plan desenleri kas ve damar almaz (ör. "scapula" deseni m. levator scapulae'yı ve a. subscapularis'i de yakalardı).
+  const gs = new Set(goster), baglam = sahneParcalari(s.baglam ?? [], s.yan).filter(i => !gs.has(i) && !['kas', 'atardamar', 'toplardamar'].includes(parcalar[i].sistem) && (!s.baglamSistem || s.baglamSistem.includes(parcalar[i].sistem))), hepsi = [...goster, ...baglam];
+  // Etiket: her desen için sahnedeki ilk uyan yapı (aynı yapının iki parçası iki kez yazılmaz).
+  const etiket = [];
+  for (const d of s.etiket ?? []) { const i = hepsi.find(j => d.test(sahneAdi(parcalar[j])) && !etiket.includes(j)); if (i !== undefined) etiket.push(i); }
+  aktifSahne = { ...s, etiketListe: etiket };
+  for (const i of hepsi) g.acikSistemler.add(parcalar[i].sistem);
+  // Arka plan (kemikler) atlas resmindeki gibi opak kalır; beyin gibi örten arka planlar soluk gösterilir.
+  g.yalniz = new Set(hepsi); g.soluk = s.baglamSoluk ? gs : null; g.secili = new Set(); g.guncelle();
+  // Kamera: önce bakış yönüne çevrilir, sonra gösterilen yapılara sığdırılır.
+  const odak = s.odak ? sahneParcalari(s.odak, s.yan) : goster;
+  const kutu = new T.Box3(); for (const i of odak) { kutu.expandByPoint(new T.Vector3(...parcalar[i].bounds[0])); kutu.expandByPoint(new T.Vector3(...parcalar[i].bounds[1])); }
+  const m = kutu.getCenter(new T.Vector3()), yon = new T.Vector3(...(s.bakis ?? [0, 0.1, 1])).normalize();
+  g._git(m.clone().add(yon), m, false); g.sigdir(odak.length ? odak : goster);
+  etiketleriGuncelle();
 }
 
 const aramaDizini = parcalar.map(p => ({ i: p.i, metin: norm([p.tr, p.anahtar && TERIM[p.anahtar].tr, p.la, p.en].filter(Boolean).join(' | ')) }));
