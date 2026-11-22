@@ -28,6 +28,49 @@ float dokuG(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * 
 }
 
 const SORU = new T.Color('#ff8a00');    // sınavda sorulan yapı
+// Kas lifi dokusu: her kasın uzun ekseni boyunca uzanan ince çizgiler (yaklaşık 1 mm aralıkla). Eksen, kasın köşe noktalarının
+// ana doğrultusudur ("lifYonu" köşe niteliği). Kemik yüzeyine de çok hafif, gözenekli bir benek eklenir.
+const GURULTU = `
+float lgH(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float lgG(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(lgH(i), lgH(i + vec3(1,0,0)), f.x), mix(lgH(i + vec3(0,1,0)), lgH(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(lgH(i + vec3(0,0,1)), lgH(i + vec3(1,0,1)), f.x), mix(lgH(i + vec3(0,1,1)), lgH(i + vec3(1,1,1)), f.x), f.y), f.z); }`;
+function lifEkle(m) {
+  const onceki = m.onBeforeCompile;
+  m.onBeforeCompile = (sh, r) => {
+    onceki?.(sh, r);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 lifYonu;\nvarying vec3 vLif;\nvarying vec3 vLifKonum;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLif = lifYonu; vLifKonum = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLif;\nvarying vec3 vLifKonum;' + GURULTU)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+{ vec3 a = normalize(vLif + vec3(1e-5)); float boy = dot(vLifKonum, a); vec3 dik = vLifKonum - a * boy;
+  float n = lgG(dik * 900.0 + a * boy * 22.0); diffuseColor.rgb *= 0.86 + 0.24 * n; }`);
+  };
+  m.customProgramCacheKey = () => 'lif1';
+}
+function kemikEkle(m) {
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vKemik;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvKemik = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vKemik;' + GURULTU)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+{ float n = lgG(vKemik * 420.0) * 0.6 + lgG(vKemik * 90.0) * 0.4; diffuseColor.rgb *= 0.93 + 0.1 * n; }`);
+  };
+  m.customProgramCacheKey = () => 'kemik1';
+}
+// Bir kas geometrisinin ana doğrultusu (köşe noktalarının en çok yayıldığı yön); her köşeye aynı değer yazılır.
+function lifYonuEkle(geo) {
+  const p = geo.attributes.position, n = p.count, c = [0, 0, 0];
+  for (let k = 0; k < n; k++) { c[0] += p.getX(k); c[1] += p.getY(k); c[2] += p.getZ(k); }
+  c[0] /= n; c[1] /= n; c[2] /= n;
+  const C = [0, 0, 0, 0, 0, 0]; // xx xy xz yy yz zz
+  for (let k = 0; k < n; k += 2) { const x = p.getX(k) - c[0], y = p.getY(k) - c[1], z = p.getZ(k) - c[2]; C[0] += x * x; C[1] += x * y; C[2] += x * z; C[3] += y * y; C[4] += y * z; C[5] += z * z; }
+  let v = [0.3, 1, 0.2];
+  for (let t = 0; t < 30; t++) { const w = [C[0] * v[0] + C[1] * v[1] + C[2] * v[2], C[1] * v[0] + C[3] * v[1] + C[4] * v[2], C[2] * v[0] + C[4] * v[1] + C[5] * v[2]]; const l = Math.hypot(...w) || 1; v = w.map(x => x / l); }
+  const a = new Float32Array(n * 3); for (let k = 0; k < n; k++) { a[k * 3] = v[0]; a[k * 3 + 1] = v[1]; a[k * 3 + 2] = v[2]; }
+  geo.setAttribute('lifYonu', new T.BufferAttribute(a, 3));
+}
+
 
 export class Goruntuleyici {
   constructor(kap, atlas, parcaSistem, renkler) {
@@ -80,6 +123,9 @@ export class Goruntuleyici {
       this.solukMalzeme[id] = new T.MeshStandardMaterial({ color: renk, roughness: 0.6, side: T.DoubleSide, transparent: true, opacity: 0.12, depthWrite: false, forceSinglePass: true });
     }
     for (const [id, m] of Object.entries(this.malzeme)) if (m.sheen) dokuEkle(m);
+    if (this.malzeme.kas) lifEkle(this.malzeme.kas);
+    if (this.malzeme.iskelet) kemikEkle(this.malzeme.iskelet);
+    this.katmanGizli = new Set(); this.solukParca = new Set(); // katman soyma ile kaldırılanlar; tek tek soluklaştırılanlar
     this.soruMalzeme = new T.MeshStandardMaterial({ color: SORU, emissive: SORU, emissiveIntensity: 0.45, roughness: 0.4, side: T.DoubleSide });
     this.tumMalzemeler = [...Object.values(this.malzeme), ...Object.values(this.solukMalzeme), this.soruMalzeme];
     this.gorunus('on', false);
@@ -109,6 +155,7 @@ export class Goruntuleyici {
         g.setAttribute('normal', new T.BufferAttribute(new Int16Array(tampon, p.normals, p.vertexCount * 3), 3, true));
         g.setIndex(new T.BufferAttribute(new Uint32Array(tampon, p.indices, p.indexCount), 1));
         g.computeBoundingSphere(); g.computeBoundingBox();
+        if (this.parcaSistem[i] === 'kas') lifYonuEkle(g);
         const m = new T.Mesh(g, this.malzeme[this.parcaSistem[i]]);
         m.userData.i = i; m.matrixAutoUpdate = false;
         this.meshler[i] = m; this.sahne.add(m);
@@ -124,6 +171,7 @@ export class Goruntuleyici {
   ekParca(geometry, sistem, bounds) {
     const i = this.atlas.parts.length;
     this.atlas.parts.push({ bounds }); this.parcaSistem.push(sistem); this._kutu = null;
+    if (sistem === 'kas') lifYonuEkle(geometry);
     const m = new T.Mesh(geometry, this.malzeme[sistem]);
     m.userData.i = i; m.matrixAutoUpdate = false;
     this.meshler[i] = m; this.sahne.add(m);
@@ -162,17 +210,75 @@ export class Goruntuleyici {
     }
     return this.malzeme[k];
   }
+  // ---- Katman soyma için derinlik: her yapının köşelerinin deriye ortanca uzaklığı (metre). deri: deri parçalarının sıra numaraları. ----
+  derinlikHesapla(indeksler, deri) {
+    const h = 0.015, izgara = new Map(), v = new T.Vector3(), anahtar = (x, y, z) => Math.floor(x / h) + ',' + Math.floor(y / h) + ',' + Math.floor(z / h);
+    for (const j of deri) {
+      const P = this.meshler[j]?.geometry.attributes.position; if (!P) continue;
+      for (let k = 0; k < P.count; k += 2) { v.fromBufferAttribute(P, k); const a = anahtar(v.x, v.y, v.z); (izgara.get(a) ?? izgara.set(a, []).get(a)).push(v.x, v.y, v.z); }
+    }
+    const sonuc = new Map();
+    for (const i of indeksler) {
+      const P = this.meshler[i]?.geometry.attributes.position; if (!P) continue;
+      const adim = Math.max(1, Math.floor(P.count / 60)), u = [];
+      for (let k = 0; k < P.count; k += adim) {
+        v.fromBufferAttribute(P, k); const gx = Math.floor(v.x / h), gy = Math.floor(v.y / h), gz = Math.floor(v.z / h); let en = Infinity;
+        for (let r = 1; r <= 4 && en === Infinity; r++) for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
+          const L = izgara.get((gx + dx) + ',' + (gy + dy) + ',' + (gz + dz)); if (!L) continue;
+          for (let q = 0; q < L.length; q += 3) en = Math.min(en, (L[q] - v.x) ** 2 + (L[q + 1] - v.y) ** 2 + (L[q + 2] - v.z) ** 2);
+        }
+        u.push(en === Infinity ? 0.06 : Math.sqrt(en));
+      }
+      u.sort((a, b) => a - b); sonuc.set(i, u[u.length >> 1] ?? 0.06);
+    }
+    return sonuc;
+  }
+  // ---- Kas bağlanma yerleri: kasın 3,5 mm yakınındaki kemik yüzeyi noktaları renkli benek olarak gösterilir. ----
+  // kemikRolu(küme, bütün kümeler): 'origo' | 'insertio' | 'baglanti'. Dönüş: [{ i, adet, merkez, rol }].
+  baglantiGoster(kaslar, kemikler, kemikRolu) {
+    this.baglantiSil();
+    const h = 0.004, izgara = new Map(), v = new T.Vector3(), w = new T.Vector3(), esik = 0.0035 ** 2;
+    for (const i of kaslar) {
+      const P = this.meshler[i]?.geometry.attributes.position; if (!P) continue;
+      for (let k = 0; k < P.count; k++) { v.fromBufferAttribute(P, k); const a = Math.floor(v.x / h) + ',' + Math.floor(v.y / h) + ',' + Math.floor(v.z / h); (izgara.get(a) ?? izgara.set(a, []).get(a)).push(v.x, v.y, v.z); }
+    }
+    const yakin = (x, y, z) => {
+      const gx = Math.floor(x / h), gy = Math.floor(y / h), gz = Math.floor(z / h);
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        const L = izgara.get((gx + dx) + ',' + (gy + dy) + ',' + (gz + dz)); if (!L) continue;
+        for (let q = 0; q < L.length; q += 3) if ((L[q] - x) ** 2 + (L[q + 1] - y) ** 2 + (L[q + 2] - z) ** 2 < esik) return true;
+      }
+      return false;
+    };
+    const kume = [];
+    for (const j of kemikler) {
+      const G = this.meshler[j]?.geometry; if (!G) continue;
+      const P = G.attributes.position, N = G.attributes.normal, nokta = [];
+      for (let k = 0; k < P.count; k++) {
+        v.fromBufferAttribute(P, k); if (!yakin(v.x, v.y, v.z)) continue;
+        w.fromBufferAttribute(N, k).normalize(); nokta.push(v.x + w.x * 0.0012, v.y + w.y * 0.0012, v.z + w.z * 0.0012);
+      }
+      if (nokta.length >= 18) { const m = new T.Vector3(); for (let q = 0; q < nokta.length; q += 3) m.add(v.set(nokta[q], nokta[q + 1], nokta[q + 2])); m.divideScalar(nokta.length / 3); kume.push({ i: j, nokta, merkez: m }); }
+    }
+    const renk = { origo: new T.Color('#d92d20'), insertio: new T.Color('#2563eb'), baglanti: new T.Color('#7c3aed') }, P = [], C = [];
+    for (const k of kume) { k.rol = kemikRolu(k, kume); for (let q = 0; q < k.nokta.length; q += 3) { P.push(k.nokta[q], k.nokta[q + 1], k.nokta[q + 2]); C.push(renk[k.rol].r, renk[k.rol].g, renk[k.rol].b); } }
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(P, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(C, 3));
+    this.baglantiNokta = new T.Points(geo, new T.PointsMaterial({ size: 0.0035, vertexColors: true, sizeAttenuation: true, clippingPlanes: this.kesitAcik ? [this.kesit] : [] }));
+    this.baglantiNokta.renderOrder = 5; this.sahne.add(this.baglantiNokta); this.kirli = true;
+    return kume.map(k => ({ i: k.i, adet: k.nokta.length / 3, merkez: k.merkez, rol: k.rol }));
+  }
+  baglantiSil() { if (!this.baglantiNokta) return; this.sahne.remove(this.baglantiNokta); this.baglantiNokta.geometry.dispose(); this.baglantiNokta.material.dispose(); this.baglantiNokta = null; this.kirli = true; }
   // Görünürlük ve renkleri durum bilgisine göre yeniden kurar.
   guncelle() {
     this.meshler.forEach((m, i) => {
       if (!m) return;
       const s = this.parcaSistem[i];
       const soru = this.soru.has(i), secili = this.secili.has(i);
-      let gorunur = this.acikSistemler.has(s) && !this.gizli.has(i);
+      let gorunur = this.acikSistemler.has(s) && !this.gizli.has(i) && !this.katmanGizli.has(i);
       if (this.yalniz) gorunur = this.yalniz.has(i);
       if (soru) gorunur = true;
       m.visible = gorunur;
-      const r = this.parcaRenk?.(i), soluk = (this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s);
+      const r = this.parcaRenk?.(i), soluk = (this.soluk && !this.soluk.has(i)) || this.saydamSistem.has(s) || this.solukParca.has(i);
       m.material = soru ? this.soruMalzeme : secili ? this._secili(s, r) : r ? this._renkli(soluk, s, r) : soluk ? this.solukMalzeme[s] : this.malzeme[s];
       const kes = this.icAcik?.duzlem.get(i);
       if (kes) { // kesilen yapı kendi malzemesinin kesitli kopyasıyla çizilir
@@ -194,8 +300,18 @@ export class Goruntuleyici {
     this.kesit.normal.copy(normal);
     this.kesit.constant = ters ? -deger : deger;
     for (const mz of this.tumMalzemeler) { mz.clippingPlanes = acik ? [this.kesit] : []; mz.needsUpdate = true; }
+    if (this.baglantiNokta) { this.baglantiNokta.material.clippingPlanes = acik ? [this.kesit] : []; this.baglantiNokta.material.needsUpdate = true; }
     if (this.ao) { this.ao.normalMaterial.clippingPlanes = acik ? [this.kesit] : []; this.ao.normalMaterial.needsUpdate = true; }
+    // Kesit düzleminin yeri ince bir çerçeveyle gösterilir.
+    if (!this.kesitCerceve) {
+      this.kesitCerceve = new T.LineLoop(new T.BufferGeometry().setFromPoints([new T.Vector3(-0.5, -0.5, 0), new T.Vector3(0.5, -0.5, 0), new T.Vector3(0.5, 0.5, 0), new T.Vector3(-0.5, 0.5, 0)]), new T.LineBasicMaterial({ color: 0xf26b1d, transparent: true, opacity: 0.85 }));
+      this.kesitCerceve.renderOrder = 20; this.sahne.add(this.kesitCerceve);
+    }
+    const b = kutu.getSize(new T.Vector3()), c = kutu.getCenter(new T.Vector3()), f = this.kesitCerceve;
+    f.visible = acik; f.rotation.set(0, 0, 0); f.position.copy(c); f.position[eksen] = deger;
+    if (eksen === 'y') { f.rotation.x = -Math.PI / 2; f.scale.set(b.x * 1.1, b.z * 1.1, 1); } else if (eksen === 'z') f.scale.set(b.x * 1.1, b.y * 1.02, 1); else { f.rotation.y = Math.PI / 2; f.scale.set(b.z * 1.1, b.y * 1.02, 1); }
     this.kirli = true;
+    return { deger, min: kutu.min[eksen], max: kutu.max[eksen] };
   }
 
   gorunus(yon, animasyon = true) {

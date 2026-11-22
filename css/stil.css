@@ -321,7 +321,7 @@ button.mini { font-size: .58rem; padding: 3px 7px; border-radius: 6px; backgroun
   .sahne { position: absolute; inset: 0; }
   .yan { position: absolute; z-index: 3; top: 14px; left: 14px; bottom: 14px; width: var(--yan-gen); background: rgba(251,249,245,.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--cizgi); border-radius: 14px; }
   .gorunum-dugmeleri { left: calc(var(--yan-gen) + 28px); top: 14px; }
-  .sahne-mod { top: 14px; right: 14px; }
+  .sahne-mod { top: 14px; right: 14px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - var(--yan-gen) - 385px); }
   .secim-etiketi, .durum-seridi { left: calc(var(--yan-gen) + 28px); }
   .durum-seridi { max-width: calc(100% - var(--yan-gen) - 220px); }
 }
@@ -379,3 +379,8 @@ dialog { background: var(--kart); color: var(--yazi); border: 1px solid var(--ci
 .sahne-gizle:hover { border-color: var(--vurgu); }
 @media (pointer: coarse) { .sahne-gizle { min-height: 34px; padding: 4px 12px; } }
 @media print { .ust-bildirim, .sahne-gizle { display: none; } }
+
+/* Ekran üstü çizim katmanı ve araçları */
+.cizim-katmani { position: absolute; inset: 0; z-index: 3; touch-action: none; cursor: crosshair; }
+.cizim-araclari { position: absolute; z-index: 4; top: 62px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; background: var(--kart); border: 1px solid var(--cizgi); border-radius: 10px; padding: 6px; }
+@media print { .cizim-katmani, .cizim-araclari { display: none; } }

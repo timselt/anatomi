@@ -34,6 +34,11 @@
 - **Görüntüyü kaydet:** ekrandaki modeli resim olarak indirir (not ya da sunum için).
 - **Bağlantıyı kopyala:** bir yapının ayrıntı penceresinden, o yapıyı doğrudan açan bağlantıyı kopyalayıp arkadaşına gönderebilirsin.
 - **Yapay zekâya sor:** yapının adıyla hazırlanmış bir soruyu Claude'da açar (ayrı bir site; hesabınla giriş ister). Verdiği bilgiyi ders kitabınla karşılaştır.
+- **Katman soy (− Katman / + Katman):** modelin üstündeki düğmeyle en dıştaki katmanı kaldırırsın: önce deri, sonra yüzeyel, orta ve derin kaslar, ardından damar ve sinirler, en son organlar. "+ Katman" son kaldırılanı geri koyar. Üstteki şeritte hangi katmanın kaldırıldığı yazar; "Geri getir" hepsini geri koyar.
+- **Soluklaştır:** seçtiğin yapıyı gizlemeden soluk yapar; arkasındakileri görürken yerini kaybetmezsin.
+- **Bağlanma yerleri (kaslarda):** bir kas seçip ayrıntı penceresinde "Bağlanma yerleri"ne bas. Kas ve bağlandığı kemikler kalır; kemik üstünde kırmızı benekler başlangıcı (origo), mavi benekler sonlanmayı (insertio) gösterir. Hangisinin başlangıç olduğu gövdeye yakınlığa göre tahmin edilir; ders kitabınla karşılaştır.
+- **Kesit bilgisi:** kesit açıkken panelde düzlemin adı (aksiyel, koronal, sagittal) ve yeri santimetre olarak yazar; modelde turuncu bir çerçeve kesit düzlemini gösterir.
+- **Çiz:** ekranın üstüne turuncu kalemle çizersin (ok, daire, not işareti). Çizerken model dönmez. "Görüntüyü kaydet" modeli ve çizimi tek resim olarak indirir; "Bitti" çizimden çıkar.
 
 ## Canlandırmalar
 **Canlandırmalar** sekmesinde üç tür gösterim var. Açıklama modelin altındaki kartta çıkar; "Duraklat"a basıp modeli döndürebilirsin.
@@ -42,12 +47,12 @@
 
 **Kalp, solunum ve kas hareketleri:** Kalp atımında kalp saydamdır; içinden geçen kan ve altta şematik bir EKG görünür. Solunumda hava noktaları nefes alırken içeri, verirken dışarı akar. Kas hareketlerinde kaslar kemikle birlikte bükülür, kasılan kas kalınlaşır; bu yaklaşık bir gösterimdir.
 
-**Göstergeler, zaman çizgisi ve ses:** Kalp atımında sol karıncık ve aort basıncı, karıncık hacmi ve kapakların açık ya da kapalı olduğu; solunumda alınan hava, alveol ve plevra basıncı; kas hareketinde eklem açısı canlı gösterilir. Kartın altındaki çubukla canlandırmayı ileri geri sarabilirsin. "Ses" düğmesi kalp seslerini ve nefes sesini açar. Rakamlar dinlenmedeki sağlıklı erişkin için tipik ders kitabı değerleridir.
+**Göstergeler, zaman çizgisi ve ses:** Kalp atımında sol ventrikül ve aort basıncı, ventrikül hacmi ve kapakların açık ya da kapalı olduğu; solunumda alınan hava, alveol ve plevra basıncı; kas hareketinde eklem açısı canlı gösterilir. Kartın altındaki çubukla canlandırmayı ileri geri sarabilirsin. "Ses" düğmesi kalp seslerini ve nefes sesini açar. Rakamlar dinlenmedeki sağlıklı erişkin için tipik ders kitabı değerleridir.
 
 **Görünüm kipleri (modelin üstündeki düğmeler):** "Parçalanmış" yapıları birbirinden ayırır. "Etiket" düğmesi parçaların adlarını gösterir (başlangıçta kapalıdır); üst üste binen etiketler gizlenir, yakınlaşınca açılır. "Cam" iskelet dışındaki her şeyi saydam yapar. "Döner tabla" modeli kendi çevresinde döndürür. "Tur" sistemleri sırayla tanıtır; modele dokununca tur biter. Sekme değiştirdiğinde ya da bir sınav, kart ya da canlandırma başlattığında model kendiliğinden temiz hâline döner. Modelin yalnız bir bölümü gösteriliyorsa üstte "Yalnız … yapı gösteriliyor · Tümünü göster" yazısı çıkar; dokununca her şey geri gelir. "Kalite" yüzeyler arasına gölge ekler; cihaz bu kipte akıcı çizemezse Kalite kendiliğinden kapanır ve ekranda kısa bir not çıkar; iPad yavaşlarsa bu düğmeyi kapat, tercih hatırlanır.
 
 **Parçalarına ayır ve içini aç:** Keşfet'te bir yapıya dokun; açılan pencerede "Parçalarına ayır" çevresindeki yapıları birbirinden ayırıp adlarıyla gösterir (toplamak için bir parçaya dokun, "Topla" de). "İçini aç" düğmesi yalnız içi boş organlarda ve büyük damarlarda çıkar (mide, kalp, soluk borusu, bağırsaklar, aort gibi); organın ön yarısını keser, duvarı ve iç boşluğu gösterir.
-- **Hareketli gösterimler:** kalp atımı (kulakçık ve karıncıkların sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
+- **Hareketli gösterimler:** kalp atımı (atriyum ve ventriküllerin sırayla kasılması, kapaklar, kalp sesleri) ve solunum hareketi (diyafram ve kaburgalar).
 - **Adım adım yollar:** kanın yolu (küçük ve büyük dolaşım), lokmanın yolu, havanın yolu, idrarın yolu ve görme yolu. Şu anki adım turuncu, geçilen yapılar yeşil gösterilir; "Önceki" ve "Sonraki" ile kendin de gezebilirsin.
 - **Mikroskobik sahneler:** hava keseciğinde gaz alışverişi, nefron, sarkomer (kas kasılması), sinaps, bağırsak villusu ve damar duvarı. Hareketli şematik çizimlerdir; her birinin altında adım adım açıklama ve "Bu yapıyı modelde göster" düğmesi vardır.
 - **Kas hareketleri:** omuz, dirsek, el bileği, kalça, diz ve ayak bileğinin 12 hareketi. Önce hareketi yapan kaslar (turuncu) ve karşıt kaslar (yeşil) sinirleriyle birlikte gösterilir, sonra hareket iskelette oynatılır. Kaslar modelde şekil değiştirmez. Kas hareketleri ve solunum Erkek modelde çalışır.
@@ -87,7 +92,7 @@ Bir yapıya tıkla, sağdaki **Benim notum** alanına yaz. Kendiliğinden kayded
 ## Bilmen gerekenler
 - Simülatör üç açık modeli birleştirir. Erkek beden: BodyParts3D. Erkek modele eklenen sinirler, lenf düğümleri, akciğer lobları, karaciğer ve tiroid: Z-Anatomy (bu katman model açıldıktan birkaç saniye sonra yüklenir ve asıl modele yaklaşık 1 cm hassasiyetle oturur). Kadın beden: HuBMAP İnsan Referans Atlası.
 - Bütün yapıların Latince adı var. Türkçe adı olmayanlarda "Türkçe adı henüz eklenmedi" yazar.
-- Kaslara tıklayınca başlangıç, sonlanma, sinir, atardamar, görev ve klinik bilgisi görünür.
+- Kaslara tıklayınca başlangıç, sonlanma, sinir, arter, görev ve klinik bilgisi görünür.
 - İlerlemen bu bilgisayardaki tarayıcıda saklanır. Kaybetmemek ya da başka bilgisayarda devam etmek için **İlerlemem → Yedek al** düğmesini kullan.
 
 **Renkler:** Organlar kendi doğal renkleriyle görünür: karaciğer kızıl kahve, safra kesesi yeşil, mide ve ince bağırsak pembe, kalın bağırsak açık kahve; beyin pembemsi gri, içi (ak cevher) beyazımsı; gözde göz akı beyaz, iris kahve, kornea ve mercek saydam; kalpte kas duvarı koyu kırmızı, kapakçıklar beyazımsı; bağlar lifli beyaz; kaslar koyu kırmızı. Karaciğerdeki ince çizgiler karaciğerin cerrahi segmentlerinin (Couinaud) sınırlarıdır. Büyük omentum bağırsakların önünü örten ince bir tüldür; diğer karın zarları neredeyse saydamdır. Seçtiğin yapı kendi gölgesini ve dokusunu koruyarak yeşil-mavi tona döner.

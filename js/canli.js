@@ -5,19 +5,19 @@
 // ---- Adım adım akışlar ----
 export const AKISLAR = [
   { id: 'dolasim', ad: 'Kanın yolu: küçük ve büyük dolaşım', sistemler: ['kalp', 'atardamar', 'toplardamar', 'solunum'], adimlar: [
-    { y: ['ust-ana-toplardamar', 'alt-ana-toplardamar'], yol: ['ust-ana-toplardamar'], m: 'Vücuttan dönen oksijeni azalmış kan, üst ve alt ana toplardamarla (vena cava superior ve inferior) kalbe gelir.' },
-    { y: ['sag-kulakcik', 'sag-kulakcik-boslugu'], yol: ['sag-kulakcik-boslugu'], m: 'Kan sağ kulakçığa (atrium dextrum) dolar.' },
-    { y: ['trikuspit'], m: 'Kan triküspit kapaktan (valva tricuspidalis) geçerek sağ karıncığa akar. Dolumun çoğu kendiliğinden olur; sağ kulakçığın kasılması kalan kanı karıncığa iter.' },
-    { y: ['sag-karincik'], m: 'Kan sağ karıncığa (ventriculus dexter) dolar. Karıncık kasılınca triküspit kapak kapanır.' },
-    { y: ['pulmoner-kapak', 'pulmoner-govde'], m: 'Kan akciğer atardamarı kapağından geçerek akciğer atardamarı gövdesine (truncus pulmonalis) atılır.' },
-    { y: ['pulmoner-arter'], m: 'Sağ ve sol akciğer atardamarları oksijeni az kanı akciğerlere taşır. Doğumdan sonra oksijeni az kan taşıyan tek atardamarlar bunlardır.' },
+    { y: ['ust-ana-toplardamar', 'alt-ana-toplardamar'], yol: ['ust-ana-toplardamar'], m: 'Vücuttan dönen oksijeni azalmış kan, vena cava superior ve vena cava inferior ile kalbe gelir.' },
+    { y: ['sag-kulakcik', 'sag-kulakcik-boslugu'], yol: ['sag-kulakcik-boslugu'], m: 'Kan sağ atriyuma (atrium dextrum) dolar.' },
+    { y: ['trikuspit'], m: 'Kan triküspit kapaktan (valva tricuspidalis) geçerek sağ ventriküle akar. Dolumun çoğu kendiliğinden olur; sağ atriyumun kasılması kalan kanı ventriküle iter.' },
+    { y: ['sag-karincik'], m: 'Kan sağ ventriküle (ventriculus dexter) dolar. Ventrikül kasılınca triküspit kapak kapanır.' },
+    { y: ['pulmoner-kapak', 'pulmoner-govde'], m: 'Kan pulmoner kapaktan geçerek pulmoner gövdeye (truncus pulmonalis) atılır.' },
+    { y: ['pulmoner-arter'], m: 'Sağ ve sol pulmoner arterler oksijeni az kanı akciğerlere taşır. Doğumdan sonra oksijeni az kan taşıyan tek arterler bunlardır.' },
     { y: [/^z:.*lobe of .*lung/], m: 'Akciğerlerde, hava keseciklerini saran kılcal damarlarda kan karbondioksiti verir ve oksijen alır.' },
-    { y: ['pulmoner-ven'], m: 'Oksijenlenmiş kan dört akciğer toplardamarıyla (venae pulmonales) kalbe döner. Buraya kadar olan yol küçük dolaşımdır.' },
-    { y: ['sol-kulakcik', 'sol-kulakcik-boslugu'], yol: ['sol-kulakcik-boslugu'], m: 'Kan sol kulakçığa (atrium sinistrum) dolar.' },
-    { y: ['mitral'], m: 'Kan mitral kapaktan (valva mitralis) geçerek sol karıncığa akar. Dolumun çoğu kendiliğinden olur; sol kulakçığın kasılması kalan kanı karıncığa iter.' },
-    { y: ['sol-karincik', 'karincik-duvari'], yol: ['sol-karincik'], m: 'Kan sol karıncığa (ventriculus sinister) dolar. Sol karıncığın duvarı kalbin en kalın yeridir, çünkü kanı bütün vücuda pompalar.' },
-    { y: ['aort-kapagi', 'cikan-aorta'], m: 'Sol karıncık kasılır; kan aort kapağından çıkan aortaya (aorta ascendens) atılır. Kalbi besleyen koroner atardamarlar buradan çıkar.' },
-    { y: ['aort-yayi', 'gogus-aortasi', 'karin-aortasi'], m: 'Aort yayı baş ve kollara dallar verir; göğüs ve karın aortası gövde ve bacakları besler. Kan dokulara oksijen bırakır ve toplardamarlarla kalbe döner: büyük dolaşım tamamlanır.' },
+    { y: ['pulmoner-ven'], m: 'Oksijenlenmiş kan dört pulmoner venle (venae pulmonales) kalbe döner. Buraya kadar olan yol küçük dolaşımdır.' },
+    { y: ['sol-kulakcik', 'sol-kulakcik-boslugu'], yol: ['sol-kulakcik-boslugu'], m: 'Kan sol atriyuma (atrium sinistrum) dolar.' },
+    { y: ['mitral'], m: 'Kan mitral kapaktan (valva mitralis) geçerek sol ventriküle akar. Dolumun çoğu kendiliğinden olur; sol atriyumun kasılması kalan kanı ventriküle iter.' },
+    { y: ['sol-karincik', 'karincik-duvari'], yol: ['sol-karincik'], m: 'Kan sol ventriküle (ventriculus sinister) dolar. Sol ventrikülün duvarı kalbin en kalın yeridir, çünkü kanı bütün vücuda pompalar.' },
+    { y: ['aort-kapagi', 'cikan-aorta'], m: 'Sol ventrikül kasılır; kan aort kapağından çıkan aortaya (aorta ascendens) atılır. Kalbi besleyen koroner arterler buradan çıkar.' },
+    { y: ['aort-yayi', 'gogus-aortasi', 'karin-aortasi'], m: 'Aort yayı baş ve kollara dallar verir; göğüs ve karın aortası gövde ve bacakları besler. Kan dokulara oksijen bırakır ve venlerle kalbe döner: büyük dolaşım tamamlanır.' },
   ] },
   { id: 'sindirim', ad: 'Lokmanın yolu: sindirim', sistemler: ['sindirim', 'solunum'], adimlar: [
     { y: ['dil', 'kesici', 'buyuk-azi'], yol: ['dil'], m: 'Ağızda dişler besini parçalar, dil karıştırır. Tükürükteki amilaz enzimi nişastanın sindirimini başlatır.' },
@@ -40,9 +40,9 @@ export const AKISLAR = [
     { y: [/^z:.*lobe of .*lung/], m: 'Hava, akciğerlerdeki hava keseciklerine (alveoller) ulaşır. Oksijen kana geçer, karbondioksit havaya verilir.' },
   ] },
   { id: 'idrar', ad: 'İdrarın yolu: boşaltım', sistemler: ['bosaltim', 'atardamar', 'toplardamar'], adimlar: [
-    { y: ['karin-aortasi', 'bobrek-arter'], yol: ['bobrek-arter'], m: 'Süzülecek kan, karın aortasından çıkan böbrek atardamarıyla (arteria renalis) böbreğe gelir.' },
+    { y: ['karin-aortasi', 'bobrek-arter'], yol: ['bobrek-arter'], m: 'Süzülecek kan, karın aortasından çıkan renal arterle (arteria renalis) böbreğe gelir.' },
     { y: ['bobrek'], m: 'Böbrekte (ren) kan süzülür. Gerekli maddeler ve suyun çoğu geri emilir; kalan sıvı idrardır.' },
-    { y: ['bobrek-ven', 'alt-ana-toplardamar'], yol: ['bobrek'], m: 'Temizlenen kan böbrek toplardamarıyla (vena renalis) alt ana toplardamara döner.' },
+    { y: ['bobrek-ven', 'alt-ana-toplardamar'], yol: ['bobrek'], m: 'Temizlenen kan renal venle (vena renalis) vena cava inferior\'a döner.' },
     { y: ['z:renal pelvis'], m: 'İdrar böbreğin içindeki kadehçiklerde toplanır ve böbrek leğenciğine (pelvis renalis) akar.' },
     { y: ['ureter'], m: 'Üreter, kasılma dalgalarıyla idrarı idrar kesesine taşır.' },
     { y: ['idrar-kesesi'], m: 'İdrar kesesi (vesica urinaria) idrarı biriktirir; dolunca işeme isteği oluşur.' },
@@ -65,16 +65,16 @@ export const KALP = {
   kulakcik: ['sag-kulakcik', 'sol-kulakcik', 'sag-kulakcik-boslugu', 'sol-kulakcik-boslugu'],
   karincik: ['karincik-duvari', 'sag-karincik', 'sol-karincik', 'papiller'],
   evreler: [
-    { ad: 'Kulakçık kasılması', m: 'Kulakçıklar (atria) kasılır ve kalan kanı karıncıklara iter. Triküspit ve mitral kapaklar açıktır; aort ve akciğer atardamarı kapakları kapalıdır.' },
-    { ad: 'Karıncık kasılması (sistol)', m: 'Karıncıklar (ventriculi) kasılır. Basınç artınca triküspit ve mitral kapaklar kapanır: birinci kalp sesi duyulur. Aort ve akciğer atardamarı kapakları açılır, kan atardamarlara atılır.' },
-    { ad: 'Gevşeme (diyastol)', m: 'Karıncıklar gevşer. Aort ve akciğer atardamarı kapakları kapanır: ikinci kalp sesi duyulur. Triküspit ve mitral kapaklar açılır, karıncıklar yeniden kanla dolar.' },
+    { ad: 'Atriyum kasılması', m: 'Atriyumlar (atria) kasılır ve kalan kanı ventriküllere iter. Triküspit ve mitral kapaklar açıktır; aort ve pulmoner arter kapakları kapalıdır.' },
+    { ad: 'Ventrikül kasılması (sistol)', m: 'Ventriküller (ventriculi) kasılır. Basınç artınca triküspit ve mitral kapaklar kapanır: birinci kalp sesi duyulur. Aort ve pulmoner arter kapakları açılır, kan arterlere atılır.' },
+    { ad: 'Gevşeme (diyastol)', m: 'Ventriküller gevşer. Aort ve pulmoner arter kapakları kapanır: ikinci kalp sesi duyulur. Triküspit ve mitral kapaklar açılır, ventriküller yeniden kanla dolar.' },
   ],
 };
 export const SOLUNUM = {
   id: 'solunum', ad: 'Solunum hareketi', sistemler: ['iskelet', 'solunum', 'kas'],
   evreler: [
-    { ad: 'Nefes alma (inspirasyon)', m: 'Diyafram kasılır ve aşağı iner; dış kaburgalar arası kaslar kaburgaları yukarı ve dışa kaldırır. Göğüs boşluğu büyür, içindeki basınç düşer ve hava akciğerlere dolar.' },
-    { ad: 'Nefes verme (ekspirasyon)', m: 'Diyafram gevşer ve yukarı çıkar; kaburgalar aşağı iner. Göğüs boşluğu küçülür ve hava dışarı çıkar. Dinlenme halinde nefes verme edilgendir (kas gücü gerektirmez).' },
+    { ad: 'Nefes alma (inspirasyon)', m: 'Diyafram kasılır: kenar tutunmaları (kaburgalar, sternum, crus dextrum ve crus sinistrum) yerinde kalır, sağ ve sol kubbe aşağı iner ve düzleşir; dış kaburgalar arası kaslar kaburgaları yukarı ve dışa kaldırır. Göğüs boşluğu büyür, içindeki basınç düşer ve hava akciğerlere dolar.' },
+    { ad: 'Nefes verme (ekspirasyon)', m: 'Diyafram gevşer, kubbeleri karın organlarının itmesiyle yeniden yukarı çıkar; kaburgalar aşağı iner. Göğüs boşluğu küçülür ve hava dışarı çıkar. Dinlenme halinde nefes verme edilgendir (kas gücü gerektirmez).' },
   ],
 };
 

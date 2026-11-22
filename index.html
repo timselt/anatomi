@@ -52,10 +52,15 @@
       <button data-mod="cam" aria-pressed="false" title="İskelet dışındaki sistemleri saydam gösterir">Cam</button>
       <button data-mod="doner" aria-pressed="false" title="Modeli kendi çevresinde döndürür">Döner tabla</button>
       <button data-mod="tur" aria-pressed="false" title="Sistemleri sırayla tanıtır">Tur</button>
+      <button data-mod="soy" title="En yüzeydeki katmanı kaldırır (deri, yüzeyel kaslar, derin kaslar, damar ve sinirler, organlar)">− Katman</button>
+      <button data-mod="koy" title="Son kaldırılan katmanı geri koyar">+ Katman</button>
+      <button data-mod="ciz" aria-pressed="false" title="Ekranın üstüne kalemle çiz">Çiz</button>
       <button data-mod="kalite" aria-pressed="false" title="Gölgelendirme ve seçim çerçevesi. Cihaz yavaşlarsa kapat.">Kalite</button>
     </div>
     <div id="turYazi" class="tur-yazi" hidden></div>
     <div class="ust-bildirim"><button id="suzgec" class="suzgec" hidden></button><button id="gizliSerit" class="suzgec" hidden></button></div>
+    <canvas id="cizimKatmani" class="cizim-katmani" hidden></canvas>
+    <div id="cizimAraclari" class="cizim-araclari" hidden><button id="cizimTemizle" class="ikincil" type="button">Temizle</button><button id="cizimKaydet" class="ikincil" type="button">Görüntüyü kaydet</button><button id="cizimBitti" type="button">Bitti</button></div>
     <div id="buyukDurum" class="buyuk-durum" hidden><small></small><b></b></div>
     <div class="gezinme" role="group" aria-label="Gezinme">
       <button data-gez="yukari" title="Yukarı kaydır (yukarı ok)" aria-label="Yukarı kaydır">▲</button>

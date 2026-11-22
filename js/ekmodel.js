@@ -24,7 +24,7 @@ function sistemSec(dosya, n) {
 // Yapının türüne göre kısa Türkçe açıklama (ayrıntılı görev bilgisi henüz eklenmedi).
 function gorev(n, sistem) {
   if (sistem === 'lenf') return 'Lenf düğümü (ya da düğüm grubu). Adının gösterdiği bölgeden gelen lenfi süzer; enfeksiyon ve tümör yayılımında büyüyebilir.';
-  if (/segment of liver/.test(n)) return 'Karaciğerin Couinaud sınıflamasına göre bir segmentidir (parantez içindeki Roma rakamı segment numarasıdır). Her segmentin kendi kapı toplardamarı dalı, atardamarı ve safra kanalı vardır; cerrahide ayrı ayrı çıkarılabilir.';
+  if (/segment of liver/.test(n)) return 'Karaciğerin Couinaud sınıflamasına göre bir segmentidir (parantez içindeki Roma rakamı segment numarasıdır). Her segmentin kendi portal ven dalı, arteri ve safra kanalı vardır; cerrahide ayrı ayrı çıkarılabilir.';
   if (/lobe of (left|right) lung/.test(n)) return 'Akciğer lobudur. Sağ akciğerde üç (üst, orta, alt), sol akciğerde iki (üst, alt) lob bulunur.';
   if (/nucleus|nuclei/.test(n)) return 'Sinir hücresi gövdelerinin oluşturduğu çekirdektir (gri madde). Adındaki sinirin ya da yolun başlangıç ya da aktarma merkezidir.';
   if (/ganglion/.test(n)) return 'Gangliyon: merkezi sinir sisteminin dışındaki sinir hücresi gövdeleri topluluğudur.';

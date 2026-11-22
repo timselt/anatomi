@@ -1,5 +1,5 @@
 // Vücut sistemleri ve her model parçasının hangi sisteme ait olduğu.
-// Kaynak modeldeki gruplamada birkaç yanlış yerleşim var (ör. bacak kasları iskelette, beyin karıncıkları kalpte);
+// Kaynak modeldeki gruplamada birkaç yanlış yerleşim var (ör. bacak kasları iskelette, beyin ventrikülleri kalpte);
 // burada adlara bakılarak düzeltilir.
 
 export const SISTEMLER = [
@@ -7,8 +7,8 @@ export const SISTEMLER = [
   { id: 'kas', ad: 'Kaslar', renk: '#9c3f35', aciklama: 'İskelet kasları kemiklere kirişlerle tutunur; kasılarak eklemleri hareket ettirir, duruşu korur ve ısı üretir.' },
   { id: 'sinir', ad: 'Sinir sistemi', ayrinti: true, renk: '#e2bf5a', aciklama: 'Beyin, omurilik ve sinirler bilgiyi taşır ve işler; duyma, hareket, düşünme ve vücudun kendiliğinden çalışan işleri buradan yönetilir.' },
   { id: 'kalp', ad: 'Kalp', ayrinti: true, renk: '#c2665e', aciklama: 'Kalp dört odacıklı kaslı bir pompadır. Kapakları kanın tek yönde akmasını sağlar.' },
-  { id: 'atardamar', ad: 'Atardamarlar', renk: '#cc4a3c', aciklama: 'Atardamarlar kanı kalpten dokulara taşır. Akciğer atardamarı dışındakiler oksijenli kan taşır.' },
-  { id: 'toplardamar', ad: 'Toplardamarlar', renk: '#4f7ba3', aciklama: 'Toplardamarlar kanı dokulardan kalbe geri getirir. Akciğer toplardamarları dışındakiler oksijeni az kan taşır.' },
+  { id: 'atardamar', ad: 'Arterler', renk: '#cc4a3c', aciklama: 'Arterler kanı kalpten dokulara taşır. Pulmoner arter dışındakiler oksijenli kan taşır.' },
+  { id: 'toplardamar', ad: 'Venler', renk: '#4f7ba3', aciklama: 'Venler kanı dokulardan kalbe geri getirir. Pulmoner venler dışındakiler oksijeni az kan taşır.' },
   { id: 'solunum', ad: 'Solunum', renk: '#c8919a', ayrinti: true, aciklama: 'Hava yolları havayı akciğerlere iletir; akciğerlerde oksijen kana geçer, karbondioksit dışarı atılır. (Bu modelde akciğer dokusu yok; bronş ağacı görünür.)' },
   { id: 'sindirim', ad: 'Sindirim', renk: '#c49668', ayrinti: true, aciklama: 'Sindirim kanalı besinleri parçalar, besin ve suyu emer, artıkları dışarı atar. Yardımcı organlar safra ve enzim salgılar.' },
   { id: 'periton', ad: 'Karın zarı (periton)', ayrinti: true, renk: '#e3c06a', aciklama: 'Periton karın boşluğunu döşeyen ve organları saran ince zardır. Büyük omentum ince bağırsakların önüne önlük gibi sarkar; mezenter ve mezokolon bağırsakları karın arka duvarına asar.' },
@@ -28,7 +28,7 @@ export function sistemBul(parca) {
   const n = parca.name.toLowerCase();
   const s = KAYNAK[parca.system] ?? 'bag';
   if (/^(greater|lesser) omentum$|mesocolon|^mesentery/.test(n)) return 'periton'; // karın zarı katlantıları ayrı sistemde: açılıp kapanabilsin
-  if (/^hepatovenous segment/.test(n)) return 'sindirim'; // karaciğer segmentleri (kaynak modelde toplardamar sanılmış)
+  if (/^hepatovenous segment/.test(n)) return 'sindirim'; // karaciğer segmentleri (kaynak modelde ven sanılmış)
   if (s === 'deri' && /areola|nipple|lactiferous|mammary|breast/.test(n)) return 'ureme';
   if (s === 'iskelet') {
     if (/tooth|gingiva/.test(n)) return 'sindirim';

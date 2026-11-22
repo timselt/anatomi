@@ -3,7 +3,7 @@
 // Değerler dinlenmedeki sağlıklı bir erişkin için tipik ders kitabı değerleridir (şematik).
 const ara = (a, b, k) => a + (b - a) * k, yum = k => k * k * (3 - 2 * k);
 
-// p: kalp döngüsündeki yer (0-1). 0-0,22 kulakçık kasılması; 0,22-0,27 eş hacimli kasılma; 0,27-0,60 atım; 0,60-0,66 eş hacimli gevşeme; 0,66-1 dolum.
+// p: kalp döngüsündeki yer (0-1). 0-0,22 atriyum kasılması; 0,22-0,27 eş hacimli kasılma; 0,27-0,60 atım; 0,60-0,66 eş hacimli gevşeme; 0,66-1 dolum.
 export function kalpModel(p) {
   let lvp, hacim;
   if (p < 0.22) { const k = p / 0.22; lvp = 7 + 4 * Math.sin(Math.PI * k); hacim = ara(105, 120, yum(k)); }
