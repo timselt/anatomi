@@ -27,7 +27,7 @@ const KAYNAK = { skeletal: 'iskelet', muscular: 'kas', nervous: 'sinir', cardiac
 export function sistemBul(parca) {
   const n = parca.name.toLowerCase();
   const s = KAYNAK[parca.system] ?? 'bag';
-  if (/^(greater|lesser) omentum$|mesocolon|^mesentery/.test(n)) return 'periton'; // karın zarı katlantıları ayrı sistemde: açılıp kapanabilsin
+  if (/^(greater|lesser) omentum$|mesocolon|^mesentery|^mesoappendix$/.test(n)) return 'periton'; // karın zarı katlantıları ayrı sistemde: açılıp kapanabilsin
   if (/^hepatovenous segment/.test(n)) return 'sindirim'; // karaciğer segmentleri (kaynak modelde ven sanılmış)
   if (s === 'deri' && /areola|nipple|lactiferous|mammary|breast/.test(n)) return 'ureme';
   if (s === 'iskelet') {
@@ -36,12 +36,15 @@ export function sistemBul(parca) {
     if (/fibularis|tibialis|levator scapulae|subscapularis/.test(n)) return 'kas';
     if (/iliotibial/.test(n)) return 'bag';
   }
+  if (s === 'kas' && /papillary muscle/.test(n)) return 'kalp'; // kalbin papiller kasları iskelet kası değil; kalp kapalıyken göğüste yüzüyorlardı
+  if (s === 'bag' && /tensor fasciae latae/.test(n)) return 'kas'; // kaynak modelde bağ dokusunda
   if (s === 'kalp' && /(lateral|third|fourth) ventricle|interventricular foramen/.test(n)) return 'sinir';
   if (s === 'solunum' && /pharyngeal constrictor|pharyngeus/.test(n)) return 'kas';
   if (s === 'solunum' && /nasal concha/.test(n)) return 'iskelet';
   if (s === 'duyu' && /lacrimal bone/.test(n)) return 'iskelet';
   if (s === 'duyu' && /flexor retinaculum|common tendinous ring/.test(n)) return 'bag';
   if (s === 'duyu' && /choroid plexus/.test(n)) return 'sinir';
+  if (s === 'bag' && /tensor fasciae latae/.test(n)) return 'kas'; // kaynakta bağ dokusu sayılmış; bir kastır
   return s;
 }
 

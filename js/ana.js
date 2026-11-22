@@ -1,12 +1,16 @@
 // Arayüz: sekmeler, arama, katmanlar, kesit, yapı ayrıntısı, sınav, tekrar kartları, plan, ilerleme, notlar.
 import { Goruntuleyici } from './gorunum.js';
 import { coz, TERIM } from './terimler.js';
+import './foramenler.js'; // kafatası deliklerini kemik açıklamalarına ekler
 import { SISTEMLER, sistemBul, VARSAYILAN_ACIK } from './sistemler.js';
 import { DOGRULAMA } from './dogrulama.js';
 import * as C from './calisma.js';
 import { ekModelleriYukle } from './ekmodel.js';
+import { EKLEM_TERIM } from './eklemterim.js';
 import { EK_DOGRULAMA } from './ekdogrulama.js';
+import { sinirTerim } from './sinirbilgi.js';
 import { KAS_BILGI } from './kasbilgi.js';
+import { KAS_TERIM } from './kaskatman.js';
 import { VAKALAR } from './vakalar.js';
 import { AKISLAR, KALP, SOLUNUM, HAREKETLER, KEMIK_GRUBU } from './canli.js';
 import { kalpModel, solunumModel, egriCiz, Ses } from './gosterge.js';
@@ -14,6 +18,8 @@ import * as T from 'three';
 import { MIKRO } from './mikro.js';
 import { arterUstAdi, arterBul } from './arterdal.js';
 import { DAMAR_KAS } from './damarkas.js';
+import { anaModelDuzelt } from './organduzelt.js';
+import { ORGAN_TERIM } from './organterim.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -54,7 +60,7 @@ const tumAnahtarlar = () => [...new Set(konular().flatMap(k => k.liste))];
 const g = new Goruntuleyici($('#sahne'), atlas, parcalar.map(p => p.sistem), Object.fromEntries(SISTEMLER.map(s => [s.id, s.renk])));
 g.acikSistemler = new Set(KADIN_MI ? [...VARSAYILAN_ACIK, 'ureme', 'sinir', 'deri'] : VARSAYILAN_ACIK);
 g.yukle(o => { $('#yukCubuk').style.width = `${Math.round(o * 100)}%`; })
-  .then(() => { $('#yukleniyor').hidden = true; baglantiAc(); if (!KADIN_MI) ekKatman(); else g.yavasDenetim = true; })
+  .then(() => { $('#yukleniyor').hidden = true; if (!KADIN_MI) anaModelDuzelt(g, parcalar); baglantiAc(); if (!KADIN_MI) ekKatman(); else g.yavasDenetim = true; })
   .catch(e => { $('#yukleniyor').innerHTML = `<p>Model yüklenemedi: ${esc(e.message)}</p><p class="kucuk">Simülatörü "Simulatoru-Ac.command" dosyasıyla açtığından emin ol.</p>`; });
 
 // Erkek modelde eksik yapılar (sinirler, lenf, akciğer lobları, karaciğer...) ikinci açık modelden eklenir.
@@ -62,13 +68,13 @@ async function ekKatman() {
   const not = $('#ekDurum');
   try {
     if (not) not.textContent = 'Ek katman yükleniyor: sinirler, lenf düğümleri, akciğer ve karaciğer…';
-    const ekler = await ekModelleriYukle(parcalar);
+    const ekler = await ekModelleriYukle(parcalar, null, i => g.meshler[i]);
     for (const e of ekler) {
       // Ana modelde aynı adla zaten bulunan yapı (ör. 23 parçalı boş bağırsağın yerini tek parçayla kaplayan "Jejunum") eklenmez;
       // iki yüzey üst üste binince seçim boyaması şerit şerit görünüyor ve dokunuş yanlış parçayı seçiyordu.
       if (yapilar[e.enKucuk]?.parcalar.some(j => parcalar[j].kaynak !== 'Z-Anatomy')) { e.geometry.dispose(); continue; }
       if (/^(greater|lesser) omentum$|mesocolon|^mesentery/i.test(e.en)) e.sistem = 'periton'; // karın zarı katlantıları kendi sisteminde
-      const ozel = EK_TERIM[e.enKucuk]; if (ozel) { const yan = /\((sol|sağ)\)$/.exec(e.tr)?.[0]; e.tr = ozel[0] + (yan ? ' ' + yan : ''); e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
+      const ozel = EK_TERIM[e.enKucuk] ?? EKLEM_TERIM[e.enKucuk] ?? sinirTerim(e.enKucuk) ?? ORGAN_TERIM[e.enKucuk]; if (ozel) { const yan = /\((sol|sağ)\)$/.exec(e.tr)?.[0]; e.tr = ozel[0] + (yan ? ' ' + yan : ''); e.fn = ozel[1]; } // ek katmanın sık tıklanan yapıları için Türkçe ad ve görev
       const i = g.ekParca(e.geometry, e.sistem, e.bounds);
       if (EK_DOGRULAMA[e.enKucuk]) DOGRULAMA[e.anahtar] ??= EK_DOGRULAMA[e.enKucuk]; // ad kaynakla karşılaştırıldıysa kartta rozeti çıkar
       TERIM[e.anahtar] ??= { tr: ozel ? ozel[0] : e.la, la: e.la, lv: 3, fn: e.fn, ip: '', ek: true };
@@ -132,6 +138,7 @@ const EK_TERIM = {
   'straight sinus': ['Düz sinüs (sinus rectus)', 'Falx cerebri ile tentorium cerebelli\'nin birleşme yerinde uzanır; sinus sagittalis inferior ve v. cerebri magna\'nın kanını sinüslerin birleşme yerine taşır.'],
   'mesentery': ['Mezenter (ince bağırsak askısı)', 'Boş ve kıvrımlı bağırsağı (jejunum ve ileum) karın arka duvarına bağlayan yelpaze biçimli periton katlantısıdır; içinde üst bağırsak askısı damarlarının dalları, lenf düğümleri ve sinirler bulunur.'],
 };
+Object.assign(EK_TERIM, KAS_TERIM); // kas katmanından eklenen kaslar (kaskatman.js)
 let baglantiAcildi = false;
 function baglantiAc() {
   const a = BAGLANTI.get('yapi');
@@ -488,7 +495,7 @@ function kesfetCiz() {
     <h2>Yapı ara</h2>
     <input id="arama" class="arama" type="search" placeholder="Örn. uyluk, femur, mide, kaburga" autocomplete="off" aria-label="Yapı ara">
     <ul id="sonuclar" class="sonuclar"></ul>
-    <p id="ekDurum" class="kucuk">${ekYuklendi ? `Ek katman yüklendi: ${ekYuklendi} yapı (sinirler, lenf düğümleri, akciğer lobları, karaciğer, tiroid).` : ''}</p>
+    <p id="ekDurum" class="kucuk">${ekYuklendi ? `Ek katman yüklendi: ${ekYuklendi} yapı (sinirler, lenf düğümleri, akciğer lobları, karaciğer, tiroid, eklem bağları ve menisküsler).` : ''}</p>
     <div class="bolum"><h3>Sistemler</h3>
       <ul class="sistemler">${SISTEMLER.map(s => `<li><label><input type="checkbox" data-sistem="${s.id}" ${g.acikSistemler.has(s.id) ? 'checked' : ''}><span class="nokta" style="background:${s.renk}"></span>${esc(s.ad)}</label><button class="mini ${g.saydamSistem.has(s.id) ? 'acik' : ''}" data-saydam="${s.id}" title="Bu sistemi saydam yap: içindekiler görünür ve arkasındaki yapılara tıklanabilir" aria-pressed="${g.saydamSistem.has(s.id)}">saydam</button><span class="kucuk">${sayi[s.id] || 0}</span></li>`).join('')}</ul>
       <div class="satir"><button id="hepsiAc" class="ikincil">Hepsini aç</button><button id="hepsiKapa" class="ikincil">Hepsini kapat</button></div>
@@ -513,7 +520,7 @@ function kesfetCiz() {
       <p id="olcumDurum" class="kucuk"></p>
       <div class="satir"><button id="goruntuKaydet" class="ikincil">Görüntüyü kaydet</button></div>
     </div>
-    <p class="kucuk">${KADIN_MI ? 'Model: HuBMAP İnsan Referans Atlası (yetişkin kadın). Organlar ayrıntılı; iskelet ve kaslar kısmi (omurga, diz, birkaç kas). Tam iskelet ve kaslar için üstten Erkek modeline geç.' : 'Model: BodyParts3D (yetişkin erkek) ve Z-Anatomy ek katmanı (sinirler, lenf düğümleri, akciğer lobları, tiroid). Ek katman asıl modele yaklaşık 1 cm hassasiyetle oturur. Böbreğin iç yapısı ve kadın organları için üstten Kadın modeline geç.'}</p>`;
+    <p class="kucuk">${KADIN_MI ? 'Model: HuBMAP İnsan Referans Atlası (yetişkin kadın). Organlar ayrıntılı; iskelet ve kaslar kısmi (omurga, diz, birkaç kas). Tam iskelet ve kaslar için üstten Erkek modeline geç.' : 'Model: BodyParts3D (yetişkin erkek) ve Z-Anatomy ek katmanı (sinirler, lenf düğümleri, akciğer lobları, tiroid, eklem bağları, kulak kemikçikleri). Ek katman asıl modele yaklaşık 1 cm hassasiyetle oturur. Böbreğin iç yapısı ve kadın organları için üstten Kadın modeline geç.'}</p>`;
   $('#tumunuGoster')?.addEventListener('click', () => { baglanmaKapat(false); aktifKonu = null; g.yalniz = null; g.guncelle(); g.gorunus('on'); etiketleriGuncelle(); kesfetCiz(); });
   $('#arama').addEventListener('input', e => aramaYap(e.target.value));
   document.querySelectorAll('[data-saydam]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.saydam; g.saydamSistem.has(id) ? g.saydamSistem.delete(id) : g.saydamSistem.add(id); g.acikSistemler.add(id); g.guncelle(); kesfetCiz(); }));
@@ -1173,7 +1180,8 @@ const kutuIcinde = (b, a, oran = 0.7) => {
   for (let k = 0; k < 3; k++) { ortak *= Math.max(0, Math.min(b[1][k], a[1][k]) - Math.max(b[0][k], a[0][k])); kendi *= Math.max(b[1][k] - b[0][k], 1e-4); }
   return ortak / kendi >= oran;
 };
-// Yutak yolu: kaynak modelde yutak parçaları gırtlağın önüne kaymış durur; orta hattan geçen yol lokmayı gırtlağın içinden geçirir.
+// Yutak yolu: yutak parçaları ekmodel.js'de omurga ve gırtlağa göre yerine oturtulur (baş-boyun düzeltmesi), ama laringofarinks modelinin alt ucu
+// biçim hatası yüzünden krikoid kıkırdağın ~5 mm önünde kalır; orta hattan geçen yol lokmayı gırtlağın içinden geçirirdi.
 // Bu yüzden lokmanın yolu her yükseklikte dilin ve gırtlağın arka yüzü ile boyun omurlarının ön yüzü arasının ortasından çizilir:
 // ağız yutağı (oropharynx), gırtlak yutağı (laryngopharynx, gırtlağın arkası), sonra yemek borusunun ağzı.
 const OZEL_YOL = { yutak: yutakYolu };

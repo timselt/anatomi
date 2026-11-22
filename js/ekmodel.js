@@ -5,12 +5,49 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { EK_DOGRULAMA } from './ekdogrulama.js';
+import { kasKopyaMi, kasSistem, kasGorev, kasYerlestir, KAS_LA } from './kaskatman.js';
+import { iskeletAlaniKur, esnet } from './ekiskelet.js';
+import { eklemLa } from './eklemterim.js';
+import { kaymaUygula } from './ekkayma.js';
 
 const KLASOR = 'data/models/zanatomy/';
-const DOSYALAR = ['visceral', 'lymphatic', 'nervous', 'cardiovascular'];
+const DOSYALAR = ['visceral', 'lymphatic', 'nervous', 'cardiovascular', 'muscular', 'skeletal', 'joints'];
 const OFSET = new T.Vector3(0, 0.007, 0);
+// Bu dosyalarda sabit OFSET yerine bölgeye göre ölçülmüş düzeltme alanı kullanılır (ekkayma.js): ek katman başta
+// yaklaşık 11 mm önde, bacakta 12 mm dışta ve arkada duruyordu; sinirler kafatasından ve kemiklerden taşıyordu.
+const KAYMA_DOSYALARI = new Set(['nervous', 'cardiovascular']); // damar katmanı da aynı kaynaktan, aynı kaymayla gelir
+// Sinir katmanında asıl modelde başka adla bulunan göz yapıları; göz küresinin ön ve arka bölümü, tabakaları tek yüzeyde
+// birleştiren örtülerdir (asıl modelin sklera, koroid ve retinasının üstüne biner).
+const SINIR_KOPYA = /^(anterior|posterior) segment of eyeball$/;
+// Sinir katmanındaki duyu organı parçaları (göz ve kulak) duyu sistemine gider; yalnız sinirleri ve çekirdekleri sinir sistemindedir.
+const DUYU = /^(cornea|iris|lens|retina|sclera|vitreous body|zonular fibres|suspensory ligament of eyeball|anterior chamber of eyeball|(anterior|posterior) segment of eyeball|lacrimal (gland|sac|canaliculus)|ampulla of lacrimal canaliculus|nasolacrimal duct|cochlea|vestibule|tympanic membrane|auditory tube)$/;
+// Baş ve boyunda Z-Anatomy ana modelden ~1,15 cm öndedir (dil, epiglot, hipofiz, göz ve beyin aynı adlı parçalarla ölçüldü, 22.11.2026);
+// yutak bu yüzden gırtlağın üstüne biniyordu. Kayma göğüs girişine doğru azalır (soluk borusu y=1,42'de 0,6 cm, 1,38'de ~0).
+// Bu katmanlarda her nokta yüksekliğine göre geri çekilir: y≥1,48'de tam, 1,38–1,48 arasında doğrusal azalarak.
+const BAS_BOYUN_DOSYALAR = new Set(['visceral', 'lymphatic']);
+const BAS_BOYUN = { dz: -0.0115, alt: 1.38, ust: 1.48 };
+// Leğende Z-Anatomy'nin organları ana modelden aşağıdadır: mesane 2,6 cm, tohum kesesi 3,1 cm, prostat 3,3 cm (z yönünde 0,1–0,8 cm önde).
+// Bu organlar ana modelde olduğu için eklenmez; ama onlara bağlı eklenen parçalar aynı kaymayla, organın altında kalıyordu
+// (ör. boşaltma kanalı prostatın içinden geçeceğine tamamen altında duruyordu). Bu parçalar bağlı oldukları organın ölçülen kayması kadar taşınır.
+// Leğen duvarındaki düğüm ve damarlar bu kaymayı taşımadığı için listede yok.
+const LEGEN_TASI = {
+  'ejaculatory duct': [0, 0.032, -0.002], // prostat ve tohum kesesine göre
+  'prevesical nodes': [0, 0.026, -0.008], 'postvesical nodes': [0, 0.026, -0.008], 'lateral vesical nodes': [0, 0.026, -0.008], // mesaneye göre
+  'pararectal nodes': [0, 0.033, -0.004], // prostat düzeyine göre (Z-Anatomy'de rektum yok)
+};
+// Z-Anatomy'nin segment bronşları ana modeldeki segment bronş ağaçlarından 5–17 mm uzakta ikinci bir ağaç çiziyordu (22.11.2026 ölçümü);
+// ana modelin ağacı daha ayrıntılı olduğu için bunlar eklenmez. Lob bronşları ve ara bronş ana ağaca 2–3 mm uzakta ve ana modelde ayrı adla
+// bulunmadığı için kalır.
+const BRONS_KOPYA = /segmental bronchus of lung/; // ad buraya "left/right" sözcüğü silinmiş olarak gelir
+function basBoyunDuzelt(g) {
+  const p = g.attributes.position;
+  for (let k = 0; k < p.count; k++) {
+    const o = Math.min(1, Math.max(0, (p.getY(k) - BAS_BOYUN.alt) / (BAS_BOYUN.ust - BAS_BOYUN.alt)));
+    if (o > 0) p.setZ(k, p.getZ(k) + BAS_BOYUN.dz * o);
+  }
+}
 // Kaynak sözlükte eksik yazılmış Latince adlar.
-const LA_DUZELT = { 'external carotid artery': 'Arteria carotis externa' };
+const LA_DUZELT = { 'external carotid artery': 'Arteria carotis externa', ...KAS_LA };
 // Damar katmanında asıl modelde başka adla bulunan yapılar. Liste, her parçanın yüzeyinin asıl modeldeki damar ve kalp
 // yüzeyiyle çakışma oranı ölçülerek ve adlar karşılaştırılarak hazırlandı (22.11.2026): kalp odacıkları ve kapakları,
 // koroner arterler, akciğer segment damarları, orta ve arka serebral arter parçaları, el ve ayak arkları ile parmak damarları.
@@ -24,12 +61,24 @@ const DAMAR_KOPYA = new RegExp(['atrium', 'ventricle$', 'leaflet', 'papillary', 
   'palmar carpal branch of radial', 'plantar metatarsal arteries', 'common plantar digital arteries', 'proper plantar digital arteries',
   'dorsal digital arteries of foot', 'calcaneal branches of posterior tibial', 'perforating femoral arteries', 'superior anorectal artery',
   '^ulnar recurrent artery$', 'superficial branch of transverse cervical', 'hepatic veins', 'internal thoracic veins', 'superior epigastric veins',
-  'venous palmar arch', '^radial veins$', '^ulnar veins$', '^brachial veins$', 'palmar digital veins', 'gastro-omental vein', '\\?'].join('|'));
-const ES_AD = { 'aortic arch': 'arch of aorta', 'brachiocephalic trunk': 'brachiocephalic artery', 'coeliac trunk': 'celiac trunk', 'thoracic aorta': 'descending thoracic aorta', 'proper hepatic artery': 'hepatic artery proper', 'superficial palmar arch': 'superficial palmar arterial arch', oesophagus: 'esophagus', 'vermiform appendix': 'appendix', 'suprarenal gland': 'adrenal gland', 'pineal gland': 'pineal body', 'ductus deferens': 'deferent duct', 'seminal gland': 'seminal vesicle', 'meso-appendix': 'mesoappendix' };
+  'venous palmar arch', '^ileal branch of ileocolic artery$', 'intrarenal veins', '^radial veins$', '^ulnar veins$', '^brachial veins$', 'palmar digital veins', 'gastro-omental vein', '\\?'].join('|'));
+// İskelet dosyasındaki kemiklerin neredeyse tamamı asıl modelde var: her parçanın yüzeyi, iskelet asıl modele oturtulduktan sonra
+// asıl modelin yüzeyiyle karşılaştırıldı (22.11.2026). Kemiklerin yüzeyinin %75–100'ü asıl modeldeki aynı kemiğin 2 mm yakınında kaldı;
+// yalnız aşağıdakiler asıl modelde yok: kulak kemikçikleri, koksiks, 8.–10. kaburga kıkırdakları, frontal ve sfenoid sinüs.
+const ISKELET_EKLE = /^(malleus|incus|stapes|coccyx|costal cartilage of (eighth|ninth|tenth) rib|sinus of (frontal|sphenoid) bone)$/;
+// Eklem dosyasında asıl modelde başka adla bulunanlar (aynı yöntemle): omurlar arası diskler (%53–100 çakışma), disklerin içindeki
+// nucleus pulposus (asıl diskin yüzeyiyle iç içe girip titreşiyor), gırtlağın dörtgen zarı ve krikofaringeal bağ (asıl modelin tiroid-hiyoid
+// zarı ve conus elasticus'uyla %60–73 çakışıyor). Üç kollu kıkırdak (cartilago triradiata) çocukta bulunur, erişkinde kemikleşmiştir; erişkin
+// modele eklenmez.
+const EKLEM_KOPYA = /^(intervertebral disc|nucleus pulposus|quadrangular membrane|cricopharyngeal ligament|triradiate cartilage)/;
+const ES_AD = { retina: 'optic part of retina', 'zonular fibres': 'suspensory ligament of lens', 'aqueduct of midbrain': 'cerebral aqueduct', 'mamillary body': 'mammillary body', 'stria medullaris thalami': 'stria medullaris of thalamus', 'amygdaloid body': 'amygdala', 'central canal': 'central canal of spinal cord', "central canal'": 'central canal of spinal cord', 'lateral occipitotemporal gyrus': 'fusiform gyrus', 'aortic arch': 'arch of aorta', 'brachiocephalic trunk': 'brachiocephalic artery', 'coeliac trunk': 'celiac trunk', 'thoracic aorta': 'descending thoracic aorta', 'proper hepatic artery': 'hepatic artery proper', 'superficial palmar arch': 'superficial palmar arterial arch', oesophagus: 'esophagus', 'vermiform appendix': 'appendix', 'suprarenal gland': 'adrenal gland', 'pineal gland': 'pineal body', 'ductus deferens': 'deferent duct', 'seminal gland': 'seminal vesicle', 'meso-appendix': 'mesoappendix' };
 
 function sistemSec(dosya, n) {
-  if (dosya === 'nervous') return 'sinir';
+  if (dosya === 'joints') return 'bag';
+  if (dosya === 'skeletal') return /malleus|incus|stapes/.test(n) ? 'duyu' : /sinus/.test(n) ? 'solunum' : 'iskelet';
+  if (dosya === 'nervous') return DUYU.test(n) ? 'duyu' : 'sinir';
   if (dosya === 'lymphatic') return 'lenf';
+  if (dosya === 'muscular') return kasSistem(n);
   if (dosya === 'cardiovascular') return /vein|venous|vena|sinus|plexus/.test(n) && !/arter/.test(n) ? 'toplardamar' : 'atardamar';
   if (/lung|bronch|trachea|pleura|nasal|pharynx|epiglott/.test(n)) return 'solunum';
   if (/kidney|ureter|urethra|bladder|renal/.test(n)) return 'bosaltim';
@@ -54,6 +103,14 @@ function gorev(n, sistem) {
   return 'Ek model katmanından gelen yapıdır; ayrıntılı açıklaması henüz eklenmedi.';
 }
 
+// Kaynakta sol taraf parçalarının çoğu sağ tarafın aynalanmış kopyasıdır (ters ölçek; 22.11.2026 ölçümü: iskelette 575 parçanın 241'i,
+// damarlarda 676 parçanın 256'sı). Aynalamada üçgenlerin köşe sırası ters döner; çift yüzlü malzemede ışık arka yüzden hesaplanır
+// ve parça kararır. Köşe sırası geri çevrilir.
+function aynaDuzelt(g) {
+  if (g.index) { const a = g.index.array; for (let k = 0; k < a.length; k += 3) { const t = a[k + 1]; a[k + 1] = a[k + 2]; a[k + 2] = t; } g.index.needsUpdate = true; return; }
+  for (const at of Object.values(g.attributes)) { const a = at.array, n = at.itemSize; for (let k = 0; k < at.count; k += 3) for (let j = 0; j < n; j++) { const t = a[(k + 1) * n + j]; a[(k + 1) * n + j] = a[(k + 2) * n + j]; a[(k + 2) * n + j] = t; } at.needsUpdate = true; }
+}
+
 const iou = (a, b) => {
   let kes = 1, va = 1, vb = 1;
   for (let k = 0; k < 3; k++) {
@@ -64,7 +121,8 @@ const iou = (a, b) => {
 };
 
 // mevcut: [{en, sistem, bounds}] (asıl modelin parçaları). Dönüş: eklenecek yapılar.
-export async function ekModelleriYukle(mevcut, ilerleme) {
+// meshAl(i): asıl modelin i. parçasının çizimi; iskelet ve eklem dosyası bağları asıl kemiklere oturtmak için kullanır.
+export async function ekModelleriYukle(mevcut, ilerleme, meshAl) {
   const draco = new DRACOLoader(); draco.setDecoderPath('vendor/three/examples/jsm/libs/draco/');
   const yukleyici = new GLTFLoader(); yukleyici.setDRACOLoader(draco);
   const sozluk = await (await fetch(KLASOR + 'lexicon.json')).json();
@@ -72,32 +130,55 @@ export async function ekModelleriYukle(mevcut, ilerleme) {
   const sisteme = {};
   for (const p of mevcut) (sisteme[p.sistem] ??= []).push(p.bounds);
   const sonuc = [];
+  let alan = null; // iskeletin asıl modele oturtulmasından çıkan kayma alanı (ekiskelet.js)
   for (const [di, dosya] of DOSYALAR.entries()) {
+    const iskeletDosyasi = dosya === 'skeletal' || dosya === 'joints';
+    if (iskeletDosyasi && !meshAl) continue;
     const gltf = await yukleyici.loadAsync(KLASOR + dosya + '.glb');
     gltf.scene.updateMatrixWorld(true);
     const adlar = new Map(gltf.parser.json.nodes.filter(n => n.name).map(n => [T.PropertyBinding.sanitizeNodeName(n.name), n.name]));
+    // Yükleyici adları sadeleştirir ("Olive.l" → "Olivel"); özgün adı dosyanın düğüm listesinden bul. Parçanın kendi adı bir düğüm
+    // değilse (çok parçalı çizimin alt parçası, ör. "Calcaneusr_1") bir üstteki düğümün adı alınır. Sağ ve sol kemik aynı çizimi
+    // paylaşınca alt parçanın adı hep sağ tarafı gösteriyordu; eski yol ("_1" ekini silip ada bakmak) sol kemiğe de "sağ" diyordu.
+    const adBul = m => { for (let o = m; o; o = o.parent) if (adlar.has(o.name)) return adlar.get(o.name).trim(); return m.name.trim(); };
+    if (dosya === 'skeletal') alan = iskeletAlaniKur(gltf, adBul, mevcut, meshAl);
     gltf.scene.traverse(m => {
       if (!m.isMesh) return;
-      // Yükleyici adları sadeleştirir ("Olive.l" → "Olivel"); özgün adı dosyanın düğüm listesinden bul.
-      const ozgun = ad => adlar.get(ad) ?? adlar.get(ad.replace(/_\d+$/, ''));
-      const ham = (ozgun(m.name) ?? (m.parent && ozgun(m.parent.name)) ?? m.name).trim();
+      const ham = adBul(m);
       const yan = /\.l$/.test(ham) ? 'sol' : /\.r$/.test(ham) ? 'sağ' : '';
       const taban = ham.replace(/\.[lr]$/, '').replace(/ \d+$/, '').trim();
       const parantezsiz = taban.replace(/^\((.*)\)$/, '$1');
-      const kucuk = parantezsiz.toLowerCase().replace(/\b(left|right)\b ?/g, '').trim();
-      if (mevcutAdlar.has(ES_AD[kucuk] || kucuk)) return; // asıl modelde zaten var
+      const kucuk = parantezsiz.toLowerCase().replace(/\b(left|right)\b ?/g, '').replace(/ \((i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii)\)$/, '').trim(); // kafa çifti numarası adı eşleştirmede sayılmaz
+      const yarimTamamla = dosya === 'nervous' && kucuk === 'tentorium cerebelli' && yan === 'sol'; // asıl modelde beyincik çadırının yalnız sağ yarısı var
+      if (mevcutAdlar.has(ES_AD[kucuk] || kucuk) && !yarimTamamla) return; // asıl modelde zaten var
+      if (dosya === 'visceral' && BRONS_KOPYA.test(kucuk)) return; // ana modelin segment bronş ağaçlarının kopyası
       if (dosya === 'cardiovascular' && DAMAR_KOPYA.test(kucuk)) return; // asıl modelde başka adla var (yüzey çakışması ölçülerek bulundu)
+      if (dosya === 'muscular' && kasKopyaMi(kucuk, yan)) return; // asıl modelde başka adla var ya da geniş fasya (kaskatman.js)
+      if (dosya === 'skeletal' && !ISKELET_EKLE.test(kucuk)) return; // asıl modelde var (yüzey çakışması ölçülerek bulundu)
+      if (dosya === 'joints' && EKLEM_KOPYA.test(kucuk)) return;
+      if (dosya === 'nervous' && SINIR_KOPYA.test(kucuk)) return; // göz küresinin tabakalarını örten kopya yüzey
       if (/^liver$|segment of liver/.test(kucuk) && [...mevcutAdlar].some(a => a.startsWith('hepatovenous segment'))) return; // karaciğer segmentleri asıl modelde var
       const sistem = sistemSec(dosya, parantezsiz.toLowerCase());
-      const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld); g.translate(OFSET.x, OFSET.y, OFSET.z);
+      // Sol taraf parçaları kaynak dosyada sağın ayna görüntüsü olarak saklanıyor; aynalama üçgenlerin yönünü ters çevirince
+      // yüzey içten aydınlatılıyor ve koyu görünüyordu. Üçgen sırası çevrilerek düzeltilir.
+      const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld); if (m.matrixWorld.determinant() < 0) aynaDuzelt(g);
+      if (iskeletDosyasi) esnet(g, alan); else if (KAYMA_DOSYALARI.has(dosya)) kaymaUygula(g); else g.translate(OFSET.x, OFSET.y, OFSET.z);
+      if (BAS_BOYUN_DOSYALAR.has(dosya)) basBoyunDuzelt(g);
+      if (LEGEN_TASI[kucuk]) g.translate(...LEGEN_TASI[kucuk]);
+      if (dosya === 'muscular') kasYerlestir(g); // kas dosyası bölge bölge kaymış; ana modelin kaslarına göre yerine oturtulur
       g.computeBoundingBox(); g.computeBoundingSphere();
       const bounds = [g.boundingBox.min.toArray(), g.boundingBox.max.toArray()];
-      if ((sisteme[sistem] || []).some(b => iou(b, bounds) > 0.45)) { g.dispose(); return; } // aynı yapı başka adla var
+      // Aynı yapı başka adla var. Kas dosyasında kopyalar yüzey ölçümüyle ayıklandı; kutu benzerliği orada iç içe yassı kasları
+      // (ör. iç oblik ile dış oblik karın kası) kopya sanıyordu.
+      // Sinir dosyasında oluk (sulcus) yüzeyi komşu kıvrımın kutusuna düşse de ayrı yapıdır. Yutak bölümleri gırtlağın arkasına sarılır;
+      // kutusu gırtlak kıkırdağının kutusuyla çakışır ama kopyası değildir.
+      // Damar dosyasında da kopyalar yüzey ölçümüyle ayıklandı (DAMAR_KOPYA); kutu benzerliği orada ana arterin kutusu içinde kalan dalları (ör. derin femoral arter) düşürüyordu.
+      if (dosya !== 'muscular' && dosya !== 'cardiovascular' && !(dosya === 'nervous' && /sulcus/.test(kucuk)) && !/^(naso|oro|laryngo)pharynx$/.test(kucuk) && (sisteme[sistem] || []).some(b => iou(b, bounds) > 0.45)) { g.dispose(); return; }
       if (!g.attributes.normal) g.computeVertexNormals();
       // Kaynak sözlükte birkaç adda Fransızca aksan kalmış (ör. "latérales"); Latincede aksan olmaz.
       // Terminologia Anatomica ile karşılaştırmada düzeltilen adlar kaynak sözlüğün önüne geçer (ekdogrulama.js).
-      const la = LA_DUZELT[parantezsiz.toLowerCase()] ?? EK_DOGRULAMA[parantezsiz.toLowerCase()]?.la ?? (sozluk[taban]?.la || sozluk[parantezsiz]?.la || parantezsiz).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      sonuc.push({ en: yan ? `${taban} (${yan === 'sol' ? 'left' : 'right'})` : taban, anahtar: 'z:' + parantezsiz.toLowerCase(), enKucuk: parantezsiz.toLowerCase(), la, tr: yan ? `${la} (${yan})` : la, sistem, fn: gorev(parantezsiz.toLowerCase(), sistem), geometry: g, bounds });
+      const la = eklemLa(parantezsiz.toLowerCase()) ?? LA_DUZELT[parantezsiz.toLowerCase()] ?? EK_DOGRULAMA[parantezsiz.toLowerCase()]?.la ?? (sozluk[taban]?.la || sozluk[parantezsiz]?.la || parantezsiz).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      sonuc.push({ en: yan ? `${taban} (${yan === 'sol' ? 'left' : 'right'})` : taban, anahtar: 'z:' + parantezsiz.toLowerCase(), enKucuk: parantezsiz.toLowerCase(), la, tr: yan ? `${la} (${yan})` : la, sistem, fn: (dosya === 'muscular' && kasGorev(parantezsiz.toLowerCase())) || gorev(parantezsiz.toLowerCase(), sistem), geometry: g, bounds });
     });
     ilerleme?.((di + 1) / DOSYALAR.length);
   }

@@ -287,11 +287,11 @@ t('precentral gyrus','presantral','Merkez önü kıvrımı (presantral girus)','
 t('postcentral gyrus','postsantral','Merkez arkası kıvrımı (postsantral girus)','Gyrus postcentralis',3,'Birincil duyu merkezidir; dokunma, ağrı ve sıcaklık burada algılanır.','');
 t('occipital lobe','oksipital-lob','Art kafa lobu','Lobus occipitalis',2,'Görme merkezinin bulunduğu beyin lobudur.','Gözler önde ama görme merkezi arkada.');
 t('insula','insula','İnsula','Insula',3,'Yan yarığın derininde kalan beyin bölgesidir; tat alma ve iç organ duyularında görev alır.','');
-t('optic nerve','gorme-siniri','Görme siniri','Nervus opticus',1,'Gözden aldığı görüntü bilgisini beyne taşır (2. kafa siniri).','');
+t('optic nerve','gorme-siniri','Görme siniri','Nervus opticus',1,'II. kafa çiftidir; yalnız duyu taşır. Ağ tabakadaki (retina) görme bilgisini canalis opticus yoluyla kafatası içine, görme çaprazına taşır. Hasarında o gözde görme kaybı ve doğrudan ışık refleksinin kaybı görülür (karşı göze ışık tutulunca bu gözün bebeği yine daralır).','');
 t('optic chiasm','gorme-caprazi','Görme sinirleri çaprazı','Chiasma opticum',3,'İki görme sinirinin birleşip liflerinin bir kısmının karşı tarafa geçtiği yerdir.','');
 t('optic tract','gorme-yolu','Görme yolu','Tractus opticus',3,'Görme çaprazından sonra görme bilgisini talamusa taşır.','');
-t('trochlear nerve','troklear','Makara siniri','Nervus trochlearis',3,'Üst eğik göz kasını çalıştıran 4. kafa siniridir.','');
-t('ophthalmic nerve','oftalmik','Göz siniri','Nervus ophthalmicus',3,'Göz çevresi ve alından duyu taşıyan sinirdir.','');
+t('trochlear nerve','troklear','Makara siniri','Nervus trochlearis',3,'IV. kafa çiftidir; yalnız hareket taşır: üst eğik göz kasını (m. obliquus superior) çalıştırır. Beyin sapının arka yüzünden çıkan ve karşı tarafa geçen tek kafa çiftidir; sinus cavernosus\'un yan duvarından geçip fissura orbitalis superior\'dan göz çukuruna girer. Hasarında aşağı ve içe bakarken (merdiven inerken, okurken) çift görme olur; hasta başını sağlam tarafa eğer.','');
+t('ophthalmic nerve','oftalmik','Göz siniri','Nervus ophthalmicus',3,'Trigeminal sinirin birinci dalıdır (V1); yalnız duyu taşır. Sinus cavernosus\'un yan duvarından geçip fissura orbitalis superior\'dan göz çukuruna girer; alın siniri, gözyaşı siniri ve burun-siliyer sinire ayrılır. Göz küresi ve kornea, üst göz kapağı, alın ve burun sırtının duyusunu taşır; kornea refleksinin duyu koludur.','');
 t('caudate nucleus','kuyruklu-cekirdek','Kuyruklu çekirdek','Nucleus caudatus',3,'Hareketin planlanmasında görev alan derin beyin çekirdeğidir.','');
 t('putamen','putamen','Putamen','Putamen',3,'Hareketlerin düzenlenmesinde görev alan derin beyin çekirdeğidir.','');
 t('third ventricle|fourth ventricle|lateral ventricle','beyin-karincigi','Beyin ventrikülü','Ventriculus cerebri',2,'Beyin içindeki, beyin-omurilik sıvısıyla dolu boşluklardır.','Kalp ventrikülüyle karıştırma: bunlar sıvı dolu boşluklar.');

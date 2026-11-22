@@ -46,7 +46,7 @@ export const FILTRE_KONULAR = [
   { id: 'ureme', ad: 'Üreme organları ve meme', filtre: F(['ureme'], /./) },
   { id: 'gebelik', ad: 'Plasenta ve göbek kordonu', filtre: F(['gebelik'], /./) },
   { id: 'bobrek-ic', ad: 'Böbreğin iç yapısı ve idrar kesesi', filtre: F(['bosaltim'], /calyx|pyramid|papilla|cortex|column|pelvis|hilum|capsule|trigone|orifice|fundus|neck/) },
-  { id: 'akciger-segment', ad: 'Akciğer lobları, segmentleri ve bronşlar', filtre: F(['solunum'], /bronchopulmonary|lobar|hilus|carina|cartilage of|segmental bronchus|lingular bronchus|trachea cartilage|lobe of|pleura|pharynx|mucosa/) },
+  { id: 'akciger-segment', ad: 'Akciğer lobları, segmentleri ve bronşlar', filtre: F(['solunum'], /bronchopulmonary|lobar|intermediate bronchus|hilus|carina|cartilage of|segmental bronchus|lingular bronchus|trachea cartilage|lobe of|pleura|pharynx|mucosa/) },
   { id: 'karin-organ-ayrinti', ad: 'Karaciğer, pankreas ve bağırsak ayrıntıları', filtre: F(['sindirim'], /liver|hepat|hepatovenous|segment\d?$|ligament|bile|porta|pancrea|duoden|ampulla|flexure|caecum|sigmoid|tonsil|valve|venosum|omentum|parotid|palate|mesocolon/) },
   { id: 'periferik-sinir', ad: 'Periferik sinirler ve sinir ağları', filtre: F(['sinir'], /nerve|plexus|ganglion|trunk|ramus|rami|cord|root|branch/, /spinal cord|oculomotor|ciliary|optic|nasociliary|frontal|ethmoidal|trochlear|orbital|lacrimal|ophthalmic/) },
   { id: 'hormon-ek', ad: 'Tiroid, paratiroid ve diğer bezler', filtre: F(['hormon'], /thyroid|hypophysis/) },
